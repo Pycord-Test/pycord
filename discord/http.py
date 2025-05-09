@@ -290,10 +290,6 @@ class HTTPClient:
         if self.proxy_auth is not None:
             kwargs["proxy_auth"] = self.proxy_auth
 
-        if not self._global_over.is_set():
-            # wait until the global lock is complete
-            await self._global_over.wait()
-
         response: aiohttp.ClientResponse | None = None
         data: dict[str, Any] | str | None = None
 
