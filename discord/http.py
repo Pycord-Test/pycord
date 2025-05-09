@@ -107,6 +107,7 @@ async def json_or_text(response: aiohttp.ClientResponse) -> dict[str, Any] | str
 class Route:
     def __init__(
         self,
+        method: str,
         path: str,
         guild_id: str | None = None,
         channel_id: str | None = None,
@@ -114,6 +115,7 @@ class Route:
         webhook_token: str | None = None,
         **parameters: str | int,
     ):
+        self.method = method
         self.path = path
 
         # major parameters
@@ -202,7 +204,9 @@ class HTTPClient:
         proxy_auth: aiohttp.BasicAuth | None = None,
         loop: asyncio.AbstractEventLoop | None = None,
         unsync_clock: bool = True,
+        discord_api_url: str = "https://discord.com/api/v10"
     ) -> None:
+        self.api_url = discord_api_url
         self.loop: asyncio.AbstractEventLoop = (
             asyncio.get_event_loop() if loop is None else loop
         )
@@ -252,9 +256,9 @@ class HTTPClient:
         form: Iterable[dict[str, Any]] | None = None,
         **kwargs: Any,
     ) -> Any:
-        bucket = route.bucket
+        bucket = route.merge(self.api_url)
         method = route.method
-        url = route.url
+        url = route.path
 
         # header creation
         headers: dict[str, str] = {
