@@ -211,7 +211,7 @@ class HTTPClient:
             asyncio.get_event_loop() if loop is None else loop
         )
         self.connector = connector
-        self.__session: aiohttp.ClientSession = MISSING  # filled in static_login
+        self.__session: aiohttp.ClientSession | utils.Undefined = MISSING  # filled in static_login
         self.token: str | None = None
         self.bot_token: bool = False
         self.proxy: str | None = proxy
