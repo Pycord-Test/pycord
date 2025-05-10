@@ -375,7 +375,7 @@ class ScheduledEvent(Hashable):
 
         if location is not MISSING:
             if not isinstance(
-                location, (ScheduledEventLocation, utils._MissingSentinel)
+                location, (ScheduledEventLocation, utils.Undefined)
             ):
                 location = ScheduledEventLocation(state=self._state, value=location)
 

@@ -32,7 +32,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Iterator, Literal, Pattern, TypeVar, Union
 
 from discord import utils
-from discord.utils import MISSING, maybe_coroutine, resolve_annotation
+from discord.utils import MISSING, Undefined, maybe_coroutine, resolve_annotation
 
 from .converter import run_converters
 from .errors import (
@@ -82,13 +82,13 @@ class Flag:
         Whether multiple given values overrides the previous value.
     """
 
-    name: str = _MISSING
+    name: str | Undefined = MISSING
     aliases: list[str] = field(default_factory=list)
-    attribute: str = _MISSING
-    annotation: Any = _MISSING
-    default: Any = _MISSING
-    max_args: int = _MISSING
-    override: bool = _MISSING
+    attribute: str | Undefined = MISSING
+    annotation: Any | Undefined = MISSING
+    default: Any | Undefined = MISSING
+    max_args: int | Undefined = MISSING
+    override: bool | Undefined = MISSING
     cast_to_dict: bool = False
 
     @property
