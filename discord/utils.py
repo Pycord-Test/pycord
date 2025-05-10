@@ -107,9 +107,11 @@ DISCORD_EPOCH = 1420070400000
 class Undefined(Enum):
     MISSING = auto()
 
+    def __bool__(self) -> Literal[False]:
+        return False
 
-MISSING = Undefined.MISSING
 
+MISSING: Literal[Undefined.MISSING] = Undefined.MISSING
 
 class _cached_property:
     def __init__(self, function):
