@@ -108,7 +108,7 @@ class Undefined(Enum):
     MISSING = auto()
 
 
-MISSING: Any = Undefined.MISSING
+MISSING = Undefined.MISSING
 
 
 class _cached_property:
