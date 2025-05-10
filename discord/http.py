@@ -258,7 +258,7 @@ class HTTPClient:
     ) -> Any:
         bucket = route.merge(self.api_url)
         method = route.method
-        url = route.path
+        url = self.api_url + route.path
 
         # header creation
         headers: dict[str, str] = {
