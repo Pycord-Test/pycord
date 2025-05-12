@@ -33,6 +33,7 @@ from .errors import ClientException
 from .flags import ChannelFlags
 from .mixins import Hashable
 from .utils import MISSING, _get_as_snowflake, parse_time
+from discord import utils
 
 __all__ = (
     "Thread",
@@ -300,7 +301,7 @@ class Thread(Messageable, Hashable):
     def applied_tags(self) -> list[ForumTag]:
         """List[:class:`ForumTag`]: A list of tags applied to this thread.
 
-        This is only available for threads in forum channels.
+        This is only available for threads in forum or media channels.
         """
         from .channel import ForumChannel  # to prevent circular import
 
@@ -394,7 +395,7 @@ class Thread(Messageable, Hashable):
         return self._state._get_message(self.id)
 
     def is_pinned(self) -> bool:
-        """Whether the thread is pinned to the top of its parent forum channel.
+        """Whether the thread is pinned to the top of its parent forum or media channel.
 
         .. versionadded:: 2.3
         """
@@ -517,7 +518,7 @@ class Thread(Messageable, Hashable):
         self,
         *,
         limit: int | None = 100,
-        check: Callable[[Message], bool] = MISSING,
+        check: Callable[[Message], bool] | utils.Undefined = MISSING,
         before: SnowflakeTime | None = None,
         after: SnowflakeTime | None = None,
         around: SnowflakeTime | None = None,
@@ -597,14 +598,14 @@ class Thread(Messageable, Hashable):
     async def edit(
         self,
         *,
-        name: str = MISSING,
-        archived: bool = MISSING,
-        locked: bool = MISSING,
-        invitable: bool = MISSING,
-        slowmode_delay: int = MISSING,
-        auto_archive_duration: ThreadArchiveDuration = MISSING,
-        pinned: bool = MISSING,
-        applied_tags: list[ForumTag] = MISSING,
+        name: str | utils.Undefined = MISSING,
+        archived: bool | utils.Undefined = MISSING,
+        locked: bool | utils.Undefined = MISSING,
+        invitable: bool | utils.Undefined = MISSING,
+        slowmode_delay: int | utils.Undefined = MISSING,
+        auto_archive_duration: ThreadArchiveDuration | utils.Undefined = MISSING,
+        pinned: bool | utils.Undefined = MISSING,
+        applied_tags: list[ForumTag] | utils.Undefined = MISSING,
         reason: str | None = None,
     ) -> Thread:
         """|coro|
@@ -638,7 +639,7 @@ class Thread(Messageable, Hashable):
         reason: Optional[:class:`str`]
             The reason for editing this thread. Shows up on the audit log.
         pinned: :class:`bool`
-            Whether to pin the thread or not. This only works if the thread is part of a forum.
+            Whether to pin the thread or not. This only works if the thread is part of a forum or media channel.
         applied_tags: List[:class:`ForumTag`]
             The set of tags to apply to the thread. Each tag object should have an ID set.
 
@@ -681,7 +682,7 @@ class Thread(Messageable, Hashable):
         # The data payload will always be a Thread payload
         return Thread(data=data, state=self._state, guild=self.guild)  # type: ignore
 
-    async def archive(self, locked: bool = MISSING) -> Thread:
+    async def archive(self, locked: bool | utils.Undefined = MISSING) -> Thread:
         """|coro|
 
         Archives the thread. This is a shorthand of :meth:`.edit`.

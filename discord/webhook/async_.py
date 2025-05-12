@@ -47,6 +47,7 @@ from ..errors import (
     InvalidArgument,
     NotFound,
 )
+from ..file import VoiceMessage
 from ..flags import MessageFlags
 from ..http import Route
 from ..message import Attachment, Message
@@ -501,19 +502,22 @@ class AsyncWebhookAdapter:
             "type": type,
         }
 
-        if data is not None:
-            payload["data"] = data
+        payload["data"] = data if data is not None else {}
         form = [{"name": "payload_json"}]
         attachments = []
         files = files or []
         for index, file in enumerate(files):
-            attachments.append(
-                {
-                    "id": index,
-                    "filename": file.filename,
-                    "description": file.description,
-                }
-            )
+            attachment_info = {
+                "id": index,
+                "filename": file.filename,
+                "description": file.description,
+            }
+            if isinstance(file, VoiceMessage):
+                attachment_info.update(
+                    waveform=file.waveform,
+                    duration_secs=file.duration_secs,
+                )
+            attachments.append(attachment_info)
             form.append(
                 {
                     "name": f"files[{index}]",
@@ -522,7 +526,8 @@ class AsyncWebhookAdapter:
                     "content_type": "application/octet-stream",
                 }
             )
-        payload["attachments"] = attachments
+        if attachments:
+            payload["data"]["attachments"] = attachments
         form[0]["value"] = utils._to_json(payload)
 
         route = Route(
@@ -611,21 +616,21 @@ class ExecuteWebhookParameters(NamedTuple):
 
 
 def handle_message_parameters(
-    content: str | None = MISSING,
+    content: str | None | utils.Undefined = MISSING,
     *,
-    username: str = MISSING,
+    username: str | utils.Undefined = MISSING,
     avatar_url: Any = MISSING,
     tts: bool = False,
     ephemeral: bool = False,
-    file: File = MISSING,
-    files: list[File] = MISSING,
-    attachments: list[Attachment] = MISSING,
-    embed: Embed | None = MISSING,
-    embeds: list[Embed] = MISSING,
-    view: View | None = MISSING,
-    poll: Poll | None = MISSING,
-    applied_tags: list[Snowflake] = MISSING,
-    allowed_mentions: AllowedMentions | None = MISSING,
+    file: File | utils.Undefined = MISSING,
+    files: list[File] | utils.Undefined = MISSING,
+    attachments: list[Attachment] | utils.Undefined = MISSING,
+    embed: Embed | None | utils.Undefined = MISSING,
+    embeds: list[Embed] | utils.Undefined = MISSING,
+    view: View | None | utils.Undefined = MISSING,
+    poll: Poll | None | utils.Undefined = MISSING,
+    applied_tags: list[Snowflake] | utils.Undefined = MISSING,
+    allowed_mentions: AllowedMentions | None | utils.Undefined = MISSING,
     previous_allowed_mentions: AllowedMentions | None = None,
     suppress: bool = False,
 ) -> ExecuteWebhookParameters:
@@ -658,8 +663,10 @@ def handle_message_parameters(
     if username:
         payload["username"] = username
 
-    flags = MessageFlags(suppress_embeds=suppress, ephemeral=ephemeral)
-    payload["flags"] = flags.value
+    flags = MessageFlags(
+        suppress_embeds=suppress,
+        ephemeral=ephemeral,
+    )
 
     if applied_tags is not MISSING:
         payload["applied_tags"] = applied_tags
@@ -680,6 +687,7 @@ def handle_message_parameters(
         files = [file]
 
     if files:
+        voice_message = False
         for index, file in enumerate(files):
             multipart_files.append(
                 {
@@ -689,16 +697,25 @@ def handle_message_parameters(
                     "content_type": "application/octet-stream",
                 }
             )
-            _attachments.append(
-                {
-                    "id": index,
-                    "filename": file.filename,
-                    "description": file.description,
-                }
-            )
+            attachment_info = {
+                "id": index,
+                "filename": file.filename,
+                "description": file.description,
+            }
+            if isinstance(file, VoiceMessage):
+                voice_message = True
+                attachment_info.update(
+                    waveform=file.waveform,
+                    duration_secs=file.duration_secs,
+                )
+            _attachments.append(attachment_info)
+        if voice_message:
+            flags = flags + MessageFlags(is_voice_message=True)
 
-    if _attachments:
+    if attachments is not MISSING or _attachments:
         payload["attachments"] = _attachments
+
+    payload["flags"] = flags.value
 
     if multipart_files:
         multipart.append({"name": "payload_json", "value": utils._to_json(payload)})
@@ -841,15 +858,15 @@ class WebhookMessage(Message):
 
     async def edit(
         self,
-        content: str | None = MISSING,
-        embeds: list[Embed] = MISSING,
-        embed: Embed | None = MISSING,
-        file: File = MISSING,
-        files: list[File] = MISSING,
-        attachments: list[Attachment] = MISSING,
-        view: View | None = MISSING,
+        content: str | None | utils.Undefined = MISSING,
+        embeds: list[Embed] | utils.Undefined = MISSING,
+        embed: Embed | None | utils.Undefined = MISSING,
+        file: File | utils.Undefined = MISSING,
+        files: list[File] | utils.Undefined = MISSING,
+        attachments: list[Attachment] | utils.Undefined = MISSING,
+        view: View | None | utils.Undefined = MISSING,
         allowed_mentions: AllowedMentions | None = None,
-        suppress: bool | None = MISSING,
+        suppress: bool | None | utils.Undefined = MISSING,
     ) -> WebhookMessage:
         """|coro|
 
@@ -1456,8 +1473,8 @@ class Webhook(BaseWebhook):
         self,
         *,
         reason: str | None = None,
-        name: str | None = MISSING,
-        avatar: bytes | None = MISSING,
+        name: str | None | utils.Undefined = MISSING,
+        avatar: bytes | None | utils.Undefined = MISSING,
         channel: Snowflake | None = None,
         prefer_auth: bool = True,
     ) -> Webhook:
@@ -1571,22 +1588,22 @@ class Webhook(BaseWebhook):
     @overload
     async def send(
         self,
-        content: str = MISSING,
+        content: str | utils.Undefined = MISSING,
         *,
-        username: str = MISSING,
+        username: str | utils.Undefined = MISSING,
         avatar_url: Any = MISSING,
-        tts: bool = MISSING,
-        ephemeral: bool = MISSING,
-        file: File = MISSING,
-        files: list[File] = MISSING,
-        embed: Embed = MISSING,
-        embeds: list[Embed] = MISSING,
-        allowed_mentions: AllowedMentions = MISSING,
-        view: View = MISSING,
-        poll: Poll = MISSING,
-        thread: Snowflake = MISSING,
+        tts: bool | utils.Undefined = MISSING,
+        ephemeral: bool | utils.Undefined = MISSING,
+        file: File | utils.Undefined = MISSING,
+        files: list[File] | utils.Undefined = MISSING,
+        embed: Embed | utils.Undefined = MISSING,
+        embeds: list[Embed] | utils.Undefined = MISSING,
+        allowed_mentions: AllowedMentions | utils.Undefined = MISSING,
+        view: View | utils.Undefined = MISSING,
+        poll: Poll | utils.Undefined = MISSING,
+        thread: Snowflake | utils.Undefined = MISSING,
         thread_name: str | None = None,
-        applied_tags: list[Snowflake] = MISSING,
+        applied_tags: list[Snowflake] | utils.Undefined = MISSING,
         wait: Literal[True],
         delete_after: float = None,
     ) -> WebhookMessage: ...
@@ -1594,44 +1611,44 @@ class Webhook(BaseWebhook):
     @overload
     async def send(
         self,
-        content: str = MISSING,
+        content: str | utils.Undefined = MISSING,
         *,
-        username: str = MISSING,
+        username: str | utils.Undefined = MISSING,
         avatar_url: Any = MISSING,
-        tts: bool = MISSING,
-        ephemeral: bool = MISSING,
-        file: File = MISSING,
-        files: list[File] = MISSING,
-        embed: Embed = MISSING,
-        embeds: list[Embed] = MISSING,
-        allowed_mentions: AllowedMentions = MISSING,
-        view: View = MISSING,
-        poll: Poll = MISSING,
-        thread: Snowflake = MISSING,
-        thread_name: str | None = None,
-        applied_tags: list[Snowflake] = MISSING,
+        tts: bool | utils.Undefined = MISSING,
+        ephemeral: bool | utils.Undefined = MISSING,
+        file: File | utils.Undefined = MISSING,
+        files: list[File] | utils.Undefined = MISSING,
+        embed: Embed | utils.Undefined = MISSING,
+        embeds: list[Embed] | utils.Undefined = MISSING,
+        allowed_mentions: AllowedMentions | utils.Undefined = MISSING,
+        view: View | utils.Undefined = MISSING,
+        poll: Poll | utils.Undefined = MISSING,
+        thread: Snowflake | utils.Undefined = MISSING,
+        thread_name: str | None | utils.Undefined = None,
+        applied_tags: list[Snowflake] | utils.Undefined = MISSING,
         wait: Literal[False] = ...,
         delete_after: float = None,
     ) -> None: ...
 
     async def send(
         self,
-        content: str = MISSING,
+        content: str | utils.Undefined = MISSING,
         *,
-        username: str = MISSING,
-        avatar_url: Any = MISSING,
+        username: str | utils.Undefined = MISSING,
+        avatar_url: Any | utils.Undefined = MISSING,
         tts: bool = False,
         ephemeral: bool = False,
-        file: File = MISSING,
-        files: list[File] = MISSING,
-        embed: Embed = MISSING,
-        embeds: list[Embed] = MISSING,
-        allowed_mentions: AllowedMentions = MISSING,
-        view: View = MISSING,
-        poll: Poll = MISSING,
-        thread: Snowflake = MISSING,
+        file: File | utils.Undefined = MISSING,
+        files: list[File] | utils.Undefined = MISSING,
+        embed: Embed | utils.Undefined = MISSING,
+        embeds: list[Embed] | utils.Undefined = MISSING,
+        allowed_mentions: AllowedMentions | utils.Undefined = MISSING,
+        view: View | utils.Undefined = MISSING,
+        poll: Poll | utils.Undefined = MISSING,
+        thread: Snowflake | utils.Undefined = MISSING,
         thread_name: str | None = None,
-        applied_tags: list[Snowflake] = MISSING,
+        applied_tags: list[Snowflake] | utils.Undefined = MISSING,
         wait: bool = False,
         delete_after: float = None,
     ) -> WebhookMessage | None:
@@ -1888,15 +1905,15 @@ class Webhook(BaseWebhook):
         self,
         message_id: int,
         *,
-        content: str | None = MISSING,
-        embeds: list[Embed] = MISSING,
-        embed: Embed | None = MISSING,
-        file: File = MISSING,
-        files: list[File] = MISSING,
-        attachments: list[Attachment] = MISSING,
-        view: View | None = MISSING,
+        content: str | None | utils.Undefined = MISSING,
+        embeds: list[Embed] | utils.Undefined = MISSING,
+        embed: Embed | None | utils.Undefined = MISSING,
+        file: File | utils.Undefined = MISSING,
+        files: list[File] | utils.Undefined = MISSING,
+        attachments: list[Attachment] | utils.Undefined = MISSING,
+        view: View | None | utils.Undefined = MISSING,
         allowed_mentions: AllowedMentions | None = None,
-        thread: Snowflake | None = MISSING,
+        thread: Snowflake | None | utils.Undefined = MISSING,
         suppress: bool = False,
     ) -> WebhookMessage:
         """|coro|

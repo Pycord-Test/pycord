@@ -1,3 +1,7 @@
+⚠️ This is a testing repository, and should not be used in production.
+
+Please use the main repository: https://github.com/Pycord-Development/pycord
+
 .. image:: https://raw.githubusercontent.com/Pycord-Development/pycord/master/pycord.png
    :alt: Pycord v3
 
@@ -31,7 +35,7 @@ Pycord is a modern, easy to use, feature-rich, and async ready API wrapper for D
 Note
 ----
 
-Pycord supports Python ``3.9`` - ``3.12``
+Pycord supports Python ``3.9`` - ``3.13``
 
 Key Features
 ------------

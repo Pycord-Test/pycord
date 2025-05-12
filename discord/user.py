@@ -38,7 +38,7 @@ from .colour import Colour
 from .flags import PublicUserFlags
 from .iterators import EntitlementIterator
 from .monetization import Entitlement
-from .utils import MISSING, _bytes_to_base64_data, snowflake_time
+from .utils import MISSING, Undefined, _bytes_to_base64_data, snowflake_time
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -463,9 +463,9 @@ class ClientUser(BaseUser):
     async def edit(
         self,
         *,
-        username: str = MISSING,
-        avatar: bytes = MISSING,
-        banner: bytes = MISSING,
+        username: str | Undefined = MISSING,
+        avatar: bytes | Undefined = MISSING,
+        banner: bytes | Undefined = MISSING,
     ) -> ClientUser:
         """|coro|
 

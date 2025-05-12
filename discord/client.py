@@ -1246,7 +1246,7 @@ class Client:
         return asyncio.wait_for(future, timeout)
 
     # event registration
-    def add_listener(self, func: Coro, name: str = MISSING) -> None:
+    def add_listener(self, func: Coro, name: str | utils.Undefined = MISSING) -> None:
         """The non decorator alternative to :meth:`.listen`.
 
         Parameters
@@ -1293,7 +1293,7 @@ class Client:
             name,
         )
 
-    def remove_listener(self, func: Coro, name: str = MISSING) -> None:
+    def remove_listener(self, func: Coro, name: str | utils.Undefined = MISSING) -> None:
         """Removes a listener from the pool of listeners.
 
         Parameters
@@ -1313,7 +1313,7 @@ class Client:
             except ValueError:
                 pass
 
-    def listen(self, name: str = MISSING, once: bool = False) -> Callable[[Coro], Coro]:
+    def listen(self, name: str | utils.Undefined = MISSING, once: bool = False) -> Callable[[Coro], Coro]:
         """A decorator that registers another function as an external
         event listener. Basically this allows you to listen to multiple
         events from different places e.g. such as :func:`.on_ready`
@@ -1597,8 +1597,8 @@ class Client:
         self,
         *,
         name: str,
-        icon: bytes = MISSING,
-        code: str = MISSING,
+        icon: bytes | utils.Undefined = MISSING,
+        code: str | utils.Undefined = MISSING,
     ) -> Guild:
         """|coro|
 
@@ -2087,7 +2087,7 @@ class Client:
             The bot's SKUs.
         """
         data = await self._connection.http.list_skus(self.application_id)
-        return [SKU(data=s) for s in data]
+        return [SKU(state=self._connection, data=s) for s in data]
 
     def entitlements(
         self,

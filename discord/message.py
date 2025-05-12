@@ -789,6 +789,7 @@ class Message(Hashable):
 
     __slots__ = (
         "_state",
+        "_raw_data",
         "_edited_timestamp",
         "_cs_channel_mentions",
         "_cs_raw_mentions",
@@ -842,6 +843,7 @@ class Message(Hashable):
         data: MessagePayload,
     ):
         self._state: ConnectionState = state
+        self._raw_data: MessagePayload = data
         self.id: int = int(data["id"])
         self.webhook_id: int | None = utils._get_as_snowflake(data, "webhook_id")
         self.reactions: list[Reaction] = [
@@ -1484,16 +1486,16 @@ class Message(Hashable):
 
     async def edit(
         self,
-        content: str | None = MISSING,
-        embed: Embed | None = MISSING,
-        embeds: list[Embed] = MISSING,
-        file: Sequence[File] = MISSING,
-        files: list[Sequence[File]] = MISSING,
-        attachments: list[Attachment] = MISSING,
-        suppress: bool = MISSING,
+        content: str | None | utils.Undefined = MISSING,
+        embed: Embed | None | utils.Undefined = MISSING,
+        embeds: list[Embed] | utils.Undefined = MISSING,
+        file: Sequence[File] | utils.Undefined = MISSING,
+        files: list[Sequence[File]] | utils.Undefined = MISSING,
+        attachments: list[Attachment] | utils.Undefined = MISSING,
+        suppress: bool | utils.Undefined = MISSING,
         delete_after: float | None = None,
-        allowed_mentions: AllowedMentions | None = MISSING,
-        view: View | None = MISSING,
+        allowed_mentions: AllowedMentions | None | utils.Undefined = MISSING,
+        view: View | None | utils.Undefined = MISSING,
     ) -> Message:
         """|coro|
 
@@ -1845,8 +1847,8 @@ class Message(Hashable):
         self,
         *,
         name: str,
-        auto_archive_duration: ThreadArchiveDuration = MISSING,
-        slowmode_delay: int = MISSING,
+        auto_archive_duration: ThreadArchiveDuration | utils.Undefined = MISSING,
+        slowmode_delay: int | utils.Undefined = MISSING,
     ) -> Thread:
         """|coro|
 
