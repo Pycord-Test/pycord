@@ -43,7 +43,7 @@ from typing import (
     Union,
 )
 
-from . import utils
+from . import models, utils
 from .activity import BaseActivity
 from .audit_logs import AuditLogEntry
 from .automod import AutoModRule
@@ -352,8 +352,8 @@ class ConnectionState:
         for vc in self.voice_clients:
             vc.main_ws = ws  # type: ignore
 
-    def store_user(self, data: UserPayload) -> User:
-        user_id = int(data["id"])
+    def store_user(self, data: models.User) -> User:
+        user_id = data.id
         try:
             return self._users[user_id]
         except KeyError:
@@ -376,10 +376,8 @@ class ConnectionState:
         # the keys of self._users are ints
         return self._users.get(id)  # type: ignore
 
-    def store_emoji(self, guild: Guild, data: EmojiPayload) -> GuildEmoji:
-        # the id will be present here
-        emoji_id = int(data["id"])  # type: ignore
-        self._emojis[emoji_id] = emoji = GuildEmoji(guild=guild, state=self, data=data)
+    def store_emoji(self, guild: Guild, data: models.Emoji) -> GuildEmoji:
+        self._emojis[data.id] = emoji = GuildEmoji(guild=guild, state=self, data=data)
         return emoji
 
     def maybe_store_app_emoji(
@@ -657,18 +655,18 @@ class ConnectionState:
         finally:
             self._ready_task = None
 
-    def parse_ready(self, data) -> None:
+    def parse_ready(self, data: models.gateway.ReadyData) -> None:
         if self._ready_task is not None:
             self._ready_task.cancel()
 
         self._ready_state = asyncio.Queue()
         self.clear(views=False)
-        self.user = ClientUser(state=self, data=data["user"])
-        self.store_user(data["user"])
+        self.user = ClientUser(state=self, data=data.user)
+        self.store_user(data.user)  # TODO Rewrite cache to use model_dump
 
         if self.application_id is None:
             try:
-                application = data["application"]
+                application = data.application
             except KeyError:
                 pass
             else:
@@ -676,11 +674,17 @@ class ConnectionState:
                 # flags will always be present here
                 self.application_flags = ApplicationFlags._from_value(application["flags"])  # type: ignore
 
-        for guild_data in data["guilds"]:
-            self._add_guild_from_data(guild_data)
+        for guild_data in data.guilds:
+            self._add_guild_from_data(
+                guild_data.model_dump()
+            )  # TODO Rewrite cache to support Pydantic
 
         self.dispatch("connect")
         self._ready_task = asyncio.create_task(self._delay_ready())
+
+    parse_ready._supports_model = (  # pyright: ignore [reportFunctionMemberAccess]
+        models.gateway.Ready
+    )
 
     def parse_resumed(self, data) -> None:
         self.dispatch("resumed")
@@ -1420,9 +1424,8 @@ class ConnectionState:
         else:
             self.dispatch("guild_join", guild)
 
-    def parse_guild_create(self, data) -> None:
-        unavailable = data.get("unavailable")
-        if unavailable is True:
+    def parse_guild_create(self, data: models.gateway.GuildCreateData) -> None:
+        if data.unavailable is True:
             # joined a guild with unavailable == True so..
             return
 
@@ -1447,6 +1450,10 @@ class ConnectionState:
             self.dispatch("guild_available", guild)
         else:
             self.dispatch("guild_join", guild)
+
+    parse_guild_create._supports_model = (  # pyright: ignore [reportFunctionMemberAccess]
+        models.gateway.GuildCreate
+    )
 
     def parse_guild_update(self, data) -> None:
         guild = self._get_guild(int(data["id"]))
