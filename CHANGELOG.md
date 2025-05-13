@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) when
 possible (see our [Version Guarantees] for more info).
 
+## Pycord Expanded and Enhanced
+
+These changes are part of `pycord-test/pycord`, and are candidates for the next major
+release.
+
+### Added
+
+### Fixed
+
+### Changed
+
+### Deprecated
+
+### Removed
+
 ## [Unreleased]
 
 These changes are available on the `master` branch, but have not yet been released.
