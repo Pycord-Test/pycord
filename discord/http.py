@@ -217,7 +217,7 @@ class HTTPClient:
         self.proxy: str | None = proxy
         self.proxy_auth: aiohttp.BasicAuth | None = proxy_auth
         self.use_clock: bool = not unsync_clock
-        self._executors = []
+        self._executors: list[Executor] = []
 
         user_agent = (
             "DiscordBot (https://pycord.dev, {0}) Python/{1[0]}.{1[1]} aiohttp/{2}"
@@ -332,7 +332,8 @@ class HTTPClient:
 
                         self._executors.append(executor)
                         await executor.executed(
-                            reset_after=data['retry_after'],
+                            # NOTE: 5 is just a placeholder since this should always be present
+                            reset_after=float(response.headers.get('X-RateLimit-Reset-After', "5")),
                             is_global=response.headers.get('X-RateLimit-Scope') == 'global',
                             limit=int(response.headers.get('X-RateLimit-Limit', 10)),
                         )
@@ -346,40 +347,16 @@ class HTTPClient:
 
                     # we are being rate limited
                     if response.status == 429:
-                        if not response.headers.get("Via") or isinstance(data, str):
-                            # Banned by Cloudflare more than likely.
-                            raise HTTPException(response, data)
+                        _log.debug(f'Request to {route} failed: Request returned rate limit')
+                        executor = Executor(route=route)
 
-                        fmt = (
-                            "We are being rate limited. Retrying in %.2f seconds."
-                            ' Handled under the bucket "%s"'
+                        self._executors.append(executor)
+                        await executor.executed(
+                            reset_after=data['retry_after'],
+                            is_global=response.headers.get('X-RateLimit-Scope') == 'global',
+                            limit=int(response.headers.get('X-RateLimit-Limit', 10)),
                         )
-
-                        # sleep a bit
-                        retry_after: float = data["retry_after"]
-                        _log.warning(fmt, retry_after, bucket)
-
-                        # check if it's a global rate limit
-                        is_global = data.get("global", False)
-                        if is_global:
-                            _log.warning(
-                                (
-                                    "Global rate limit has been hit. Retrying in"
-                                    " %.2f seconds."
-                                ),
-                                retry_after,
-                            )
-                            self._global_over.clear()
-
-                        await asyncio.sleep(retry_after)
-                        _log.debug("Done sleeping for the rate limit. Retrying...")
-
-                        # release the global lock now that the
-                        # global rate limit has passed
-                        if is_global:
-                            self._global_over.set()
-                            _log.debug("Global rate limit is now over.")
-
+                        self._executors.remove(executor)
                         continue
 
                     # we've received a 500, 502, 503, or 504, unconditional retry
