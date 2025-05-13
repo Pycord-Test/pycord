@@ -141,7 +141,7 @@ class Route:
             or route.guild_id == self.guild_id
             or route.webhook_id == self.webhook_id
             or route.webhook_token == self.webhook_token
-        )
+        ) and route.method == self.method
 
 
 
