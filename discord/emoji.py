@@ -44,7 +44,7 @@ if TYPE_CHECKING:
     from .abc import Snowflake
     from .guild import Guild
     from .role import Role
-    from .state import ConnectionState
+    from .app.state import ConnectionState
     from .types.emoji import Emoji as EmojiPayload
 
 
@@ -416,4 +416,4 @@ class AppEmoji(BaseEmoji):
         data = await self._state.http.edit_application_emoji(
             self.application_id, self.id, payload=payload
         )
-        return self._state.maybe_store_app_emoji(self.application_id, data)
+        return await self._state.maybe_store_app_emoji(self.application_id, data)

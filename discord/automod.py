@@ -52,7 +52,7 @@ if TYPE_CHECKING:
     from .guild import Guild
     from .member import Member
     from .role import Role
-    from .state import ConnectionState
+    from .app.state import ConnectionState
     from .types.automod import AutoModAction as AutoModActionPayload
     from .types.automod import AutoModActionMetadata as AutoModActionMetadataPayload
     from .types.automod import AutoModRule as AutoModRulePayload

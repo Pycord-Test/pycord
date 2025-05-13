@@ -36,7 +36,7 @@ if TYPE_CHECKING:
 
     import discord
     from .. import Bot
-    from ..state import ConnectionState
+    from ..app.state import ConnectionState
     from ..voice_client import VoiceClient
 
     from .core import ApplicationCommand, Option

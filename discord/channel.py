@@ -25,6 +25,7 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
+import asyncio
 import datetime
 from typing import TYPE_CHECKING, Any, Callable, Iterable, Mapping, TypeVar, overload
 
@@ -76,7 +77,7 @@ if TYPE_CHECKING:
     from .member import Member, VoiceState
     from .message import EmojiInputType, Message, PartialMessage
     from .role import Role
-    from .state import ConnectionState
+    from .app.state import ConnectionState
     from .types.channel import CategoryChannel as CategoryChannelPayload
     from .types.channel import DMChannel as DMChannelPayload
     from .types.channel import ForumChannel as ForumChannelPayload
@@ -1347,7 +1348,7 @@ class ForumChannel(_TextChannel):
         ret = Thread(guild=self.guild, state=self._state, data=data)
         msg = ret.get_partial_message(int(data["last_message_id"]))
         if view:
-            state.store_view(view, msg.id)
+            await state.store_view(view, msg.id)
 
         if delete_message_after is not None:
             await msg.delete(delay=delete_message_after)
@@ -3085,11 +3086,17 @@ class DMChannel(discord.abc.Messageable, Hashable):
         self, *, me: ClientUser, state: ConnectionState, data: DMChannelPayload
     ):
         self._state: ConnectionState = state
+        self._recipients = data.get("recipients")
         self.recipient: User | None = None
-        if r := data.get("recipients"):
-            self.recipient = state.store_user(r[0])
         self.me: ClientUser = me
         self.id: int = int(data["id"])
+        # there shouldn't be any point in time where a DM channel
+        # is made without the event loop having started
+        asyncio.create_task(self._load())
+
+    async def _load(self) -> None:
+        if r := self._recipients:
+            self.recipient = await self._state.store_user(r[0])
 
     async def _get_channel(self):
         return self
@@ -3238,16 +3245,13 @@ class GroupChannel(discord.abc.Messageable, Hashable):
         self, *, me: ClientUser, state: ConnectionState, data: GroupChannelPayload
     ):
         self._state: ConnectionState = state
+        self._data = data
         self.id: int = int(data["id"])
         self.me: ClientUser = me
-        self._update_group(data)
 
-    def _update_group(self, data: GroupChannelPayload) -> None:
-        self.owner_id: int | None = utils._get_as_snowflake(data, "owner_id")
-        self._icon: str | None = data.get("icon")
-        self.name: str | None = data.get("name")
+    async def _load(self) -> None:
         self.recipients: list[User] = [
-            self._state.store_user(u) for u in data.get("recipients", [])
+            await self._state.store_user(u) for u in self._data.get("recipients", [])
         ]
 
         self.owner: BaseUser | None
@@ -3255,6 +3259,12 @@ class GroupChannel(discord.abc.Messageable, Hashable):
             self.owner = self.me
         else:
             self.owner = utils.find(lambda u: u.id == self.owner_id, self.recipients)
+
+    def _update_group(self) -> None:
+        self.owner_id: int | None = utils._get_as_snowflake(self._data, "owner_id")
+        self._icon: str | None = self._data.get("icon")
+        self.name: str | None = self._data.get("name")
+        asyncio.create_task(self._load())
 
     async def _get_channel(self):
         return self

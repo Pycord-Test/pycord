@@ -37,7 +37,7 @@ __all__ = ("StageInstance",)
 if TYPE_CHECKING:
     from .channel import StageChannel
     from .guild import Guild
-    from .state import ConnectionState
+    from .app.state import ConnectionState
     from .types.channel import StageInstance as StageInstancePayload
 
 

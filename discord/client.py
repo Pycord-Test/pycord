@@ -54,7 +54,7 @@ from .mentions import AllowedMentions
 from .monetization import SKU, Entitlement
 from .object import Object
 from .stage_instance import StageInstance
-from .state import ConnectionState
+from .app.state import ConnectionState
 from .sticker import GuildSticker, StandardSticker, StickerPack, _sticker_factory
 from .template import Template
 from .threads import Thread
@@ -1010,7 +1010,7 @@ class Client:
         """
         return self._connection._get_guild(id)
 
-    def get_user(self, id: int, /) -> User | None:
+    async def get_user(self, id: int, /) -> User | None:
         """Returns a user with the given ID.
 
         Parameters
@@ -1023,7 +1023,7 @@ class Client:
         Optional[:class:`~discord.User`]
             The user or ``None`` if not found.
         """
-        return self._connection.get_user(id)
+        return await self._connection.get_user(id)
 
     def get_emoji(self, id: int, /) -> GuildEmoji | AppEmoji | None:
         """Returns an emoji with the given ID.
@@ -1985,7 +1985,7 @@ class Client:
         data = await state.http.start_private_message(user.id)
         return state.add_dm_channel(data)
 
-    def add_view(self, view: View, *, message_id: int | None = None) -> None:
+    async def add_view(self, view: View, *, message_id: int | None = None) -> None:
         """Registers a :class:`~discord.ui.View` for persistent listening.
 
         This method should be used for when a view is comprised of components
@@ -2020,7 +2020,7 @@ class Client:
                 " must have no timeout"
             )
 
-        self._connection.store_view(view, message_id)
+        await self._connection.store_view(view, message_id)
 
     @property
     def persistent_views(self) -> Sequence[View]:
@@ -2189,7 +2189,7 @@ class Client:
             self.application_id
         )
         return [
-            self._connection.maybe_store_app_emoji(self.application_id, d)
+            await self._connection.maybe_store_app_emoji(self.application_id, d)
             for d in data["items"]
         ]
 
@@ -2218,7 +2218,7 @@ class Client:
         data = await self._connection.http.get_application_emoji(
             self.application_id, emoji_id
         )
-        return self._connection.maybe_store_app_emoji(self.application_id, data)
+        return await self._connection.maybe_store_app_emoji(self.application_id, data)
 
     async def create_emoji(
         self,
@@ -2255,7 +2255,7 @@ class Client:
         data = await self._connection.http.create_application_emoji(
             self.application_id, name, img
         )
-        return self._connection.maybe_store_app_emoji(self.application_id, data)
+        return await self._connection.maybe_store_app_emoji(self.application_id, data)
 
     async def delete_emoji(self, emoji: Snowflake) -> None:
         """|coro|

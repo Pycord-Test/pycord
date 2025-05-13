@@ -46,7 +46,7 @@ if TYPE_CHECKING:
 
     from .guild import Guild
     from .member import Member
-    from .state import ConnectionState
+    from .app.state import ConnectionState
     from .types.guild import RolePositionUpdate
     from .types.role import Role as RolePayload
     from .types.role import RoleTags as RoleTagPayload

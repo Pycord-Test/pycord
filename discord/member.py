@@ -57,7 +57,7 @@ if TYPE_CHECKING:
     from .guild import Guild
     from .message import Message
     from .role import Role
-    from .state import ConnectionState
+    from .app.state import ConnectionState
     from .types.activity import PartialPresenceUpdate
     from .types.member import Member as MemberPayload
     from .types.member import MemberWithUser as MemberWithUserPayload

@@ -79,7 +79,7 @@ if TYPE_CHECKING:
     from .embeds import Embed
     from .mentions import AllowedMentions
     from .poll import Poll
-    from .state import ConnectionState
+    from .app.state import ConnectionState
     from .threads import Thread
     from .types.interactions import Interaction as InteractionPayload
     from .types.interactions import InteractionData
@@ -571,7 +571,7 @@ class Interaction:
         message = InteractionMessage(state=state, channel=self.channel, data=data)  # type: ignore
         if view and not view.is_finished():
             view.message = message
-            self._state.store_view(view, message.id)
+            await self._state.store_view(view, message.id)
 
         if delete_after is not None:
             await self.delete_original_response(delay=delete_after)
@@ -1123,7 +1123,7 @@ class InteractionResponse:
             payload["attachments"] = [a.to_dict() for a in attachments]
 
         if view is not MISSING:
-            state.prevent_view_updates_for(message_id)
+            await state.prevent_view_updates_for(message_id)
             payload["components"] = [] if view is None else view.to_components()
 
         if file is not MISSING and files is not MISSING:
@@ -1190,7 +1190,7 @@ class InteractionResponse:
 
         if view and not view.is_finished():
             view.message = msg
-            state.store_view(view, message_id)
+            await state.store_view(view, message_id)
 
         self._responded = True
         if delete_after is not None:
@@ -1279,7 +1279,7 @@ class InteractionResponse:
             )
         )
         self._responded = True
-        self._parent._state.store_modal(modal, self._parent.user.id)
+        await self._parent._state.store_modal(modal)
         return self._parent
 
     @utils.deprecated("a button with type ButtonType.premium", "2.6")
@@ -1622,7 +1622,7 @@ class AuthorizingIntegrationOwners:
         from the user in the bot's DMs.
     """
 
-    __slots__ = ("user_id", "guild_id", "_state", "_cs_user", "_cs_guild")
+    __slots__ = ("user_id", "guild_id", "_state")
 
     def __init__(self, data: dict[str, Any], state: ConnectionState):
         self._state = state
@@ -1645,20 +1645,18 @@ class AuthorizingIntegrationOwners:
     def __ne__(self, other):
         return not self.__eq__(other)
 
-    @utils.cached_slot_property("_cs_user")
-    def user(self) -> User | None:
+    async def get_user(self) -> User | None:
         """Optional[:class:`User`]: The user that authorized the integration.
         Returns ``None`` if the user is not in cache, or if :attr:`user_id` is ``None``.
         """
         if not self.user_id:
             return None
-        return self._state.get_user(self.user_id)
+        return await self._state.get_user(self.user_id)
 
-    @utils.cached_slot_property("_cs_guild")
-    def guild(self) -> Guild | None:
+    async def get_guild(self) -> Guild | None:
         """Optional[:class:`Guild`]: The guild that authorized the integration.
         Returns ``None`` if the guild is not in cache, or if :attr:`guild_id` is ``0`` or ``None``.
         """
         if not self.guild_id:
             return None
-        return self._state._get_guild(self.guild_id)
+        return await self._state._get_guild(self.guild_id)

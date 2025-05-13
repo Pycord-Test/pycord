@@ -39,7 +39,7 @@ if TYPE_CHECKING:
     from discord.abc import MessageableChannel
     from discord.guild import Guild
     from discord.member import Member
-    from discord.state import ConnectionState
+    from discord.app.state import ConnectionState
     from discord.user import ClientUser, User
     from discord.voice_client import VoiceProtocol
 

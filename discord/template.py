@@ -35,7 +35,7 @@ __all__ = ("Template",)
 if TYPE_CHECKING:
     import datetime
 
-    from .state import ConnectionState
+    from .app.state import ConnectionState
     from .types.template import Template as TemplatePayload
     from .user import User
 

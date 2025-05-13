@@ -33,7 +33,7 @@ from .permissions import Permissions
 
 if TYPE_CHECKING:
     from .guild import Guild
-    from .state import ConnectionState
+    from .app.state import ConnectionState
     from .types.appinfo import AppInfo as AppInfoPayload
     from .types.appinfo import AppInstallParams as AppInstallParamsPayload
     from .types.appinfo import PartialAppInfo as PartialAppInfoPayload

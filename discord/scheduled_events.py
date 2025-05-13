@@ -51,7 +51,7 @@ if TYPE_CHECKING:
     from .guild import Guild
     from .iterators import AsyncIterator
     from .member import Member
-    from .state import ConnectionState
+    from .app.state import ConnectionState
     from .types.channel import StageChannel, VoiceChannel
     from .types.scheduled_events import ScheduledEvent as ScheduledEventPayload
 

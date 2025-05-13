@@ -25,6 +25,7 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
+import asyncio
 from typing import TYPE_CHECKING, Any, TypeVar
 
 import discord.abc
@@ -43,7 +44,7 @@ if TYPE_CHECKING:
     from .channel import DMChannel
     from .guild import Guild
     from .message import Message
-    from .state import ConnectionState
+    from .app.state import ConnectionState
     from .types.channel import DMChannel as DMChannelPayload
     from .types.user import PartialUser as PartialUserPayload
     from .types.user import User as UserPayload
@@ -558,7 +559,7 @@ class User(BaseUser, discord.abc.Messageable):
     def __del__(self) -> None:
         try:
             if self._stored:
-                self._state.deref_user(self.id)
+                asyncio.create_task(self._state.deref_user(self.id))
         except Exception:
             pass
 

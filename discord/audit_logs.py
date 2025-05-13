@@ -53,7 +53,7 @@ if TYPE_CHECKING:
     from .role import Role
     from .scheduled_events import ScheduledEvent
     from .stage_instance import StageInstance
-    from .state import ConnectionState
+    from .app.state import ConnectionState
     from .sticker import GuildSticker
     from .threads import Thread
     from .types.audit_log import AuditLogChange as AuditLogChangePayload

@@ -33,7 +33,7 @@ from .enums import TeamMembershipState, try_enum
 from .user import BaseUser
 
 if TYPE_CHECKING:
-    from .state import ConnectionState
+    from .app.state import ConnectionState
     from .types.team import Team as TeamPayload
     from .types.team import TeamMember as TeamMemberPayload
 

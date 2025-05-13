@@ -43,52 +43,54 @@ from typing import (
     Union,
 )
 
-from . import utils
-from .activity import BaseActivity
-from .audit_logs import AuditLogEntry
-from .automod import AutoModRule
-from .channel import *
-from .channel import _channel_factory
-from .emoji import AppEmoji, GuildEmoji
-from .enums import ChannelType, InteractionType, ScheduledEventStatus, Status, try_enum
-from .flags import ApplicationFlags, Intents, MemberCacheFlags
-from .guild import Guild
-from .integrations import _integration_factory
-from .interactions import Interaction
-from .invite import Invite
-from .member import Member
-from .mentions import AllowedMentions
-from .message import Message
-from .monetization import Entitlement, Subscription
-from .object import Object
-from .partial_emoji import PartialEmoji
-from .poll import Poll, PollAnswerCount
-from .raw_models import *
-from .role import Role
-from .scheduled_events import ScheduledEvent
-from .stage_instance import StageInstance
-from .sticker import GuildSticker
-from .threads import Thread, ThreadMember
-from .ui.modal import Modal, ModalStore
-from .ui.view import View, ViewStore
-from .user import ClientUser, User
+from .cache import Cache
+
+from .. import utils
+from ..activity import BaseActivity
+from ..audit_logs import AuditLogEntry
+from ..automod import AutoModRule
+from ..channel import *
+from ..channel import _channel_factory
+from ..emoji import AppEmoji, GuildEmoji
+from ..enums import ChannelType, InteractionType, ScheduledEventStatus, Status, try_enum
+from ..flags import ApplicationFlags, Intents, MemberCacheFlags
+from ..guild import Guild
+from ..integrations import _integration_factory
+from ..interactions import Interaction
+from ..invite import Invite
+from ..member import Member
+from ..mentions import AllowedMentions
+from ..message import Message
+from ..monetization import Entitlement, Subscription
+from ..object import Object
+from ..partial_emoji import PartialEmoji
+from ..poll import Poll, PollAnswerCount
+from ..raw_models import *
+from ..role import Role
+from ..scheduled_events import ScheduledEvent
+from ..stage_instance import StageInstance
+from ..sticker import GuildSticker
+from ..threads import Thread, ThreadMember
+from ..ui.modal import Modal, ModalStore
+from ..ui.view import View, ViewStore
+from ..user import ClientUser, User
 
 if TYPE_CHECKING:
-    from .abc import PrivateChannel
-    from .client import Client
-    from .gateway import DiscordWebSocket
-    from .guild import GuildChannel, VocalGuildChannel
-    from .http import HTTPClient
-    from .message import MessageableChannel
-    from .types.activity import Activity as ActivityPayload
-    from .types.channel import DMChannel as DMChannelPayload
-    from .types.emoji import Emoji as EmojiPayload
-    from .types.guild import Guild as GuildPayload
-    from .types.message import Message as MessagePayload
-    from .types.poll import Poll as PollPayload
-    from .types.sticker import GuildSticker as GuildStickerPayload
-    from .types.user import User as UserPayload
-    from .voice_client import VoiceClient
+    from ..abc import PrivateChannel
+    from ..client import Client
+    from ..gateway import DiscordWebSocket
+    from ..guild import GuildChannel, VocalGuildChannel
+    from ..http import HTTPClient
+    from ..message import MessageableChannel
+    from ..types.activity import Activity as ActivityPayload
+    from ..types.channel import DMChannel as DMChannelPayload
+    from ..types.emoji import Emoji as EmojiPayload
+    from ..types.guild import Guild as GuildPayload
+    from ..types.message import Message as MessagePayload
+    from ..types.poll import Poll as PollPayload
+    from ..types.sticker import GuildSticker as GuildStickerPayload
+    from ..types.user import User as UserPayload
+    from ..voice_client import VoiceClient
 
     T = TypeVar("T")
     CS = TypeVar("CS", bound="ConnectionState")
@@ -162,7 +164,7 @@ class ConnectionState:
     def __init__(
         self,
         *,
-        dispatch: Callable,
+        cache: Cache,
         handlers: dict[str, Callable],
         hooks: dict[str, Callable],
         http: HTTPClient,
@@ -175,7 +177,6 @@ class ConnectionState:
         if self.max_messages is not None and self.max_messages <= 0:
             self.max_messages = 1000
 
-        self.dispatch: Callable = dispatch
         self.handlers: dict[str, Callable] = handlers
         self.hooks: dict[str, Callable] = hooks
         self.shard_count: int | None = None
@@ -258,40 +259,12 @@ class ConnectionState:
             if attr.startswith("parse_"):
                 parsers[attr[6:].upper()] = func
 
-        self.clear()
+        self.cache: Cache = self.cache
 
     def clear(self, *, views: bool = True) -> None:
         self.user: ClientUser | None = None
-        # Originally, this code used WeakValueDictionary to maintain references to the
-        # global user mapping.
-
-        # However, profiling showed that this came with two cons:
-
-        # 1. The __weakref__ slot caused a non-trivial increase in memory
-        # 2. The performance of the mapping caused store_user to be a bottleneck.
-
-        # Since this is undesirable, a mapping is now used instead with stored
-        # references now using a regular dictionary with eviction being done
-        # using __del__. Testing this for memory leaks led to no discernible leaks,
-        # though more testing will have to be done.
-        self._users: dict[int, User] = {}
-        self._emojis: dict[int, (GuildEmoji, AppEmoji)] = {}
-        self._stickers: dict[int, GuildSticker] = {}
-        self._guilds: dict[int, Guild] = {}
-        self._polls: dict[int, Poll] = {}
-        if views:
-            self._view_store: ViewStore = ViewStore(self)
-        self._modal_store: ModalStore = ModalStore(self)
+        self.cache.clear()
         self._voice_clients: dict[int, VoiceClient] = {}
-
-        # LRU of max size 128
-        self._private_channels: OrderedDict[int, PrivateChannel] = OrderedDict()
-        # extra dict to look up private channels by user id
-        self._private_channels_by_user: dict[int, DMChannel] = {}
-        if self.max_messages is not None:
-            self._messages: Deque[Message] | None = deque(maxlen=self.max_messages)
-        else:
-            self._messages: Deque[Message] | None = None
 
     def process_chunk_requests(
         self, guild_id: int, nonce: str | None, members: list[Member], complete: bool
@@ -352,19 +325,11 @@ class ConnectionState:
         for vc in self.voice_clients:
             vc.main_ws = ws  # type: ignore
 
-    def store_user(self, data: UserPayload) -> User:
-        user_id = int(data["id"])
-        try:
-            return self._users[user_id]
-        except KeyError:
-            user = User(state=self, data=data)
-            if user.discriminator != "0000":
-                self._users[user_id] = user
-                user._stored = True
-            return user
+    async def store_user(self, data: UserPayload) -> User:
+        return await self.cache.store_user(data)
 
-    def deref_user(self, user_id: int) -> None:
-        self._users.pop(user_id, None)
+    async def deref_user(self, user_id: int) -> None:
+        return await self.cache.delete_user(user_id)
 
     def create_user(self, data: UserPayload) -> User:
         return User(state=self, data=data)
@@ -372,39 +337,32 @@ class ConnectionState:
     def deref_user_no_intents(self, user_id: int) -> None:
         return
 
-    def get_user(self, id: int | None) -> User | None:
-        # the keys of self._users are ints
-        return self._users.get(id)  # type: ignore
+    async def get_user(self, id: int | None) -> User | None:
+        return await self.cache.get_user(id)
 
-    def store_emoji(self, guild: Guild, data: EmojiPayload) -> GuildEmoji:
-        # the id will be present here
-        emoji_id = int(data["id"])  # type: ignore
-        self._emojis[emoji_id] = emoji = GuildEmoji(guild=guild, state=self, data=data)
-        return emoji
+    async def store_emoji(self, guild: Guild, data: EmojiPayload) -> GuildEmoji:
+        return await self.cache.store_guild_emoji(guild, data)
 
-    def maybe_store_app_emoji(
+    async def maybe_store_app_emoji(
         self, application_id: int, data: EmojiPayload
     ) -> AppEmoji:
         # the id will be present here
         emoji = AppEmoji(application_id=application_id, state=self, data=data)
         if self.cache_app_emojis:
-            emoji_id = int(data["id"])  # type: ignore
-            self._emojis[emoji_id] = emoji
+            await self.cache.store_app_emoji(application_id, data)
         return emoji
 
-    def store_sticker(self, guild: Guild, data: GuildStickerPayload) -> GuildSticker:
-        sticker_id = int(data["id"])
-        self._stickers[sticker_id] = sticker = GuildSticker(state=self, data=data)
-        return sticker
+    async def store_sticker(self, guild: Guild, data: GuildStickerPayload) -> GuildSticker:
+        return await self.cache.store_sticker(guild, data)
 
-    def store_view(self, view: View, message_id: int | None = None) -> None:
-        self._view_store.add_view(view, message_id)
+    async def store_view(self, view: View, message_id: int | None = None) -> None:
+        await self.cache.store_view(view, message_id)
 
-    def store_modal(self, modal: Modal, message_id: int) -> None:
-        self._modal_store.add_modal(modal, message_id)
+    async def store_modal(self, modal: Modal) -> None:
+        await self.cache.store_modal(modal)
 
-    def prevent_view_updates_for(self, message_id: int) -> View | None:
-        return self._view_store.remove_message_tracking(message_id)
+    async def prevent_view_updates_for(self, message_id: int) -> View | None:
+        return await self.cache.delete_view_on(message_id)
 
     @property
     def persistent_views(self) -> Sequence[View]:
@@ -500,9 +458,10 @@ class ConnectionState:
         if isinstance(channel, DMChannel) and channel.recipient:
             self._private_channels_by_user[channel.recipient.id] = channel
 
-    def add_dm_channel(self, data: DMChannelPayload) -> DMChannel:
+    async def add_dm_channel(self, data: DMChannelPayload) -> DMChannel:
         # self.user is *always* cached when this is called
         channel = DMChannel(me=self.user, state=self, data=data)  # type: ignore
+        await channel._load()
         self._add_private_channel(channel)
         return channel
 
@@ -606,7 +565,7 @@ class ConnectionState:
         if self.cache_app_emojis and self.application_id:
             data = await self.http.get_all_application_emojis(self.application_id)
             for e in data.get("items", []):
-                self.maybe_store_app_emoji(self.application_id, e)
+                await self.maybe_store_app_emoji(self.application_id, e)
         try:
             states = []
             while True:
@@ -2123,7 +2082,7 @@ class AutoShardedConnectionState(ConnectionState):
         if self.cache_app_emojis and self.application_id:
             data = await self.http.get_all_application_emojis(self.application_id)
             for e in data.get("items", []):
-                self.maybe_store_app_emoji(self.application_id, e)
+                await self.maybe_store_app_emoji(self.application_id, e)
 
         # remove the state
         try:

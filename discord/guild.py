@@ -25,6 +25,7 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
+import asyncio
 import copy
 import unicodedata
 from typing import (
@@ -104,7 +105,7 @@ if TYPE_CHECKING:
         VoiceChannel,
     )
     from .permissions import Permissions
-    from .state import ConnectionState
+    from .app.state import ConnectionState
     from .template import Template
     from .types.guild import Ban as BanPayload
     from .types.guild import Guild as GuildPayload
@@ -308,7 +309,7 @@ class Guild(Hashable):
         self._voice_states: dict[int, VoiceState] = {}
         self._threads: dict[int, Thread] = {}
         self._state: ConnectionState = state
-        self._from_data(data)
+        asyncio.create_task(self._from_data(data))
 
     def _add_channel(self, channel: GuildChannel, /) -> None:
         self._channels[channel.id] = channel
@@ -447,7 +448,7 @@ class Guild(Hashable):
 
         return role
 
-    def _from_data(self, guild: GuildPayload) -> None:
+    async def _from_data(self, guild: GuildPayload) -> None:
         member_count = guild.get("member_count")
         # Either the payload includes member_count, or it hasn't been set yet.
         # Prevents valid _member_count from suddenly changing to None
@@ -476,12 +477,14 @@ class Guild(Hashable):
             self._roles[role.id] = role
 
         self.mfa_level: MFALevel = guild.get("mfa_level")
-        self.emojis: tuple[GuildEmoji, ...] = tuple(
-            map(lambda d: state.store_emoji(self, d), guild.get("emojis", []))
-        )
-        self.stickers: tuple[GuildSticker, ...] = tuple(
-            map(lambda d: state.store_sticker(self, d), guild.get("stickers", []))
-        )
+        emojis = []
+        for emoji in guild.get("emojis", []):
+            emojis.append(await state.store_emoji(self, emoji))
+        self.emojis: tuple[GuildEmoji, ...] = tuple(emojis)
+        stickers = []
+        for sticker in guild.get("stickers", []):
+            stickers.append(await state.store_sticker(self, sticker))
+        self.stickers: tuple[GuildSticker, ...] = tuple(stickers)
         self.features: list[GuildFeature] = guild.get("features", [])
         self._splash: str | None = guild.get("splash")
         self._system_channel_id: int | None = utils._get_as_snowflake(
@@ -2764,7 +2767,7 @@ class Guild(Hashable):
         data = await self._state.http.create_custom_emoji(
             self.id, name, img, roles=role_ids, reason=reason
         )
-        return self._state.store_emoji(self, data)
+        return await self._state.store_emoji(self, data)
 
     async def delete_emoji(
         self, emoji: Snowflake, *, reason: str | None = None

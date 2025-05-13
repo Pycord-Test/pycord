@@ -48,7 +48,7 @@ __all__ = ("View",)
 if TYPE_CHECKING:
     from ..interactions import Interaction, InteractionMessage
     from ..message import Message
-    from ..state import ConnectionState
+    from ..app.state import ConnectionState
     from ..types.components import Component as ComponentPayload
 
 

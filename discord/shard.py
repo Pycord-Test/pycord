@@ -32,7 +32,6 @@ from typing import TYPE_CHECKING, Any, Callable, TypeVar
 import aiohttp
 
 from .backoff import ExponentialBackoff
-from .client import Client
 from .enums import Status
 from .errors import (
     ClientException,
@@ -42,7 +41,7 @@ from .errors import (
     PrivilegedIntentsRequired,
 )
 from .gateway import *
-from .state import AutoShardedConnectionState
+from .app.state import AutoShardedConnectionState
 
 if TYPE_CHECKING:
     from .activity import BaseActivity

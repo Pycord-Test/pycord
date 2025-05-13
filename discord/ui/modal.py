@@ -19,7 +19,7 @@ __all__ = (
 
 if TYPE_CHECKING:
     from ..interactions import Interaction
-    from ..state import ConnectionState
+    from ..app.state import ConnectionState
 
 
 class Modal:

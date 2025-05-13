@@ -48,7 +48,7 @@ if TYPE_CHECKING:
     from .message import Message, PartialMessage
     from .permissions import Permissions
     from .role import Role
-    from .state import ConnectionState
+    from .app.state import ConnectionState
     from .types.snowflake import SnowflakeList
     from .types.threads import Thread as ThreadPayload
     from .types.threads import ThreadArchiveDuration

@@ -73,7 +73,7 @@ if TYPE_CHECKING:
     from .interactions import MessageInteraction
     from .mentions import AllowedMentions
     from .role import Role
-    from .state import ConnectionState
+    from .app.state import ConnectionState
     from .types.components import Component as ComponentPayload
     from .types.embed import Embed as EmbedPayload
     from .types.member import Member as MemberPayload
@@ -618,14 +618,13 @@ class MessageCall:
             data["ended_timestamp"]
         )
 
-    @property
-    def participants(self) -> list[User | Object]:
+    async def get_participants(self) -> list[User | Object]:
         """A list of :class:`User` that participated in this call.
 
         If a user is not found in the client's cache,
         then it will be returned as an :class:`Object`.
         """
-        return [self._state.get_user(int(i)) or Object(i) for i in self._participants]
+        return [await self._state.get_user(int(i)) or Object(i) for i in self._participants]
 
     @property
     def ended_at(self) -> datetime.datetime | None:
@@ -1638,7 +1637,7 @@ class Message(Hashable):
 
         if view and not view.is_finished():
             view.message = message
-            self._state.store_view(view, self.id)
+            await self._state.store_view(view, self.id)
 
         if delete_after is not None:
             await self.delete(delay=delete_after)
@@ -2233,7 +2232,7 @@ class PartialMessage(Hashable):
             msg = self._state.create_message(channel=self.channel, data=data)  # type: ignore
             if view and not view.is_finished():
                 view.message = msg
-                self._state.store_view(view, self.id)
+                await self._state.store_view(view, self.id)
             return msg
 
     async def end_poll(self) -> Message:

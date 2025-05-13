@@ -76,7 +76,7 @@ if TYPE_CHECKING:
     from ..http import Response
     from ..mentions import AllowedMentions
     from ..poll import Poll
-    from ..state import ConnectionState
+    from ..app.state import ConnectionState
     from ..types.message import Message as MessagePayload
     from ..types.webhook import FollowerWebhook as FollowerWebhookPayload
     from ..types.webhook import Webhook as WebhookPayload
@@ -1833,9 +1833,8 @@ class Webhook(BaseWebhook):
             msg = self._create_message(data)
 
         if view is not MISSING and not view.is_finished():
-            message_id = None if msg is None else msg.id
             view.message = None if msg is None else msg
-            self._state.store_view(view, message_id)
+            await self._state.store_view(view)
 
         if delete_after is not None:
 
@@ -2035,7 +2034,7 @@ class Webhook(BaseWebhook):
         message = self._create_message(data)
         if view and not view.is_finished():
             view.message = message
-            self._state.store_view(view, message_id)
+            await self._state.store_view(view)
         return message
 
     async def delete_message(

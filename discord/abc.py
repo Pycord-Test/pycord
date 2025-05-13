@@ -89,7 +89,7 @@ if TYPE_CHECKING:
     from .member import Member
     from .message import Message, MessageReference, PartialMessage
     from .poll import Poll
-    from .state import ConnectionState
+    from .app.state import ConnectionState
     from .threads import Thread
     from .types.channel import Channel as ChannelPayload
     from .types.channel import GuildChannel as GuildChannelPayload
@@ -1669,7 +1669,7 @@ class Messageable:
 
         ret = state.create_message(channel=channel, data=data)
         if view:
-            state.store_view(view, ret.id)
+            await state.store_view(view, ret.id)
             view.message = ret
 
         if delete_after is not None:

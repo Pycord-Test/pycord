@@ -46,7 +46,7 @@ if TYPE_CHECKING:
     import datetime
 
     from .guild import Guild
-    from .state import ConnectionState
+    from .app.state import ConnectionState
     from .types.sticker import EditGuildSticker
     from .types.sticker import GuildSticker as GuildStickerPayload
     from .types.sticker import ListPremiumStickerPacks as ListPremiumStickerPacksPayload

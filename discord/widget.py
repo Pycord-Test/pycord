@@ -36,7 +36,7 @@ from .utils import _get_as_snowflake, resolve_invite, snowflake_time
 if TYPE_CHECKING:
     import datetime
 
-    from .state import ConnectionState
+    from .app.state import ConnectionState
     from .types.widget import Widget as WidgetPayload
     from .types.widget import WidgetMember as WidgetMemberPayload
 

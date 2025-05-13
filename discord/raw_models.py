@@ -37,7 +37,7 @@ if TYPE_CHECKING:
     from .member import Member
     from .message import Message
     from .partial_emoji import PartialEmoji
-    from .state import ConnectionState
+    from .app.state import ConnectionState
     from .threads import Thread
     from .types.raw_models import (
         AuditLogEntryEvent,

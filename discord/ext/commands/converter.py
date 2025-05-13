@@ -293,7 +293,7 @@ class UserConverter(IDConverter[discord.User]):
 
         if match is not None:
             user_id = int(match.group(1))
-            result = ctx.bot.get_user(user_id)
+            result = await ctx.bot.get_user(user_id)
             if ctx.message is not None and result is None:
                 result = _utils_get(ctx.message.mentions, id=user_id)
             if result is None:
@@ -971,6 +971,7 @@ class clean_content(Converter[str]):
         else:
 
             def resolve_member(id: int) -> str:
+                # TODO: how tf to fix this???
                 m = (
                     None if msg is None else _utils_get(msg.mentions, id=id)
                 ) or ctx.bot.get_user(id)
