@@ -1598,7 +1598,7 @@ class Message(Hashable):
             payload["attachments"] = [a.to_dict() for a in attachments]
 
         if view is not MISSING:
-            self._state.prevent_view_updates_for(self.id)
+            await self._state.prevent_view_updates_for(self.id)
             payload["components"] = view.to_components() if view else []
         if file is not MISSING and files is not MISSING:
             raise InvalidArgument("cannot pass both file and files parameter to edit()")
@@ -2216,7 +2216,7 @@ class PartialMessage(Hashable):
 
         view = fields.pop("view", MISSING)
         if view is not MISSING:
-            self._state.prevent_view_updates_for(self.id)
+            await self._state.prevent_view_updates_for(self.id)
             fields["components"] = view.to_components() if view else []
 
         if fields:

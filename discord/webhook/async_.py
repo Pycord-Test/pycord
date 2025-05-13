@@ -1995,7 +1995,7 @@ class Webhook(BaseWebhook):
                     "This webhook does not have state associated with it"
                 )
 
-            self._state.prevent_view_updates_for(message_id)
+            await self._state.prevent_view_updates_for(message_id)
 
         previous_mentions: AllowedMentions | None = getattr(
             self._state, "allowed_mentions", None
