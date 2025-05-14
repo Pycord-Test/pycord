@@ -25,10 +25,11 @@ DEALINGS IN THE SOFTWARE.
 from collections import OrderedDict, deque
 from typing import Deque, Protocol
 
+from discord import utils
 from discord.app.state import ConnectionState
 from discord.message import Message
 
-from ..abc import PrivateChannel
+from ..abc import MessageableChannel, PrivateChannel
 from ..channel import DMChannel
 from ..emoji import AppEmoji, GuildEmoji
 from ..guild import Guild
@@ -41,6 +42,7 @@ from ..types.user import User as UserPayload
 from ..types.emoji import Emoji as EmojiPayload
 from ..types.sticker import GuildSticker as GuildStickerPayload
 from ..types.channel import DMChannel as DMChannelPayload
+from ..types.message import Message as MessagePayload
 
 class Cache(Protocol):
     # users
@@ -67,6 +69,9 @@ class Cache(Protocol):
     async def store_sticker(self, guild: Guild, data: GuildStickerPayload) -> GuildSticker:
         ...
 
+    async def delete_sticker(self, sticker_id: int) -> None:
+        ...
+
     # interactions
 
     async def store_view(self, view: View, message_id: int | None) -> None:
@@ -89,7 +94,7 @@ class Cache(Protocol):
     async def get_all_guilds(self) -> list[Guild]:
         ...
 
-    async def get_guild(self, id: int) -> Guild:
+    async def get_guild(self, id: int) -> Guild | None:
         ...
 
     async def add_guild(self, guild: Guild) -> None:
@@ -136,18 +141,24 @@ class Cache(Protocol):
     async def get_private_channel(self, channel_id: int) -> PrivateChannel:
         ...
 
-    async def store_private_channel(self, channel: PrivateChannel, channel_id: int) -> None:
+    async def get_private_channel_by_user(self, user_id: int) -> PrivateChannel:
         ...
 
-    # dm channels
-
-    async def get_dm_channels(self) -> list[DMChannel]:
+    async def store_private_channel(self, channel: PrivateChannel) -> None:
         ...
 
-    async def get_dm_channel(self, channel_id: int) -> DMChannel:
+    # messages
+
+    async def store_message(self, message: MessagePayload, channel: MessageableChannel) -> Message:
         ...
 
-    async def store_dm_channel(self, channel: DMChannelPayload, channel_id: int) -> DMChannel:
+    async def delete_message(self, message_id: int) -> None:
+        ...
+
+    async def get_message(self, message_id: int) -> Message | None:
+        ...
+
+    async def get_all_messages(self) -> list[Message]:
         ...
 
     def clear(self, views: bool = True) -> None:
@@ -210,6 +221,9 @@ class MemoryCache(Cache):
         except KeyError:
             self._stickers[guild.id] = sticker
         return sticker
+
+    async def delete_sticker(self, sticker_id: int) -> None:
+        self._stickers.pop(sticker_id, None)
 
     # interactions
 
@@ -291,7 +305,13 @@ class MemoryCache(Cache):
         return list(self._private_channels.values())
 
     async def get_private_channel(self, channel_id: int) -> PrivateChannel | None:
-        return self._private_channels.get(channel_id)
+        try:
+            channel = self._private_channels[channel_id]
+        except KeyError:
+            return None
+        else:
+            self._private_channels.move_to_end(channel_id)
+            return channel
 
     async def store_private_channel(self, channel: PrivateChannel) -> None:
         channel_id = channel.id
@@ -304,3 +324,17 @@ class MemoryCache(Cache):
 
         if isinstance(channel, DMChannel) and channel.recipient:
             self._private_channels_by_user[channel.recipient.id] = channel
+
+    async def get_private_channel_by_user(self, user_id: int) -> PrivateChannel | None:
+        return self._private_channels_by_user.get(user_id)
+
+    # messages
+
+    async def store_message(self, message: MessagePayload, channel: MessageableChannel) -> Message:
+        msg = await Message._from_data(state=self._state, channel=channel, data=message)
+
+    async def get_message(self, message_id: int) -> Message | None:
+        return utils.find(lambda m: m.id == message_id, reversed(self._messages))
+
+    async def get_all_messages(self) -> list[Message]:
+        return list(self._messages)

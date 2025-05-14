@@ -295,7 +295,7 @@ class Role(Hashable):
             return NotImplemented
         return not r
 
-    def _update(self, data: RolePayload):
+    async def _update(self, data: RolePayload):
         self.name: str = data["name"]
         self._permissions: int = int(data.get("permissions", 0))
         self.position: int = data.get("position", 0)

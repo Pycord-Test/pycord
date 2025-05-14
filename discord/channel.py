@@ -213,7 +213,7 @@ class _TextChannel(discord.abc.GuildChannel, Hashable):
     ):
         self._state: ConnectionState = state
         self.id: int = int(data["id"])
-        self._update(guild, data)
+        self.guild = guild
 
     @property
     def _repr_attrs(self) -> tuple[str, ...]:
@@ -224,11 +224,10 @@ class _TextChannel(discord.abc.GuildChannel, Hashable):
         joined = " ".join("%s=%r" % t for t in attrs)
         return f"<{self.__class__.__name__} {joined}>"
 
-    def _update(
-        self, guild: Guild, data: TextChannelPayload | ForumChannelPayload
+    async def _update(
+        self, data: TextChannelPayload | ForumChannelPayload
     ) -> None:
         # This data will always exist
-        self.guild: Guild = guild
         self.name: str = data["name"]
         self.category_id: int | None = utils._get_as_snowflake(data, "parent_id")
         self._type: int = data["type"]
@@ -290,8 +289,7 @@ class _TextChannel(discord.abc.GuildChannel, Hashable):
         """Checks if the channel is NSFW."""
         return self.nsfw
 
-    @property
-    def last_message(self) -> Message | None:
+    async def get_last_message(self) -> Message | None:
         """Fetches the last message from this channel in cache.
 
         The message might not be valid or point to an existing message.
@@ -310,7 +308,7 @@ class _TextChannel(discord.abc.GuildChannel, Hashable):
             The last message in this channel or ``None`` if not found.
         """
         return (
-            self._state._get_message(self.last_message_id)
+            await self._state._get_message(self.last_message_id)
             if self.last_message_id
             else None
         )
@@ -751,8 +749,8 @@ class TextChannel(discord.abc.Messageable, _TextChannel):
     def _repr_attrs(self) -> tuple[str, ...]:
         return super()._repr_attrs + ("news",)
 
-    def _update(self, guild: Guild, data: TextChannelPayload) -> None:
-        super()._update(guild, data)
+    async def _update(self, data: TextChannelPayload) -> None:
+        super()._update(data)
 
     async def _get_channel(self) -> TextChannel:
         return self
@@ -1030,8 +1028,8 @@ class ForumChannel(_TextChannel):
     ):
         super().__init__(state=state, guild=guild, data=data)
 
-    def _update(self, guild: Guild, data: ForumChannelPayload) -> None:
-        super()._update(guild, data)
+    async def _update(self, data: ForumChannelPayload) -> None:
+        super()._update(data)
         self.available_tags: list[ForumTag] = [
             ForumTag.from_data(state=self._state, data=tag)
             for tag in (data.get("available_tags") or [])
@@ -1046,7 +1044,7 @@ class ForumChannel(_TextChannel):
             if emoji_name is not None:
                 self.default_reaction_emoji = reaction_emoji_ctx["emoji_name"]
             else:
-                self.default_reaction_emoji = self._state.get_emoji(
+                self.default_reaction_emoji = await self._state.get_emoji(
                     utils._get_as_snowflake(reaction_emoji_ctx, "emoji_id")
                 )
 
@@ -1573,7 +1571,8 @@ class VocalGuildChannel(discord.abc.Connectable, discord.abc.GuildChannel, Hasha
     ):
         self._state: ConnectionState = state
         self.id: int = int(data["id"])
-        self._update(guild, data)
+        self.guild = guild
+        self._update(data)
 
     def _get_voice_client_key(self) -> tuple[int, str]:
         return self.guild.id, "guild_id"
@@ -1581,11 +1580,10 @@ class VocalGuildChannel(discord.abc.Connectable, discord.abc.GuildChannel, Hasha
     def _get_voice_state_pair(self) -> tuple[int, int]:
         return self.guild.id, self.id
 
-    def _update(
-        self, guild: Guild, data: VoiceChannelPayload | StageChannelPayload
+    async def _update(
+        self, data: VoiceChannelPayload | StageChannelPayload
     ) -> None:
         # This data will always exist
-        self.guild = guild
         self.name: str = data["name"]
         self.category_id: int | None = utils._get_as_snowflake(data, "parent_id")
 
@@ -1737,8 +1735,8 @@ class VoiceChannel(discord.abc.Messageable, VocalGuildChannel):
         self.status: str | None = None
         super().__init__(state=state, guild=guild, data=data)
 
-    def _update(self, guild: Guild, data: VoiceChannelPayload):
-        super()._update(guild, data)
+    async def _update(self, data: VoiceChannelPayload):
+        super()._update(data)
         if data.get("status"):
             self.status = data.get("status")
 
@@ -1764,8 +1762,7 @@ class VoiceChannel(discord.abc.Messageable, VocalGuildChannel):
         """Checks if the channel is NSFW."""
         return self.nsfw
 
-    @property
-    def last_message(self) -> Message | None:
+    async def get_last_message(self) -> Message | None:
         """Fetches the last message from this channel in cache.
 
         The message might not be valid or point to an existing message.
@@ -1784,7 +1781,7 @@ class VoiceChannel(discord.abc.Messageable, VocalGuildChannel):
             The last message in this channel or ``None`` if not found.
         """
         return (
-            self._state._get_message(self.last_message_id)
+            await self._state._get_message(self.last_message_id)
             if self.last_message_id
             else None
         )
@@ -2255,8 +2252,8 @@ class StageChannel(discord.abc.Messageable, VocalGuildChannel):
 
     __slots__ = ("topic",)
 
-    def _update(self, guild: Guild, data: StageChannelPayload) -> None:
-        super()._update(guild, data)
+    async def _update(self, data: StageChannelPayload) -> None:
+        super()._update(data)
         self.topic = data.get("topic")
 
     def __repr__(self) -> str:
@@ -2314,8 +2311,7 @@ class StageChannel(discord.abc.Messageable, VocalGuildChannel):
         """Checks if the channel is NSFW."""
         return self.nsfw
 
-    @property
-    def last_message(self) -> Message | None:
+    async def get_last_message(self) -> Message | None:
         """Fetches the last message from this channel in cache.
 
         The message might not be valid or point to an existing message.
@@ -2334,7 +2330,7 @@ class StageChannel(discord.abc.Messageable, VocalGuildChannel):
             The last message in this channel or ``None`` if not found.
         """
         return (
-            self._state._get_message(self.last_message_id)
+            await self._state._get_message(self.last_message_id)
             if self.last_message_id
             else None
         )
@@ -2820,7 +2816,8 @@ class CategoryChannel(discord.abc.GuildChannel, Hashable):
     ):
         self._state: ConnectionState = state
         self.id: int = int(data["id"])
-        self._update(guild, data)
+        self.guild = guild
+        self._update(data)
 
     def __repr__(self) -> str:
         return (
@@ -2828,9 +2825,8 @@ class CategoryChannel(discord.abc.GuildChannel, Hashable):
             f" id={self.id} name={self.name!r} position={self.position} nsfw={self.nsfw}>"
         )
 
-    def _update(self, guild: Guild, data: CategoryChannelPayload) -> None:
+    async def _update(self, data: CategoryChannelPayload) -> None:
         # This data will always exist
-        self.guild: Guild = guild
         self.name: str = data["name"]
         self.category_id: int | None = utils._get_as_snowflake(data, "parent_id")
 

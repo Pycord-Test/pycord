@@ -114,10 +114,12 @@ class ChunkRequest:
         self.buffer: list[Member] = []
         self.waiters: list[asyncio.Future[list[Member]]] = []
 
-    def add_members(self, members: list[Member]) -> None:
+    async def add_members(self, members: list[Member]) -> None:
         self.buffer.extend(members)
         if self.cache:
             guild = self.resolver(self.guild_id)
+            if inspect.isawaitable(guild):
+                guild = await guild
             if guild is None:
                 return
 
@@ -364,125 +366,87 @@ class ConnectionState:
     async def prevent_view_updates_for(self, message_id: int) -> View | None:
         return await self.cache.delete_view_on(message_id)
 
-    @property
-    def persistent_views(self) -> Sequence[View]:
-        return self._view_store.persistent_views
+    async def get_persistent_views(self) -> Sequence[View]:
+        views = await self.cache.get_all_views()
+        persistent_views = {
+            view.id: view
+            for view in views
+            if view.is_persistent()
+        }
+        return list(persistent_views.values())
 
-    @property
-    def guilds(self) -> list[Guild]:
-        return list(self._guilds.values())
+    async def get_guilds(self) -> list[Guild]:
+        return await self.cache.get_all_guilds()
 
-    def _get_guild(self, guild_id: int | None) -> Guild | None:
-        # the keys of self._guilds are ints
-        return self._guilds.get(guild_id)  # type: ignore
+    async def _get_guild(self, guild_id: int | None) -> Guild | None:
+        return await self.cache.get_guild(guild_id)
 
-    def _add_guild(self, guild: Guild) -> None:
-        self._guilds[guild.id] = guild
+    async def _add_guild(self, guild: Guild) -> None:
+        await self.cache.add_guild(guild)
 
-    def _remove_guild(self, guild: Guild) -> None:
-        self._guilds.pop(guild.id, None)
+    async def _remove_guild(self, guild: Guild) -> None:
+        await self.cache.delete_guild(guild)
 
         for emoji in guild.emojis:
-            self._remove_emoji(emoji)
+            await self.cache.delete_emoji(emoji)
 
         for sticker in guild.stickers:
-            self._stickers.pop(sticker.id, None)
+            await self.cache.delete_sticker(sticker.id)
 
         del guild
 
-    @property
-    def emojis(self) -> list[GuildEmoji | AppEmoji]:
-        return list(self._emojis.values())
+    async def get_emojis(self) -> list[GuildEmoji | AppEmoji]:
+        return await self.cache.get_all_emojis()
 
-    @property
-    def stickers(self) -> list[GuildSticker]:
-        return list(self._stickers.values())
+    async def get_stickers(self) -> list[GuildSticker]:
+        return await self.cache.get_all_stickers()
 
-    def get_emoji(self, emoji_id: int | None) -> GuildEmoji | AppEmoji | None:
-        # the keys of self._emojis are ints
-        return self._emojis.get(emoji_id)  # type: ignore
+    async def get_emoji(self, emoji_id: int | None) -> GuildEmoji | AppEmoji | None:
+        return await self.get_emoji(emoji_id)
 
-    def _remove_emoji(self, emoji: GuildEmoji | AppEmoji) -> None:
-        self._emojis.pop(emoji.id, None)
+    async def _remove_emoji(self, emoji: GuildEmoji | AppEmoji) -> None:
+        await self.cache.delete_emoji(emoji)
 
-    def get_sticker(self, sticker_id: int | None) -> GuildSticker | None:
-        # the keys of self._stickers are ints
-        return self._stickers.get(sticker_id)  # type: ignore
+    async def get_sticker(self, sticker_id: int | None) -> GuildSticker | None:
+        return await self.cache.get_sticker(sticker_id)
 
-    @property
-    def polls(self) -> list[Poll]:
-        return list(self._polls.values())
+    async def get_polls(self) -> list[Poll]:
+        return await self.cache.get_all_polls()
 
-    def store_raw_poll(self, poll: PollPayload, raw):
+    def create_poll(self, poll: PollPayload, raw) -> Poll:
         channel = self.get_channel(raw.channel_id) or PartialMessageable(
             state=self, id=raw.channel_id
         )
         message = channel.get_partial_message(raw.message_id)
-        p = Poll.from_dict(poll, message)
-        self._polls[message.id] = p
-        return p
+        return Poll.from_dict(poll, message)
 
-    def store_poll(self, poll: Poll, message_id: int):
-        self._polls[message_id] = poll
+    async def store_poll(self, poll: Poll, message_id: int):
+        await self.cache.store_poll(poll, message_id)
 
-    def get_poll(self, message_id):
-        return self._polls.get(message_id)
+    async def get_poll(self, message_id: int):
+        return await self.cache.get_poll(message_id)
 
-    @property
-    def private_channels(self) -> list[PrivateChannel]:
-        return list(self._private_channels.values())
+    async def get_private_channels(self) -> list[PrivateChannel]:
+        return await self.cache.get_private_channels()
 
-    def _get_private_channel(self, channel_id: int | None) -> PrivateChannel | None:
-        try:
-            # the keys of self._private_channels are ints
-            value = self._private_channels[channel_id]  # type: ignore
-        except KeyError:
-            return None
-        else:
-            self._private_channels.move_to_end(channel_id)  # type: ignore
-            return value
+    async def _get_private_channel(self, channel_id: int | None) -> PrivateChannel | None:
+        return await self.cache.get_private_channel(channel_id)
 
-    def _get_private_channel_by_user(self, user_id: int | None) -> DMChannel | None:
-        # the keys of self._private_channels are ints
-        return self._private_channels_by_user.get(user_id)  # type: ignore
+    async def _get_private_channel_by_user(self, user_id: int | None) -> DMChannel | None:
+        return await self.cache.get_private_channel_by_user(user_id)
 
-    def _add_private_channel(self, channel: PrivateChannel) -> None:
-        channel_id = channel.id
-        self._private_channels[channel_id] = channel
-
-        if len(self._private_channels) > 128:
-            _, to_remove = self._private_channels.popitem(last=False)
-            if isinstance(to_remove, DMChannel) and to_remove.recipient:
-                self._private_channels_by_user.pop(to_remove.recipient.id, None)
-
-        if isinstance(channel, DMChannel) and channel.recipient:
-            self._private_channels_by_user[channel.recipient.id] = channel
+    async def _add_private_channel(self, channel: PrivateChannel) -> None:
+        await self.cache.store_private_channel(channel)
 
     async def add_dm_channel(self, data: DMChannelPayload) -> DMChannel:
         # self.user is *always* cached when this is called
         channel = DMChannel(me=self.user, state=self, data=data)  # type: ignore
         await channel._load()
-        self._add_private_channel(channel)
+        await self._add_private_channel(channel)
         return channel
 
-    def _remove_private_channel(self, channel: PrivateChannel) -> None:
-        self._private_channels.pop(channel.id, None)
-        if isinstance(channel, DMChannel):
-            recipient = channel.recipient
-            if recipient is not None:
-                self._private_channels_by_user.pop(recipient.id, None)
-
-    def _get_message(self, msg_id: int | None) -> Message | None:
-        return (
-            utils.find(lambda m: m.id == msg_id, reversed(self._messages))
-            if self._messages
-            else None
-        )
-
-    def _add_guild_from_data(self, data: GuildPayload) -> Guild:
-        guild = Guild(data=data, state=self)
-        self._add_guild(guild)
-        return guild
+    async def _get_message(self, msg_id: int | None) -> Message | None:
+        return await self.cache.get_message(msg_id)
 
     def _guild_needs_chunking(self, guild: Guild) -> bool:
         # If presences are enabled then we get back the old guild.large behaviour
@@ -492,12 +456,12 @@ class ConnectionState:
             and not (self._intents.presences and not guild.large)
         )
 
-    def _get_guild_channel(
+    async def _get_guild_channel(
         self, data: MessagePayload, guild_id: int | None = None
     ) -> tuple[Channel | Thread, Guild | None]:
         channel_id = int(data["channel_id"])
         try:
-            guild = self._get_guild(int(guild_id or data["guild_id"]))
+            guild = await self._get_guild(int(guild_id or data["guild_id"]))
         except KeyError:
             channel = DMChannel._from_message(self, channel_id)
             guild = None
@@ -1950,15 +1914,15 @@ class ConnectionState:
         except KeyError:
             return emoji
 
-    def get_channel(self, id: int | None) -> Channel | Thread | None:
+    async def get_channel(self, id: int | None) -> Channel | Thread | None:
         if id is None:
             return None
 
-        pm = self._get_private_channel(id)
+        pm = await self._get_private_channel(id)
         if pm is not None:
             return pm
 
-        for guild in self.guilds:
+        for guild in await self.cache.get_all_guilds():
             channel = guild._resolve_channel(id)
             if channel is not None:
                 return channel

@@ -132,7 +132,7 @@ class WelcomeScreen:
             f" description={self.description} welcome_channels={self.welcome_channels}"
         )
 
-    def _update(self, data: WelcomeScreenPayload):
+    async def _update(self, data: WelcomeScreenPayload):
         self.description: str = data.get("description")
         self.welcome_channels: list[WelcomeScreenChannel] = [
             WelcomeScreenChannel._from_dict(channel, self._guild)

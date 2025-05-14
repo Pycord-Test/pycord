@@ -242,7 +242,7 @@ class Thread(Messageable, Hashable):
         self.invitable = data.get("invitable", True)
         self.created_at = parse_time(data.get("create_timestamp", None))
 
-    def _update(self, data):
+    async def _update(self, data):
         try:
             self.name = data["name"]
         except KeyError:
@@ -313,8 +313,7 @@ class Thread(Messageable, Hashable):
             ]
         return []
 
-    @property
-    def last_message(self) -> Message | None:
+    async def get_last_message(self) -> Message | None:
         """Returns the last message from this thread in cache.
 
         The message might not be valid or point to an existing message.
@@ -333,7 +332,7 @@ class Thread(Messageable, Hashable):
             The last message in this channel or ``None`` if not found.
         """
         return (
-            self._state._get_message(self.last_message_id)
+            await self._state._get_message(self.last_message_id)
             if self.last_message_id
             else None
         )
@@ -378,8 +377,7 @@ class Thread(Messageable, Hashable):
             raise ClientException("Parent channel not found")
         return parent.category_id
 
-    @property
-    def starting_message(self) -> Message | None:
+    async def get_starting_message(self) -> Message | None:
         """Returns the message that started this thread.
 
         The message might not be valid or point to an existing message.
@@ -392,7 +390,7 @@ class Thread(Messageable, Hashable):
         Optional[:class:`Message`]
             The message that started this thread or ``None`` if not found in the cache.
         """
-        return self._state._get_message(self.id)
+        return await self._state._get_message(self.id)
 
     def is_pinned(self) -> bool:
         """Whether the thread is pinned to the top of its parent forum or media channel.

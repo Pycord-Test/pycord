@@ -1232,6 +1232,7 @@ class Guild(Hashable):
             **options,
         )
         channel = TextChannel(state=self._state, guild=self, data=data)
+        await channel._update()
 
         # temporarily add to the cache
         self._channels[channel.id] = channel
@@ -2324,7 +2325,7 @@ class Guild(Hashable):
         from .template import Template
 
         data = await self._state.http.guild_templates(self.id)
-        return [Template(data=d, state=self._state) for d in data]
+        return [await Template.from_data(data=d, state=self._state) for d in data]
 
     async def webhooks(self) -> list[Webhook]:
         """|coro|
@@ -2452,7 +2453,7 @@ class Guild(Hashable):
 
         data = await self._state.http.create_template(self.id, payload)
 
-        return Template(state=self._state, data=data)
+        return await Template.from_data(state=self._state, data=data)
 
     async def create_integration(self, *, type: str, id: int) -> None:
         """|coro|
@@ -3283,7 +3284,7 @@ class Guild(Hashable):
         return Invite(state=self._state, data=payload, guild=self, channel=channel)
 
     # TODO: use MISSING when async iterators get refactored
-    def audit_logs(
+    async def audit_logs(
         self,
         *,
         limit: int | None = 100,
@@ -3334,12 +3335,12 @@ class Guild(Hashable):
         Getting the first 100 entries: ::
 
             async for entry in guild.audit_logs(limit=100):
-                print(f'{entry.user} did {entry.action} to {entry.target}')
+                print(f'{entry.user} did {entry.action} to {await entry.get_target()}')
 
         Getting entries for a specific action: ::
 
             async for entry in guild.audit_logs(action=discord.AuditLogAction.ban):
-                print(f'{entry.user} banned {entry.target}')
+                print(f'{entry.user} banned {await entry.get_target()}')
 
         Getting entries made by a specific user: ::
 

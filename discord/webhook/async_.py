@@ -820,9 +820,9 @@ class _WebhookState:
         # state parameter is artificial
         return BaseUser(state=self, data=data)  # type: ignore
 
-    def store_poll(self, poll: Poll, message_id: int):
+    async def store_poll(self, poll: Poll, message_id: int):
         if self._parent is not None:
-            return self._parent.store_poll(poll, message_id)
+            return await self._parent.store_poll(poll, message_id)
         # state parameter is artificial
         return None
 
@@ -1027,7 +1027,7 @@ class BaseWebhook(Hashable):
         )
         self._update(data)
 
-    def _update(self, data: WebhookPayload | FollowerWebhookPayload):
+    async def _update(self, data: WebhookPayload | FollowerWebhookPayload):
         self.id = int(data["id"])
         self.type = try_enum(WebhookType, int(data["type"]))
         self.channel_id = utils._get_as_snowflake(data, "channel_id")
@@ -1068,13 +1068,12 @@ class BaseWebhook(Hashable):
         """
         return self.auth_token is not None
 
-    @property
-    def guild(self) -> Guild | None:
+    async def get_guild(self) -> Guild | None:
         """The guild this webhook belongs to.
 
         If this is a partial webhook, then this will always return ``None``.
         """
-        return self._state and self._state._get_guild(self.guild_id)
+        return self._state and await self._state._get_guild(self.guild_id)
 
     @property
     def channel(self) -> TextChannel | None:

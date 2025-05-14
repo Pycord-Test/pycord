@@ -22,16 +22,17 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
 
+from abc import ABC
 from asyncio import Future
 import asyncio
-from typing import Any, Callable, Protocol, Self, Type, TypeVar
+from typing import Any, Callable, Self, Type, TypeVar
 
 from .state import ConnectionState
 
 T = TypeVar('T')
 
 
-class Event(Protocol):
+class Event(ABC):
     __event_name__: str
 
     @classmethod

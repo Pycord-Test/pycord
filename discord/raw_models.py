@@ -654,14 +654,16 @@ class AutoModActionExecutionEvent:
         "data",
     )
 
-    def __init__(self, state: ConnectionState, data: AutoModActionExecution) -> None:
+    @classmethod
+    async def from_data(cls, state: ConnectionState, data: AutoModActionExecution) -> None:
+        self = cls()
         self.action: AutoModAction = AutoModAction.from_dict(data["action"])
         self.rule_id: int = int(data["rule_id"])
         self.rule_trigger_type: AutoModTriggerType = try_enum(
             AutoModTriggerType, int(data["rule_trigger_type"])
         )
         self.guild_id: int = int(data["guild_id"])
-        self.guild: Guild | None = state._get_guild(self.guild_id)
+        self.guild: Guild | None = await state._get_guild(self.guild_id)
         self.user_id: int = int(data["user_id"])
         self.content: str | None = data.get("content", None)
         self.matched_keyword: str = data["matched_keyword"]
@@ -685,7 +687,7 @@ class AutoModActionExecutionEvent:
 
         try:
             self.message_id: int | None = int(data["message_id"])
-            self.message: Message | None = state._get_message(self.message_id)
+            self.message: Message | None = await state._get_message(self.message_id)
         except KeyError:
             self.message_id: int | None = None
             self.message: Message | None = None
@@ -694,7 +696,7 @@ class AutoModActionExecutionEvent:
             self.alert_system_message_id: int | None = int(
                 data["alert_system_message_id"]
             )
-            self.alert_system_message: Message | None = state._get_message(
+            self.alert_system_message: Message | None = await state._get_message(
                 self.alert_system_message_id
             )
         except KeyError:

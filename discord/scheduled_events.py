@@ -90,12 +90,12 @@ class ScheduledEventLocation:
         self,
         *,
         state: ConnectionState,
-        value: str | int | StageChannel | VoiceChannel,
+        value: str | Object,
     ):
         self._state = state
         self.value: str | StageChannel | VoiceChannel | Object
         if isinstance(value, int):
-            self.value = self._state.get_channel(id=int(value)) or Object(id=int(value))
+            self.value = Object(id=int(value))
         else:
             self.value = value
 

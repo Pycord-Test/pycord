@@ -189,10 +189,9 @@ class GuildEmoji(BaseEmoji):
 
         return [role for role in guild.roles if self._roles.has(role.id)]
 
-    @property
-    def guild(self) -> Guild:
+    async def get_guild(self) -> Guild:
         """The guild this emoji belongs to."""
-        return self._state._get_guild(self.guild_id)
+        return await self._state._get_guild(self.guild_id)
 
     def is_usable(self) -> bool:
         """Whether the bot can use this emoji.
@@ -377,8 +376,8 @@ class AppEmoji(BaseEmoji):
         """
 
         await self._state.http.delete_application_emoji(self.application_id, self.id)
-        if self._state.cache_app_emojis and self._state.get_emoji(self.id):
-            self._state._remove_emoji(self)
+        if self._state.cache_app_emojis and await self._state.get_emoji(self.id):
+            await self._state._remove_emoji(self)
 
     async def edit(
         self,

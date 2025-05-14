@@ -189,11 +189,13 @@ class Interaction:
 
     def __init__(self, *, data: InteractionPayload, state: ConnectionState):
         self._state: ConnectionState = state
+        self._data = data
         self._session: ClientSession = state.http._HTTPClient__session
         self._original_response: InteractionMessage | None = None
-        self._from_data(data)
 
-    def _from_data(self, data: InteractionPayload):
+    async def load_data(self):
+        data = self._data
+
         self.id: int = int(data["id"])
         self.type: InteractionType = try_enum(InteractionType, data["type"])
         self.data: InteractionData | None = data.get("data")
@@ -239,7 +241,7 @@ class Interaction:
         if self.guild_id:
             guild = (
                 self.guild
-                or self._state._get_guild(self.guild_id)
+                or await self._state._get_guild(self.guild_id)
                 or Object(id=self.guild_id)
             )
             try:
@@ -282,7 +284,7 @@ class Interaction:
         self._channel_data = channel
 
         if message_data := data.get("message"):
-            self.message = Message(
+            self.message = await Message._from_data(
                 state=self._state, channel=self.channel, data=message_data
             )
 
@@ -293,12 +295,11 @@ class Interaction:
         """Returns the client that sent the interaction."""
         return self._state._get_client()
 
-    @property
-    def guild(self) -> Guild | None:
+    async def get_guild(self) -> Guild | None:
         """The guild the interaction was sent from."""
         if self._guild:
             return self._guild
-        return self._state and self._state._get_guild(self.guild_id)
+        return self._state and await self._state._get_guild(self.guild_id)
 
     def is_command(self) -> bool:
         """Indicates whether the interaction is an application command."""
@@ -1348,8 +1349,8 @@ class _InteractionMessageState:
         self._interaction: Interaction = interaction
         self._parent: ConnectionState = parent
 
-    def _get_guild(self, guild_id):
-        return self._parent._get_guild(guild_id)
+    async def _get_guild(self, guild_id):
+        return await self._parent._get_guild(guild_id)
 
     def store_user(self, data):
         return self._parent.store_user(data)
@@ -1559,8 +1560,6 @@ class InteractionMetadata:
         "interacted_message_id",
         "triggering_interaction_metadata",
         "_state",
-        "_cs_original_response_message",
-        "_cs_interacted_message",
     )
 
     def __init__(self, *, data: InteractionMetadataPayload, state: ConnectionState):
@@ -1588,23 +1587,21 @@ class InteractionMetadata:
             f"<InteractionMetadata id={self.id} type={self.type!r} user={self.user!r}>"
         )
 
-    @utils.cached_slot_property("_cs_original_response_message")
-    def original_response_message(self) -> Message | None:
+    async def get_original_response_message(self) -> Message | None:
         """Optional[:class:`Message`]: The original response message.
         Returns ``None`` if the message is not in cache, or if :attr:`original_response_message_id` is ``None``.
         """
         if not self.original_response_message_id:
             return None
-        return self._state._get_message(self.original_response_message_id)
+        return await self._state._get_message(self.original_response_message_id)
 
-    @utils.cached_slot_property("_cs_interacted_message")
-    def interacted_message(self) -> Message | None:
+    async def get_interacted_message(self) -> Message | None:
         """Optional[:class:`Message`]: The message that triggered the interaction.
         Returns ``None`` if the message is not in cache, or if :attr:`interacted_message_id` is ``None``.
         """
         if not self.interacted_message_id:
             return None
-        return self._state._get_message(self.interacted_message_id)
+        return await self._state._get_message(self.interacted_message_id)
 
 
 class AuthorizingIntegrationOwners:

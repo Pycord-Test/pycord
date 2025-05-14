@@ -26,6 +26,7 @@ DEALINGS IN THE SOFTWARE.
 from __future__ import annotations
 
 import datetime
+from inspect import isawaitable
 import io
 import re
 from os import PathLike
@@ -34,6 +35,7 @@ from typing import (
     Any,
     Callable,
     ClassVar,
+    Self,
     Sequence,
     TypeVar,
     Union,
@@ -571,10 +573,9 @@ class MessageReference:
         self._state = message._state
         return self
 
-    @property
-    def cached_message(self) -> Message | None:
+    async def get_cached_message(self) -> Message | None:
         """The cached message, if found in the internal message cache."""
-        return self._state and self._state._get_message(self.message_id)
+        return self._state and await self._state._get_message(self.message_id)
 
     @property
     def jump_url(self) -> str:
@@ -834,41 +835,43 @@ class Message(Hashable):
         author: User | Member
         role_mentions: list[Role]
 
-    def __init__(
-        self,
+    @classmethod
+    async def _from_data(
+        cls,
         *,
         state: ConnectionState,
         channel: MessageableChannel,
         data: MessagePayload,
-    ):
-        self._state: ConnectionState = state
-        self._raw_data: MessagePayload = data
-        self.id: int = int(data["id"])
-        self.webhook_id: int | None = utils._get_as_snowflake(data, "webhook_id")
-        self.reactions: list[Reaction] = [
+    ) -> Self:
+        self = cls()
+        self._state = state
+        self._raw_data = data
+        self.id = int(data["id"])
+        self.webhook_id = utils._get_as_snowflake(data, "webhook_id")
+        self.reactions = [
             Reaction(message=self, data=d) for d in data.get("reactions", [])
         ]
-        self.attachments: list[Attachment] = [
+        self.attachments = [
             Attachment(data=a, state=self._state) for a in data["attachments"]
         ]
-        self.embeds: list[Embed] = [Embed.from_dict(a) for a in data["embeds"]]
-        self.application: MessageApplicationPayload | None = data.get("application")
-        self.activity: MessageActivityPayload | None = data.get("activity")
-        self.channel: MessageableChannel = channel
-        self._edited_timestamp: datetime.datetime | None = utils.parse_time(
+        self.embeds = [Embed.from_dict(a) for a in data["embeds"]]
+        self.application = data.get("application")
+        self.activity = data.get("activity")
+        self.channel = channel
+        self._edited_timestamp = utils.parse_time(
             data["edited_timestamp"]
         )
-        self.type: MessageType = try_enum(MessageType, data["type"])
-        self.pinned: bool = data["pinned"]
-        self.flags: MessageFlags = MessageFlags._from_value(data.get("flags", 0))
-        self.mention_everyone: bool = data["mention_everyone"]
-        self.tts: bool = data["tts"]
-        self.content: str = data["content"]
-        self.nonce: int | str | None = data.get("nonce")
-        self.stickers: list[StickerItem] = [
+        self.type = try_enum(MessageType, data["type"])
+        self.pinned = data["pinned"]
+        self.flags = MessageFlags._from_value(data.get("flags", 0))
+        self.mention_everyone = data["mention_everyone"]
+        self.tts = data["tts"]
+        self.content = data["content"]
+        self.nonce = data.get("nonce")
+        self.stickers = [
             StickerItem(data=d, state=state) for d in data.get("sticker_items", [])
         ]
-        self.components: list[Component] = [
+        self.components = [
             _component_factory(d) for d in data.get("components", [])
         ]
 
@@ -876,7 +879,7 @@ class Message(Hashable):
             # if the channel doesn't have a guild attribute, we handle that
             self.guild = channel.guild  # type: ignore
         except AttributeError:
-            self.guild = state._get_guild(utils._get_as_snowflake(data, "guild_id"))
+            self.guild = await state._get_guild(utils._get_as_snowflake(data, "guild_id"))
 
         try:
             ref = data["message_reference"]
@@ -896,7 +899,7 @@ class Message(Hashable):
                     if ref.channel_id == channel.id:
                         chan = channel
                     else:
-                        chan, _ = state._get_guild_channel(
+                        chan, _ = await state._get_guild_channel(
                             resolved, guild_id=self.guild.id
                         )
 
@@ -922,7 +925,7 @@ class Message(Hashable):
         self._poll: Poll | None
         try:
             self._poll = Poll.from_dict(data["poll"], self)
-            self._state.store_poll(self._poll, self.id)
+            await self._state.store_poll(self._poll, self.id)
         except KeyError:
             self._poll = None
 
@@ -1011,7 +1014,7 @@ class Message(Hashable):
         del self.reactions[index]
         return reaction
 
-    def _update(self, data):
+    async def _update(self, data):
         # In an update scheme, 'author' key has to be handled before 'member'
         # otherwise they overwrite each other which is undesirable.
         # Since there's no good way to do this we have to iterate over every
@@ -1022,7 +1025,9 @@ class Message(Hashable):
             except KeyError:
                 continue
             else:
-                handler(self, value)
+                r = handler(self, value)
+                if isawaitable(r):
+                    await r
 
         # clear the cached properties
         for attr in self._CACHED_SLOTS:
@@ -1067,9 +1072,9 @@ class Message(Hashable):
     def _handle_nonce(self, value: str | int) -> None:
         self.nonce = value
 
-    def _handle_poll(self, value: PollPayload) -> None:
+    async def _handle_poll(self, value: PollPayload) -> None:
         self._poll = Poll.from_dict(value, self)
-        self._state.store_poll(self._poll, self.id)
+        await self._state.store_poll(self._poll, self.id)
 
     def _handle_author(self, author: UserPayload) -> None:
         self.author = self._state.store_user(author)
@@ -1633,7 +1638,7 @@ class Message(Hashable):
             data = await self._state.http.edit_message(
                 self.channel.id, self.id, **payload
             )
-        message = Message(state=self._state, channel=self.channel, data=data)
+        message = await Message._from_data(state=self._state, channel=self.channel, data=data)
 
         if view and not view.is_finished():
             view.message = message
@@ -1954,7 +1959,7 @@ class Message(Hashable):
             self.channel.id,
             self.id,
         )
-        message = Message(state=self._state, channel=self.channel, data=data)
+        message = await Message._from_data(state=self._state, channel=self.channel, data=data)
 
         return message
 
@@ -2068,7 +2073,7 @@ class PartialMessage(Hashable):
         self._state: ConnectionState = channel._state
         self.id: int = id
 
-    def _update(self, data) -> None:
+    async def _update(self, data) -> None:
         # This is used for duck typing purposes.
         # Just do nothing with the data.
         pass

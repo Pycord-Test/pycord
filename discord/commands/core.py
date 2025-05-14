@@ -1896,7 +1896,7 @@ class MessageCommand(ContextMenuCommand):
                 state=ctx.interaction._state, id=int(message["channel_id"])
             )
 
-        target = Message(state=ctx.interaction._state, channel=channel, data=message)
+        target = Message._from_data(state=ctx.interaction._state, channel=channel, data=message)
 
         if self.cog is not None:
             await self.callback(self.cog, ctx, target)

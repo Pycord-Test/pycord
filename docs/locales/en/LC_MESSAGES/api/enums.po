@@ -960,7 +960,7 @@ msgstr ""
 
 #: ../../api/enums.rst:824 c890e719787243a5af28be7c6f82f77b
 msgid ""
-"When this is the action, the type of :attr:`~AuditLogEntry.target` is the"
+"When this is the action, the type of :func:`~AuditLogEntry.get_target` is the"
 " :class:`Guild`."
 msgstr ""
 
@@ -1076,7 +1076,7 @@ msgstr ""
 
 #: ../../api/enums.rst:847 e00bbae1ecc54cd4aa7b2f97761a2857
 msgid ""
-"When this is the action, the type of :attr:`~AuditLogEntry.target` is "
+"When this is the action, the type of :func:`~AuditLogEntry.get_target` is "
 "either a :class:`abc.GuildChannel` or :class:`Object` with an ID."
 msgstr ""
 
@@ -1118,7 +1118,7 @@ msgstr ""
 #: ../../api/enums.rst:866 ../../api/enums.rst:904
 #: 5257b72e408a46d4a7b06498d32f7209 8f81efbdafac4745899e4ad861717ecd
 msgid ""
-"When this is the action, the type of :attr:`~AuditLogEntry.target` is the"
+"When this is the action, the type of :func:`~AuditLogEntry.get_target` is the"
 " :class:`abc.GuildChannel` or :class:`Object` with an ID."
 msgstr ""
 
@@ -1160,7 +1160,7 @@ msgstr ""
 
 #: ../../api/enums.rst:888 5af5984da736481eae7b9ec37355167b
 msgid ""
-"When this is the action, the type of :attr:`~AuditLogEntry.target` is an "
+"When this is the action, the type of :func:`~AuditLogEntry.get_target` is an "
 ":class:`Object` with an ID."
 msgstr ""
 
@@ -1211,7 +1211,7 @@ msgstr ""
 #: 548a7a8ca0314acf9735eac331d866e9 b74dea0f59eb486f98c229b259e001f9
 msgid ""
 "See :attr:`overwrite_create` for more information on how the "
-":attr:`~AuditLogEntry.target` and :attr:`~AuditLogEntry.extra` fields are"
+":func:`~AuditLogEntry.get_target` and :attr:`~AuditLogEntry.extra` fields are"
 " set."
 msgstr ""
 
@@ -1225,7 +1225,7 @@ msgstr ""
 
 #: ../../api/enums.rst:955 9462b1de374b4d8696d91df0e11eaf2e
 msgid ""
-"When this is the action, the type of :attr:`~AuditLogEntry.target` is the"
+"When this is the action, the type of :func:`~AuditLogEntry.get_target` is the"
 " :class:`User` who got kicked."
 msgstr ""
 
@@ -1242,7 +1242,7 @@ msgstr ""
 
 #: ../../api/enums.rst:964 4c83a0acb3cc4f5d9f86ee20117108e6
 msgid ""
-"When this is the action, the type of :attr:`~AuditLogEntry.target` is set"
+"When this is the action, the type of :func:`~AuditLogEntry.get_target` is set"
 " to ``None``."
 msgstr ""
 
@@ -1270,7 +1270,7 @@ msgstr ""
 
 #: ../../api/enums.rst:979 770451079d8d4b5f8e33b6c52da5f3ff
 msgid ""
-"When this is the action, the type of :attr:`~AuditLogEntry.target` is the"
+"When this is the action, the type of :func:`~AuditLogEntry.get_target` is the"
 " :class:`User` who got banned."
 msgstr ""
 
@@ -1280,7 +1280,7 @@ msgstr ""
 
 #: ../../api/enums.rst:988 456609aa1df0460dbb3dcd6b5414aca8
 msgid ""
-"When this is the action, the type of :attr:`~AuditLogEntry.target` is the"
+"When this is the action, the type of :func:`~AuditLogEntry.get_target` is the"
 " :class:`User` who got unbanned."
 msgstr ""
 
@@ -1298,7 +1298,7 @@ msgstr ""
 
 #: ../../api/enums.rst:1000 3685711e4704496c8312ef6113636f20
 msgid ""
-"When this is the action, the type of :attr:`~AuditLogEntry.target` is the"
+"When this is the action, the type of :func:`~AuditLogEntry.get_target` is the"
 " :class:`Member` or :class:`User` who got updated."
 msgstr ""
 
@@ -1322,7 +1322,7 @@ msgstr ""
 
 #: ../../api/enums.rst:1014 a57b479bb72143a6b0e1fa6cff760c1a
 msgid ""
-"When this is the action, the type of :attr:`~AuditLogEntry.target` is the"
+"When this is the action, the type of :func:`~AuditLogEntry.get_target` is the"
 " :class:`Member` or :class:`User` who got the role."
 msgstr ""
 
@@ -1369,7 +1369,7 @@ msgstr ""
 
 #: ../../api/enums.rst:1050 aad1bbec2f2a487784929c43e432558a
 msgid ""
-"When this is the action, the type of :attr:`~AuditLogEntry.target` is the"
+"When this is the action, the type of :func:`~AuditLogEntry.get_target` is the"
 " :class:`Member` or :class:`User` which was added to the guild."
 msgstr ""
 
@@ -1381,7 +1381,7 @@ msgstr ""
 #: 5547887ba3e64a6cadc87783c1bcecf7 91ed6f1edab04e8aad95cd8d9aa069f7
 #: f5e5f97f23e7451c8914aad7c3391dd4
 msgid ""
-"When this is the action, the type of :attr:`~AuditLogEntry.target` is the"
+"When this is the action, the type of :func:`~AuditLogEntry.get_target` is the"
 " :class:`Role` or a :class:`Object` with the ID."
 msgstr ""
 
@@ -1439,7 +1439,7 @@ msgstr ""
 
 #: ../../api/enums.rst:1109 ce279e2749bb47529031e1755e0740c2
 msgid ""
-"When this is the action, the type of :attr:`~AuditLogEntry.target` is the"
+"When this is the action, the type of :func:`~AuditLogEntry.get_target` is the"
 " :class:`Invite` that was created."
 msgstr ""
 
@@ -1489,7 +1489,7 @@ msgstr ""
 
 #: ../../api/enums.rst:1126 c0adb6372c474dd9a6fa1b79ababb781
 msgid ""
-"When this is the action, the type of :attr:`~AuditLogEntry.target` is the"
+"When this is the action, the type of :func:`~AuditLogEntry.get_target` is the"
 " :class:`Invite` that was updated."
 msgstr ""
 
@@ -1499,7 +1499,7 @@ msgstr ""
 
 #: ../../api/enums.rst:1133 951939c17ece4b73a544877c61858520
 msgid ""
-"When this is the action, the type of :attr:`~AuditLogEntry.target` is the"
+"When this is the action, the type of :func:`~AuditLogEntry.get_target` is the"
 " :class:`Invite` that was deleted."
 msgstr ""
 
@@ -1511,7 +1511,7 @@ msgstr ""
 #: 2fe79b01b896449f8a2711781524a8df 59d99fea521c4d5f9ce1c97173c5a522
 #: ef972dbe7ec941a5907d624c86a390d6
 msgid ""
-"When this is the action, the type of :attr:`~AuditLogEntry.target` is the"
+"When this is the action, the type of :func:`~AuditLogEntry.get_target` is the"
 " :class:`Object` with the webhook ID."
 msgstr ""
 
@@ -1547,7 +1547,7 @@ msgstr ""
 #: ../../api/enums.rst:1192 ../../api/enums.rst:1203
 #: 41aeb9dc3c5840aeb56f92ec751f6cd0 df5de1fd8daa4ce2a481835fc9ae71f4
 msgid ""
-"When this is the action, the type of :attr:`~AuditLogEntry.target` is the"
+"When this is the action, the type of :func:`~AuditLogEntry.get_target` is the"
 " :class:`GuildEmoji` or :class:`Object` with the emoji ID."
 msgstr ""
 
@@ -1561,7 +1561,7 @@ msgstr ""
 
 #: ../../api/enums.rst:1214 6c4676bf1a414f30a39f7196f7d82d10
 msgid ""
-"When this is the action, the type of :attr:`~AuditLogEntry.target` is the"
+"When this is the action, the type of :func:`~AuditLogEntry.get_target` is the"
 " :class:`Object` with the emoji ID."
 msgstr ""
 
@@ -1573,7 +1573,7 @@ msgstr ""
 
 #: ../../api/enums.rst:1226 8982961c175341f9a00e1d4196d2528a
 msgid ""
-"When this is the action, the type of :attr:`~AuditLogEntry.target` is the"
+"When this is the action, the type of :func:`~AuditLogEntry.get_target` is the"
 " :class:`Member` or :class:`User` who had their message deleted."
 msgstr ""
 
@@ -1594,7 +1594,7 @@ msgstr ""
 
 #: ../../api/enums.rst:1239 b496e7abbf6641c6aa0ecb2f408fa88d
 msgid ""
-"When this is the action, the type of :attr:`~AuditLogEntry.target` is the"
+"When this is the action, the type of :func:`~AuditLogEntry.get_target` is the"
 " :class:`TextChannel` or :class:`Object` with the ID of the channel that "
 "was purged."
 msgstr ""
@@ -1605,7 +1605,7 @@ msgstr ""
 
 #: ../../api/enums.rst:1253 d1e5158c3f894e9098ce7240dda29673
 msgid ""
-"When this is the action, the type of :attr:`~AuditLogEntry.target` is the"
+"When this is the action, the type of :func:`~AuditLogEntry.get_target` is the"
 " :class:`Member` or :class:`User` who had their message pinned."
 msgstr ""
 
@@ -1625,7 +1625,7 @@ msgstr ""
 
 #: ../../api/enums.rst:1268 9133756a00814e1591bec12ddd56edb6
 msgid ""
-"When this is the action, the type of :attr:`~AuditLogEntry.target` is the"
+"When this is the action, the type of :func:`~AuditLogEntry.get_target` is the"
 " :class:`Member` or :class:`User` who had their message unpinned."
 msgstr ""
 
@@ -1645,7 +1645,7 @@ msgstr ""
 
 #: ../../api/enums.rst:1283 28a61562db5c42e58719d9abdd270252
 msgid ""
-"When this is the action, the type of :attr:`~AuditLogEntry.target` is the"
+"When this is the action, the type of :func:`~AuditLogEntry.get_target` is the"
 " :class:`Object` with the integration ID of the integration which was "
 "created."
 msgstr ""
@@ -1656,7 +1656,7 @@ msgstr ""
 
 #: ../../api/enums.rst:1292 cc4ffb3112c04683842b7de2775fb45d
 msgid ""
-"When this is the action, the type of :attr:`~AuditLogEntry.target` is the"
+"When this is the action, the type of :func:`~AuditLogEntry.get_target` is the"
 " :class:`Object` with the integration ID of the integration which was "
 "updated."
 msgstr ""
@@ -1667,7 +1667,7 @@ msgstr ""
 
 #: ../../api/enums.rst:1301 f5bd9a45dda249209e96a6ee8751ca52
 msgid ""
-"When this is the action, the type of :attr:`~AuditLogEntry.target` is the"
+"When this is the action, the type of :func:`~AuditLogEntry.get_target` is the"
 " :class:`Object` with the integration ID of the integration which was "
 "deleted."
 msgstr ""
@@ -1678,7 +1678,7 @@ msgstr ""
 
 #: ../../api/enums.rst:1310 c2e9a68539184e2fa02ef00208b3a2aa
 msgid ""
-"When this is the action, the type of :attr:`~AuditLogEntry.target` is the"
+"When this is the action, the type of :func:`~AuditLogEntry.get_target` is the"
 " :class:`StageInstance` or :class:`Object` with the ID of the stage "
 "instance which was created."
 msgstr ""
@@ -1697,7 +1697,7 @@ msgstr ""
 
 #: ../../api/enums.rst:1325 5f94e6a27480458483dd65b0a69b1037
 msgid ""
-"When this is the action, the type of :attr:`~AuditLogEntry.target` is the"
+"When this is the action, the type of :func:`~AuditLogEntry.get_target` is the"
 " :class:`StageInstance` or :class:`Object` with the ID of the stage "
 "instance which was updated."
 msgstr ""
@@ -1714,7 +1714,7 @@ msgstr ""
 #: 3d62e77b4351433b96277edb798f3ce3 83e568d602594a06a3755e2645cea0e5
 #: a544a30d24fe44ce9cbd11c4d6bf9f7c
 msgid ""
-"When this is the action, the type of :attr:`~AuditLogEntry.target` is the"
+"When this is the action, the type of :func:`~AuditLogEntry.get_target` is the"
 " :class:`GuildSticker` or :class:`Object` with the ID of the sticker "
 "which was updated."
 msgstr ""
@@ -1761,7 +1761,7 @@ msgstr ""
 #: 3a98586e07cd4bd4b61d000b98c58dec 5a0b011e635a4d84895b73b59e7641c9
 #: af920a7bbbc94e369a1d93f7a1cc290a
 msgid ""
-"When this is the action, the type of :attr:`~AuditLogEntry.target` is the"
+"When this is the action, the type of :func:`~AuditLogEntry.get_target` is the"
 " :class:`ScheduledEvent` or :class:`Object` with the ID of the thread "
 "which was deleted."
 msgstr ""
@@ -1804,7 +1804,7 @@ msgstr ""
 
 #: ../../api/enums.rst:1466 afb06852a1554bf69f47285f8ffc16d4
 msgid ""
-"When this is the action, the type of :attr:`~AuditLogEntry.target` is the"
+"When this is the action, the type of :func:`~AuditLogEntry.get_target` is the"
 " :class:`Thread` or :class:`Object` with the ID of the thread which was "
 "created."
 msgstr ""
@@ -1839,7 +1839,7 @@ msgstr ""
 
 #: ../../api/enums.rst:1484 43b8091416ca4f4987c31bc8136e00f5
 msgid ""
-"When this is the action, the type of :attr:`~AuditLogEntry.target` is the"
+"When this is the action, the type of :func:`~AuditLogEntry.get_target` is the"
 " :class:`Thread` or :class:`Object` with the ID of the thread which was "
 "updated."
 msgstr ""
@@ -1850,7 +1850,7 @@ msgstr ""
 
 #: ../../api/enums.rst:1502 438ec881b324479aad7b59bb720a7b9c
 msgid ""
-"When this is the action, the type of :attr:`~AuditLogEntry.target` is the"
+"When this is the action, the type of :func:`~AuditLogEntry.get_target` is the"
 " :class:`Thread` or :class:`Object` with the ID of the thread which was "
 "deleted."
 msgstr ""
@@ -1861,7 +1861,7 @@ msgstr ""
 
 #: ../../api/enums.rst:1520 e7552f8804b04c728f78efa08726afe8
 msgid ""
-"When this is the action, the type of :attr:`~AuditLogEntry.target` is an "
+"When this is the action, the type of :func:`~AuditLogEntry.get_target` is an "
 ":class:`Object` with the ID of the command that had it's permissions "
 "edited."
 msgstr ""
@@ -1950,7 +1950,7 @@ msgstr ""
 #: ../../api/enums.rst:1614 ../../api/enums.rst:1628
 #: 21d7aa25fa2449bdbc086189b5743a39 d09aa244691540dbaeff35ae7f802cd6
 msgid ""
-"When this is the action, the type of :attr:`~AuditLogEntry.target` is the"
+"When this is the action, the type of :func:`~AuditLogEntry.get_target` is the"
 " :class:`VoiceChannel` or :class:`Object` with the ID of the voice "
 "channel which was updated."
 msgstr ""
@@ -2817,7 +2817,7 @@ msgstr ""
 
 #~ msgid ""
 #~ "When this is the action, the type"
-#~ " of :attr:`~AuditLogEntry.target` is the "
+#~ " of :func:`~AuditLogEntry.get_target` is the "
 #~ ":class:`Emoji` or :class:`Object` with the "
 #~ "emoji ID."
 #~ msgstr ""
