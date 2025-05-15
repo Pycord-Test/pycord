@@ -152,6 +152,9 @@ class Cache(Protocol):
     async def store_message(self, message: MessagePayload, channel: MessageableChannel) -> Message:
         ...
 
+    async def upsert_message(self, message: Message) -> None:
+        ...
+
     async def delete_message(self, message_id: int) -> None:
         ...
 
@@ -332,8 +335,13 @@ class MemoryCache(Cache):
 
     # messages
 
+    async def upsert_message(self, message: Message) -> None:
+        self._messages.append(message)
+
     async def store_message(self, message: MessagePayload, channel: MessageableChannel) -> Message:
         msg = await Message._from_data(state=self._state, channel=channel, data=message)
+        self._messages.append(msg)
+        return msg
 
     async def get_message(self, message_id: int) -> Message | None:
         return utils.find(lambda m: m.id == message_id, reversed(self._messages))

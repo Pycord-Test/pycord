@@ -524,163 +524,6 @@ class ConnectionState:
             )
             raise
 
-
-    def parse_message_update(self, data) -> None:
-        raw = RawMessageUpdateEvent(data)
-        message = self._get_message(raw.message_id)
-        if message is not None:
-            older_message = copy.copy(message)
-            raw.cached_message = older_message
-            self.dispatch("raw_message_edit", raw)
-            message._update(data)
-            # Coerce the `after` parameter to take the new updated Member
-            # ref: #5999
-            older_message.author = message.author
-            self.dispatch("message_edit", older_message, message)
-        else:
-            if poll_data := data.get("poll"):
-                self.store_raw_poll(poll_data, raw)
-            self.dispatch("raw_message_edit", raw)
-
-        if "components" in data and self._view_store.is_message_tracked(raw.message_id):
-            self._view_store.update_from_message(raw.message_id, data["components"])
-
-    def parse_message_reaction_add(self, data) -> None:
-        emoji = data["emoji"]
-        emoji_id = utils._get_as_snowflake(emoji, "id")
-        emoji = PartialEmoji.with_state(
-            self, id=emoji_id, animated=emoji.get("animated", False), name=emoji["name"]
-        )
-        raw = RawReactionActionEvent(data, emoji, "REACTION_ADD")
-
-        member_data = data.get("member")
-        if member_data:
-            guild = self._get_guild(raw.guild_id)
-            if guild is not None:
-                raw.member = Member(data=member_data, guild=guild, state=self)
-            else:
-                raw.member = None
-        else:
-            raw.member = None
-        self.dispatch("raw_reaction_add", raw)
-
-        # rich interface here
-        message = self._get_message(raw.message_id)
-        if message is not None:
-            emoji = self._upgrade_partial_emoji(emoji)
-            reaction = message._add_reaction(data, emoji, raw.user_id)
-            user = raw.member or self._get_reaction_user(message.channel, raw.user_id)
-
-            if user:
-                self.dispatch("reaction_add", reaction, user)
-
-    def parse_message_reaction_remove_all(self, data) -> None:
-        raw = RawReactionClearEvent(data)
-        self.dispatch("raw_reaction_clear", raw)
-
-        message = self._get_message(raw.message_id)
-        if message is not None:
-            old_reactions = message.reactions.copy()
-            message.reactions.clear()
-            self.dispatch("reaction_clear", message, old_reactions)
-
-    def parse_message_reaction_remove(self, data) -> None:
-        emoji = data["emoji"]
-        emoji_id = utils._get_as_snowflake(emoji, "id")
-        emoji = PartialEmoji.with_state(self, id=emoji_id, name=emoji["name"])
-        raw = RawReactionActionEvent(data, emoji, "REACTION_REMOVE")
-
-        member_data = data.get("member")
-        if member_data:
-            guild = self._get_guild(raw.guild_id)
-            if guild is not None:
-                raw.member = Member(data=member_data, guild=guild, state=self)
-            else:
-                raw.member = None
-        else:
-            raw.member = None
-
-        self.dispatch("raw_reaction_remove", raw)
-
-        message = self._get_message(raw.message_id)
-        if message is not None:
-            emoji = self._upgrade_partial_emoji(emoji)
-            try:
-                reaction = message._remove_reaction(data, emoji, raw.user_id)
-            except (AttributeError, ValueError):  # eventual consistency lol
-                pass
-            else:
-                user = self._get_reaction_user(message.channel, raw.user_id)
-                if user:
-                    self.dispatch("reaction_remove", reaction, user)
-
-    def parse_message_reaction_remove_emoji(self, data) -> None:
-        emoji = data["emoji"]
-        emoji_id = utils._get_as_snowflake(emoji, "id")
-        emoji = PartialEmoji.with_state(self, id=emoji_id, name=emoji["name"])
-        raw = RawReactionClearEmojiEvent(data, emoji)
-        self.dispatch("raw_reaction_clear_emoji", raw)
-
-        message = self._get_message(raw.message_id)
-        if message is not None:
-            try:
-                reaction = message._clear_emoji(emoji)
-            except (AttributeError, ValueError):  # eventual consistency lol
-                pass
-            else:
-                if reaction:
-                    self.dispatch("reaction_clear_emoji", reaction)
-
-    def parse_message_poll_vote_add(self, data) -> None:
-        raw = RawMessagePollVoteEvent(data, True)
-        guild = self._get_guild(raw.guild_id)
-        if guild:
-            user = guild.get_member(raw.user_id)
-        else:
-            user = self.get_user(raw.user_id)
-        self.dispatch("raw_poll_vote_add", raw)
-
-        self._get_message(raw.message_id)
-        poll = self.get_poll(raw.message_id)
-        # if message was cached, poll has already updated but votes haven't
-        if poll and poll.results:
-            answer = poll.get_answer(raw.answer_id)
-            counts = poll.results._answer_counts
-            if answer is not None:
-                if answer.id in counts:
-                    counts[answer.id].count += 1
-                else:
-                    counts[answer.id] = PollAnswerCount(
-                        {"id": answer.id, "count": 1, "me_voted": False}
-                    )
-        if poll is not None and user is not None:
-            answer = poll.get_answer(raw.answer_id)
-            if answer is not None:
-                self.dispatch("poll_vote_add", poll, user, answer)
-
-    def parse_message_poll_vote_remove(self, data) -> None:
-        raw = RawMessagePollVoteEvent(data, False)
-        guild = self._get_guild(raw.guild_id)
-        if guild:
-            user = guild.get_member(raw.user_id)
-        else:
-            user = self.get_user(raw.user_id)
-        self.dispatch("raw_poll_vote_remove", raw)
-
-        self._get_message(raw.message_id)
-        poll = self.get_poll(raw.message_id)
-        # if message was cached, poll has already updated but votes haven't
-        if poll and poll.results:
-            answer = poll.get_answer(raw.answer_id)
-            counts = poll.results._answer_counts
-            if answer is not None:
-                if answer.id in counts:
-                    counts[answer.id].count -= 1
-        if poll is not None and user is not None:
-            answer = poll.get_answer(raw.answer_id)
-            if answer is not None:
-                self.dispatch("poll_vote_remove", poll, user, answer)
-
     def parse_interaction_create(self, data) -> None:
         interaction = Interaction(data=data, state=self)
         if data["type"] == 3:  # interaction component
@@ -1711,21 +1554,21 @@ class ConnectionState:
 
         return self.get_user(user_id)
 
-    def _get_reaction_user(
+    async def _get_reaction_user(
         self, channel: MessageableChannel, user_id: int
     ) -> User | Member | None:
         if isinstance(channel, TextChannel):
             return channel.guild.get_member(user_id)
-        return self.get_user(user_id)
+        return await self.get_user(user_id)
 
-    def get_reaction_emoji(self, data) -> GuildEmoji | AppEmoji | PartialEmoji:
+    async def get_reaction_emoji(self, data) -> GuildEmoji | AppEmoji | PartialEmoji:
         emoji_id = utils._get_as_snowflake(data, "id")
 
         if not emoji_id:
             return data["name"]
 
         try:
-            return self._emojis[emoji_id]
+            return await self.cache.get_emoji(emoji_id)
         except KeyError:
             return PartialEmoji.with_state(
                 self,
@@ -1734,16 +1577,13 @@ class ConnectionState:
                 name=data["name"],
             )
 
-    def _upgrade_partial_emoji(
+    async def _upgrade_partial_emoji(
         self, emoji: PartialEmoji
     ) -> GuildEmoji | AppEmoji | PartialEmoji | str:
         emoji_id = emoji.id
         if not emoji_id:
             return emoji.name
-        try:
-            return self._emojis[emoji_id]
-        except KeyError:
-            return emoji
+        return await self.cache.get_emoji(emoji_id) or emoji
 
     async def get_channel(self, id: int | None) -> Channel | Thread | None:
         if id is None:

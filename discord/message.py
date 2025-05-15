@@ -949,6 +949,8 @@ class Message(Hashable):
             except KeyError:
                 continue
 
+        return self
+
     def __repr__(self) -> str:
         name = self.__class__.__name__
         return (
@@ -1013,118 +1015,6 @@ class Message(Hashable):
 
         del self.reactions[index]
         return reaction
-
-    async def _update(self, data):
-        # In an update scheme, 'author' key has to be handled before 'member'
-        # otherwise they overwrite each other which is undesirable.
-        # Since there's no good way to do this we have to iterate over every
-        # handler rather than iterating over the keys which is a little slower
-        for key, handler in self._HANDLERS:
-            try:
-                value = data[key]
-            except KeyError:
-                continue
-            else:
-                r = handler(self, value)
-                if isawaitable(r):
-                    await r # type: ignore
-
-        # clear the cached properties
-        for attr in self._CACHED_SLOTS:
-            try:
-                delattr(self, attr)
-            except AttributeError:
-                pass
-
-    def _handle_edited_timestamp(self, value: str) -> None:
-        self._edited_timestamp = utils.parse_time(value)
-
-    def _handle_pinned(self, value: bool) -> None:
-        self.pinned = value
-
-    def _handle_flags(self, value: int) -> None:
-        self.flags = MessageFlags._from_value(value)
-
-    def _handle_application(self, value: MessageApplicationPayload) -> None:
-        self.application = value
-
-    def _handle_activity(self, value: MessageActivityPayload) -> None:
-        self.activity = value
-
-    def _handle_mention_everyone(self, value: bool) -> None:
-        self.mention_everyone = value
-
-    def _handle_tts(self, value: bool) -> None:
-        self.tts = value
-
-    def _handle_type(self, value: int) -> None:
-        self.type = try_enum(MessageType, value)
-
-    def _handle_content(self, value: str) -> None:
-        self.content = value
-
-    def _handle_attachments(self, value: list[AttachmentPayload]) -> None:
-        self.attachments = [Attachment(data=a, state=self._state) for a in value]
-
-    def _handle_embeds(self, value: list[EmbedPayload]) -> None:
-        self.embeds = [Embed.from_dict(data) for data in value]
-
-    def _handle_nonce(self, value: str | int) -> None:
-        self.nonce = value
-
-    async def _handle_poll(self, value: PollPayload) -> None:
-        self._poll = Poll.from_dict(value, self)
-        await self._state.store_poll(self._poll, self.id)
-
-    def _handle_author(self, author: UserPayload) -> None:
-        self.author = self._state.store_user(author)
-        if isinstance(self.guild, Guild):
-            found = self.guild.get_member(self.author.id)
-            if found is not None:
-                self.author = found
-
-    def _handle_member(self, member: MemberPayload) -> None:
-        # The gateway now gives us full Member objects sometimes with the following keys
-        # deaf, mute, joined_at, roles
-        # For the sake of performance I'm going to assume that the only
-        # field that needs *updating* would be the joined_at field.
-        # If there is no Member object (for some strange reason), then we can upgrade
-        # ourselves to a more "partial" member object.
-        author = self.author
-        try:
-            # Update member reference
-            author._update_from_message(member)  # type: ignore
-        except AttributeError:
-            # It's a user here
-            # TODO: consider adding to cache here
-            self.author = Member._from_message(message=self, data=member)
-
-    async def _handle_mentions(self, mentions: list[UserWithMemberPayload]) -> None:
-        self.mentions = r = []
-        guild = self.guild
-        state = self._state
-        if not isinstance(guild, Guild):
-            self.mentions = [await state.store_user(m) for m in mentions]
-            return
-
-        for mention in filter(None, mentions):
-            id_search = int(mention["id"])
-            member = guild.get_member(id_search)
-            if member is not None:
-                r.append(member)
-            else:
-                r.append(Member._try_upgrade(data=mention, guild=guild, state=state))
-
-    def _handle_mention_roles(self, role_mentions: list[int]) -> None:
-        self.role_mentions = []
-        if isinstance(self.guild, Guild):
-            for role_id in map(int, role_mentions):
-                role = self.guild.get_role(role_id)
-                if role is not None:
-                    self.role_mentions.append(role)
-
-    def _handle_components(self, components: list[ComponentPayload]):
-        self.components = [_component_factory(d) for d in components]
 
     def _rebind_cached_references(
         self, new_guild: Guild, new_channel: TextChannel | Thread

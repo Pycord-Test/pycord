@@ -43,6 +43,10 @@ from ..enums import ApplicationCommandPermissionType
 class Resumed(Event):
     __event_name__ = "RESUMED"
 
+    @classmethod
+    async def __load__(cls, _data: Any, _state: ConnectionState) -> Self | None:
+        return cls()
+
 
 class Ready(Event):
     __event_name__ = "READY"
