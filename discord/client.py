@@ -879,10 +879,9 @@ class Client:
 
     # helpers/getters
 
-    @property
-    def users(self) -> list[User]:
+    async def get_users(self) -> list[User]:
         """Returns a list of all the users the bot can see."""
-        return list(self._connection._users.values())
+        return await self._connection.cache.get_all_users()
 
     async def fetch_application(self, application_id: int, /) -> PartialAppInfo:
         """|coro|

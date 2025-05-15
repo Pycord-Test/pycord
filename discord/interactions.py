@@ -252,11 +252,11 @@ class Interaction:
                 self._permissions = int(member.get("permissions", 0))
                 if not isinstance(guild, Object):
                     cache_flag = self._state.member_cache_flags.interaction
-                    self.user = guild._get_and_update_member(
+                    self.user = await guild._get_and_update_member(
                         member, int(member["user"]["id"]), cache_flag
                     )
                 else:
-                    self.user = Member(state=self._state, data=member, guild=guild)
+                    self.user = await Member._from_data(state=self._state, data=member, guild=guild)
         else:
             try:
                 self.user = User(state=self._state, data=data["user"])

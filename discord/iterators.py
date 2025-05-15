@@ -730,12 +730,12 @@ class MemberIterator(_AsyncIterator["Member"]):
         self.after = Object(id=int(data[-1]["user"]["id"]))
 
         for element in reversed(data):
-            await self.members.put(self.create_member(element))
+            await self.members.put(await self.create_member(element))
 
-    def create_member(self, data):
+    async def create_member(self, data):
         from .member import Member
 
-        return Member(data=data, guild=self.guild, state=self.state)
+        return await Member._from_data(data=data, guild=self.guild, state=self.state)
 
 
 class BanIterator(_AsyncIterator["BanEntry"]):
@@ -928,7 +928,7 @@ class ScheduledEventSubscribersIterator(_AsyncIterator[Union["User", "Member"]])
         self.retrieve = r
         return r > 0
 
-    def member_from_payload(self, data):
+    async def member_from_payload(self, data):
         from .member import Member
 
         user = data.pop("user")
@@ -936,7 +936,7 @@ class ScheduledEventSubscribersIterator(_AsyncIterator[Union["User", "Member"]])
         member = data.pop("member")
         member["user"] = user
 
-        return Member(data=member, guild=self.event.guild, state=self.event._state)
+        return await Member._from_data(data=member, guild=self.event.guild, state=self.event._state)
 
     def user_from_payload(self, data):
         from .user import User
@@ -970,7 +970,7 @@ class ScheduledEventSubscribersIterator(_AsyncIterator[Union["User", "Member"]])
 
         for element in reversed(data):
             if "member" in element:
-                await self.subscribers.put(self.member_from_payload(element))
+                await self.subscribers.put(await self.member_from_payload(element))
             else:
                 await self.subscribers.put(self.user_from_payload(element))
 

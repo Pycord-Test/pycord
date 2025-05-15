@@ -43,6 +43,8 @@ from typing import (
     Union,
 )
 
+from discord.app.event_emitter import EventEmitter
+
 from .cache import Cache
 
 from .. import utils
@@ -186,6 +188,7 @@ class ConnectionState:
         self.application_id: int | None = utils._get_as_snowflake(
             options, "application_id"
         )
+        self.application_flags: ApplicationFlags | None = None
         self.heartbeat_timeout: float = options.get("heartbeat_timeout", 60.0)
         self.guild_ready_timeout: float = options.get("guild_ready_timeout", 2.0)
         if self.guild_ready_timeout < 0:
@@ -256,10 +259,7 @@ class ConnectionState:
 
         self.cache_app_emojis: bool = options.get("cache_app_emojis", False)
 
-        self.parsers = parsers = {}
-        for attr, func in inspect.getmembers(self):
-            if attr.startswith("parse_"):
-                parsers[attr[6:].upper()] = func
+        self.emitter = EventEmitter(self)
 
         self.cache: Cache = self.cache
 
@@ -268,13 +268,13 @@ class ConnectionState:
         self.cache.clear()
         self._voice_clients: dict[int, VoiceClient] = {}
 
-    def process_chunk_requests(
+    async def process_chunk_requests(
         self, guild_id: int, nonce: str | None, members: list[Member], complete: bool
     ) -> None:
         removed = []
         for key, request in self._chunk_requests.items():
             if request.guild_id == guild_id and request.nonce == nonce:
-                request.add_members(members)
+                await request.add_members(members)
                 if complete:
                     request.done()
                     removed.append(key)
@@ -524,175 +524,6 @@ class ConnectionState:
             )
             raise
 
-    async def _delay_ready(self) -> None:
-
-        if self.cache_app_emojis and self.application_id:
-            data = await self.http.get_all_application_emojis(self.application_id)
-            for e in data.get("items", []):
-                await self.maybe_store_app_emoji(self.application_id, e)
-        try:
-            states = []
-            while True:
-                # this snippet of code is basically waiting N seconds
-                # until the last GUILD_CREATE was sent
-                try:
-                    guild = await asyncio.wait_for(
-                        self._ready_state.get(), timeout=self.guild_ready_timeout
-                    )
-                except asyncio.TimeoutError:
-                    break
-                else:
-                    if self._guild_needs_chunking(guild):
-                        future = await self.chunk_guild(guild, wait=False)
-                        states.append((guild, future))
-                    elif guild.unavailable is False:
-                        self.dispatch("guild_available", guild)
-                    else:
-                        self.dispatch("guild_join", guild)
-
-            for guild, future in states:
-                try:
-                    await asyncio.wait_for(future, timeout=5.0)
-                except asyncio.TimeoutError:
-                    _log.warning(
-                        "Shard ID %s timed out waiting for chunks for guild_id %s.",
-                        guild.shard_id,
-                        guild.id,
-                    )
-
-                if guild.unavailable is False:
-                    self.dispatch("guild_available", guild)
-                else:
-                    self.dispatch("guild_join", guild)
-
-            # remove the state
-            try:
-                del self._ready_state
-            except AttributeError:
-                pass  # already been deleted somehow
-
-        except asyncio.CancelledError:
-            pass
-        else:
-            # dispatch the event
-            self.call_handlers("ready")
-            self.dispatch("ready")
-        finally:
-            self._ready_task = None
-
-    def parse_ready(self, data) -> None:
-        if self._ready_task is not None:
-            self._ready_task.cancel()
-
-        self._ready_state = asyncio.Queue()
-        self.clear(views=False)
-        self.user = ClientUser(state=self, data=data["user"])
-        self.store_user(data["user"])
-
-        if self.application_id is None:
-            try:
-                application = data["application"]
-            except KeyError:
-                pass
-            else:
-                self.application_id = utils._get_as_snowflake(application, "id")
-                # flags will always be present here
-                self.application_flags = ApplicationFlags._from_value(application["flags"])  # type: ignore
-
-        for guild_data in data["guilds"]:
-            self._add_guild_from_data(guild_data)
-
-        self.dispatch("connect")
-        self._ready_task = asyncio.create_task(self._delay_ready())
-
-    def parse_resumed(self, data) -> None:
-        self.dispatch("resumed")
-
-    def parse_application_command_permissions_update(self, data) -> None:
-        # unsure what the implementation would be like
-        pass
-
-    def parse_auto_moderation_rule_create(self, data) -> None:
-        rule = AutoModRule(state=self, data=data)
-        self.dispatch("auto_moderation_rule_create", rule)
-
-    def parse_auto_moderation_rule_update(self, data) -> None:
-        # somehow get a 'before' object?
-        rule = AutoModRule(state=self, data=data)
-        self.dispatch("auto_moderation_rule_update", rule)
-
-    def parse_auto_moderation_rule_delete(self, data) -> None:
-        rule = AutoModRule(state=self, data=data)
-        self.dispatch("auto_moderation_rule_delete", rule)
-
-    def parse_auto_moderation_action_execution(self, data) -> None:
-        event = AutoModActionExecutionEvent(self, data)
-        self.dispatch("auto_moderation_action_execution", event)
-
-    def parse_entitlement_create(self, data) -> None:
-        event = Entitlement(data=data, state=self)
-        self.dispatch("entitlement_create", event)
-
-    def parse_entitlement_update(self, data) -> None:
-        event = Entitlement(data=data, state=self)
-        self.dispatch("entitlement_update", event)
-
-    def parse_entitlement_delete(self, data) -> None:
-        event = Entitlement(data=data, state=self)
-        self.dispatch("entitlement_delete", event)
-
-    def parse_subscription_create(self, data) -> None:
-        event = Subscription(data=data, state=self)
-        self.dispatch("subscription_create", event)
-
-    def parse_subscription_update(self, data) -> None:
-        event = Subscription(data=data, state=self)
-        self.dispatch("subscription_update", event)
-
-    def parse_subscription_delete(self, data) -> None:
-        event = Subscription(data=data, state=self)
-        self.dispatch("subscription_delete", event)
-
-    def parse_message_create(self, data) -> None:
-        channel, _ = self._get_guild_channel(data)
-        # channel would be the correct type here
-        message = Message(channel=channel, data=data, state=self)  # type: ignore
-        self.dispatch("message", message)
-        if self._messages is not None:
-            self._messages.append(message)
-        # we ensure that the channel is either a TextChannel, VoiceChannel, StageChannel, or Thread
-        if channel and channel.__class__ in (
-            TextChannel,
-            VoiceChannel,
-            StageChannel,
-            Thread,
-        ):
-            channel.last_message_id = message.id  # type: ignore
-
-    def parse_message_delete(self, data) -> None:
-        raw = RawMessageDeleteEvent(data)
-        found = self._get_message(raw.message_id)
-        raw.cached_message = found
-        self.dispatch("raw_message_delete", raw)
-        if self._messages is not None and found is not None:
-            self.dispatch("message_delete", found)
-            self._messages.remove(found)
-
-    def parse_message_delete_bulk(self, data) -> None:
-        raw = RawBulkMessageDeleteEvent(data)
-        if self._messages:
-            found_messages = [
-                message for message in self._messages if message.id in raw.message_ids
-            ]
-        else:
-            found_messages = []
-        raw.cached_messages = found_messages
-        self.dispatch("raw_bulk_message_delete", raw)
-        if found_messages:
-            self.dispatch("bulk_message_delete", found_messages)
-            for msg in found_messages:
-                # self._messages won't be None here
-                self._messages.remove(msg)  # type: ignore
 
     def parse_message_update(self, data) -> None:
         raw = RawMessageUpdateEvent(data)

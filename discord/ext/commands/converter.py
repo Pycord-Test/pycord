@@ -316,12 +316,12 @@ class UserConverter(IDConverter[discord.User]):
             discrim = arg[-4:]
             name = arg[:-5]
             predicate = lambda u: u.name == name and u.discriminator == discrim
-            result = discord.utils.find(predicate, state._users.values())
+            result = discord.utils.find(predicate, await state.cache.get_all_users())
             if result is not None:
                 return result
 
         predicate = lambda u: arg in (u.name, u.global_name)
-        result = discord.utils.find(predicate, state._users.values())
+        result = discord.utils.find(predicate, await state.cache.get_all_users())
 
         if result is None:
             raise UserNotFound(argument)

@@ -211,7 +211,7 @@ class MemoryCache(Cache):
     async def get_all_stickers(self) -> list[GuildSticker]:
         return list(self._stickers.values())
 
-    async def get_sticker(self, sticker_id: int) -> GuildSticker:
+    async def get_sticker(self, sticker_id: int) -> GuildSticker | None:
         return self._stickers.get(sticker_id)
 
     async def store_sticker(self, guild: Guild, data: GuildStickerPayload) -> GuildSticker:
@@ -219,7 +219,7 @@ class MemoryCache(Cache):
         try:
             self._stickers[guild.id].append(sticker)
         except KeyError:
-            self._stickers[guild.id] = sticker
+            self._stickers[guild.id] = [sticker]
         return sticker
 
     async def delete_sticker(self, sticker_id: int) -> None:
@@ -228,10 +228,12 @@ class MemoryCache(Cache):
     # interactions
 
     async def delete_view_on(self, message_id: int) -> View | None:
-        return self._views.pop(message_id, None)
+        for view in await self.get_all_views():
+            if view.message and view.message.id == message_id:
+                return view
 
     async def store_view(self, view: View, message_id: int) -> None:
-        self._views[message_id or view.id] = view
+        self._views[str(message_id or view.id)] = view
 
     async def get_all_views(self) -> list[View]:
         return list(self._views.values())

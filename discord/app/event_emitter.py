@@ -29,14 +29,14 @@ from typing import Any, Callable, Self, Type, TypeVar
 
 from .state import ConnectionState
 
-T = TypeVar('T')
+T = TypeVar('T', bound='Event')
 
 
 class Event(ABC):
     __event_name__: str
 
     @classmethod
-    async def __load__(cls, data: dict[str, Any], state: ConnectionState) -> Self:
+    async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         ...
 
 
@@ -61,7 +61,7 @@ class EventEmitter:
             self._listeners[event].append(listener)
         except KeyError:
             self.add_event(event)
-            self._listener[event] = [listener]
+            self._listeners[event] = [listener]
 
     def remove_listener(self, event: Type[Event], listener: Callable) -> None:
         self._listeners[event].remove(listener)
@@ -79,21 +79,23 @@ class EventEmitter:
     def remove_wait_for(self, event: Type[Event], fut: Future) -> None:
         self._wait_fors[event].remove(fut)
 
-    async def publish(self, event_str: str, data: dict[str, Any]) -> None:
-        items = list(self.events.items())
+    async def emit(self, event_str: str, data: Any) -> None:
+        events = self._events.get(event_str, [])
 
-        for event, funcs in items:
-            if event._name == event_str:
-                eve = event()
+        for event in events:
+            eve = await event.__load__(data=data, state=self._state)
 
-                await eve.__load__(data)
+            if eve is None:
+                continue
 
-                for func in funcs:
-                    asyncio.create_task(func(eve))
+            funcs = self._listeners.get(event, [])
 
-                wait_fors = self.wait_fors.get(event)
+            for func in funcs:
+                asyncio.create_task(func(eve))
 
-                if wait_fors is not None:
-                    for wait_for in wait_fors:
-                        wait_for.set_result(eve)
-                    self.wait_fors.pop(event)
+            wait_fors = self._wait_fors.get(event)
+
+            if wait_fors is not None:
+                for wait_for in wait_fors:
+                    wait_for.set_result(eve)
+                self._wait_fors.pop(event)

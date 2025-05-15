@@ -99,7 +99,7 @@ class Shard:
     ) -> None:
         self.ws: DiscordWebSocket = ws
         self._client: Client = client
-        self._dispatch: Callable[..., None] = client.dispatch
+        self._dispatch: Callable[..., None] = client._connection.emitter.emit
         self._queue_put: Callable[[EventItem], None] = queue_put
         self.loop: asyncio.AbstractEventLoop = self._client.loop
         self._disconnect: bool = False
@@ -133,11 +133,11 @@ class Shard:
 
     async def disconnect(self) -> None:
         await self.close()
-        self._dispatch("shard_disconnect", self.id)
+        await self._dispatch("shard_disconnect", self.id)
 
     async def _handle_disconnect(self, e: Exception) -> None:
-        self._dispatch("disconnect")
-        self._dispatch("shard_disconnect", self.id)
+        await self._dispatch("disconnect")
+        await self._dispatch("shard_disconnect", self.id)
         if not self._reconnect:
             self._queue_put(EventItem(EventType.close, self, e))
             return
@@ -192,8 +192,8 @@ class Shard:
 
     async def reidentify(self, exc: ReconnectWebSocket) -> None:
         self._cancel_task()
-        self._dispatch("disconnect")
-        self._dispatch("shard_disconnect", self.id)
+        await self._dispatch("disconnect")
+        await self._dispatch("shard_disconnect", self.id)
         _log.info("Got a request to %s the websocket at Shard ID %s.", exc.op, self.id)
         try:
             coro = DiscordWebSocket.from_client(

@@ -1027,7 +1027,7 @@ class Message(Hashable):
             else:
                 r = handler(self, value)
                 if isawaitable(r):
-                    await r
+                    await r # type: ignore
 
         # clear the cached properties
         for attr in self._CACHED_SLOTS:
@@ -1099,12 +1099,12 @@ class Message(Hashable):
             # TODO: consider adding to cache here
             self.author = Member._from_message(message=self, data=member)
 
-    def _handle_mentions(self, mentions: list[UserWithMemberPayload]) -> None:
+    async def _handle_mentions(self, mentions: list[UserWithMemberPayload]) -> None:
         self.mentions = r = []
         guild = self.guild
         state = self._state
         if not isinstance(guild, Guild):
-            self.mentions = [state.store_user(m) for m in mentions]
+            self.mentions = [await state.store_user(m) for m in mentions]
             return
 
         for mention in filter(None, mentions):

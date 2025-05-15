@@ -991,7 +991,7 @@ class SlashCommand(ApplicationCommand):
                         # We resolved the user from the user id
                         _data["user"] = _user_data
                     cache_flag = ctx.interaction._state.member_cache_flags.interaction
-                    arg = ctx.guild._get_and_update_member(_data, int(arg), cache_flag)
+                    arg = await ctx.guild._get_and_update_member(_data, int(arg), cache_flag)
                 elif op.input_type is SlashCommandOptionType.mentionable:
                     if (_data := resolved.get("users", {}).get(arg)) is not None:
                         arg = User(state=ctx.interaction._state, data=_data)
@@ -1787,7 +1787,7 @@ class UserCommand(ContextMenuCommand):
                 user = v
             member["user"] = user
             cache_flag = ctx.interaction._state.member_cache_flags.interaction
-            target = ctx.guild._get_and_update_member(member, user["id"], cache_flag)
+            target = await ctx.guild._get_and_update_member(member, user["id"], cache_flag)
         if self.cog is not None:
             await self.callback(self.cog, ctx, target)
         else:

@@ -35,6 +35,7 @@ from typing import (
     List,
     NamedTuple,
     Optional,
+    Self,
     Sequence,
     Tuple,
     Union,
@@ -309,7 +310,6 @@ class Guild(Hashable):
         self._voice_states: dict[int, VoiceState] = {}
         self._threads: dict[int, Thread] = {}
         self._state: ConnectionState = state
-        asyncio.create_task(self._from_data(data))
 
     def _add_channel(self, channel: GuildChannel, /) -> None:
         self._channels[channel.id] = channel
@@ -323,20 +323,20 @@ class Guild(Hashable):
     def _add_member(self, member: Member, /) -> None:
         self._members[member.id] = member
 
-    def _get_and_update_member(
+    async def _get_and_update_member(
         self, payload: MemberPayload, user_id: int, cache_flag: bool, /
     ) -> Member:
         # we always get the member, and we only update if the cache_flag (this cache
         # flag should always be MemberCacheFlag.interaction) is set to True
         if user_id in self._members:
             member = self.get_member(user_id)
-            member._update(payload) if cache_flag else None
+            await member._update(payload) if cache_flag else None
         else:
             # NOTE:
             # This is a fallback in case the member is not found in the guild's members.
             # If this fallback occurs, multiple aspects of the Member
             # class will be incorrect such as status and activities.
-            member = Member(guild=self, state=self._state, data=payload)  # type: ignore
+            member = await Member._from_data(guild=self, state=self._state, data=payload)  # type: ignore
             if cache_flag:
                 self._members[user_id] = member
         return member
@@ -396,7 +396,7 @@ class Guild(Hashable):
         inner = " ".join("%s=%r" % t for t in attrs)
         return f"<Guild {inner}>"
 
-    def _update_voice_state(
+    async def _update_voice_state(
         self, data: GuildVoiceState, channel_id: int
     ) -> tuple[Member | None, VoiceState, VoiceState]:
         user_id = int(data["user_id"])
@@ -409,7 +409,7 @@ class Guild(Hashable):
                 after = self._voice_states[user_id]
 
             before = copy.copy(after)
-            after._update(data, channel)
+            await after._update(data, channel)
         except KeyError:
             # if we're here then we're getting added into the cache
             after = VoiceState(data=data, channel=channel)
@@ -419,7 +419,7 @@ class Guild(Hashable):
         member = self.get_member(user_id)
         if member is None:
             try:
-                member = Member(data=data["member"], state=self._state, guild=self)
+                member = await Member._from_data(data=data["member"], state=self._state, guild=self)
             except KeyError:
                 member = None
 
@@ -448,7 +448,7 @@ class Guild(Hashable):
 
         return role
 
-    async def _from_data(self, guild: GuildPayload) -> None:
+    async def _from_data(self, guild: GuildPayload) -> Self:
         member_count = guild.get("member_count")
         # Either the payload includes member_count, or it hasn't been set yet.
         # Prevents valid _member_count from suddenly changing to None
@@ -522,7 +522,7 @@ class Guild(Hashable):
         cache_joined = self._state.member_cache_flags.joined
         self_id = self._state.self_id
         for mdata in guild.get("members", []):
-            member = Member(data=mdata, guild=self, state=state)
+            member = await Member._from_data(data=mdata, guild=self, state=state)
             if cache_joined or member.id == self_id:
                 self._add_member(member)
 
@@ -551,7 +551,9 @@ class Guild(Hashable):
         )  # type: ignore
 
         for obj in guild.get("voice_states", []):
-            self._update_voice_state(obj, int(obj["channel_id"]))
+            await self._update_voice_state(obj, int(obj["channel_id"]))
+
+        return self
 
     # TODO: refactor/remove?
     def _sync(self, data: GuildPayload) -> None:
@@ -2059,7 +2061,7 @@ class Guild(Hashable):
         """
 
         data = await self._state.http.search_members(self.id, query, limit)
-        return [Member(data=m, guild=self, state=self._state) for m in data]
+        return [await Member._from_data(data=m, guild=self, state=self._state) for m in data]
 
     async def fetch_member(self, member_id: int, /) -> Member:
         """|coro|
@@ -2089,7 +2091,7 @@ class Guild(Hashable):
             Fetching the member failed.
         """
         data = await self._state.http.get_member(self.id, member_id)
-        return Member(data=data, state=self._state, guild=self)
+        return await Member._from_data(data=data, state=self._state, guild=self)
 
     async def fetch_ban(self, user: Snowflake) -> BanEntry:
         """|coro|

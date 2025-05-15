@@ -26,7 +26,7 @@ DEALINGS IN THE SOFTWARE.
 from __future__ import annotations
 
 import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Self
 
 from .automod import AutoModAction, AutoModTriggerType
 from .enums import AuditLogAction, ChannelType, ReactionType, try_enum
@@ -655,7 +655,7 @@ class AutoModActionExecutionEvent:
     )
 
     @classmethod
-    async def from_data(cls, state: ConnectionState, data: AutoModActionExecution) -> None:
+    async def from_data(cls, state: ConnectionState, data: AutoModActionExecution) -> Self:
         self = cls()
         self.action: AutoModAction = AutoModAction.from_dict(data["action"])
         self.rule_id: int = int(data["rule_id"])
@@ -703,6 +703,7 @@ class AutoModActionExecutionEvent:
             self.alert_system_message_id: int | None = None
             self.alert_system_message: Message | None = None
         self.data: AutoModActionExecution = data
+        return self
 
     def __repr__(self) -> str:
         return (
