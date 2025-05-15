@@ -427,15 +427,6 @@ class View:
         except Exception as e:
             return await self.on_error(e, item, interaction)
 
-    def _start_listening_from_store(self, store: ViewStore) -> None:
-        self.__cancel_callback = partial(store.remove_view)
-        if self.timeout:
-            loop = asyncio.get_running_loop()
-            if self.__timeout_task is not None:
-                self.__timeout_task.cancel()
-
-            self.__timeout_expiry = time.monotonic() + self.timeout
-            self.__timeout_task = loop.create_task(self.__timeout_task_impl())
 
     def _dispatch_timeout(self):
         if self.__stopped.done():
@@ -563,77 +554,3 @@ class View:
     def message(self, value):
         self._message = value
 
-
-class ViewStore:
-    def __init__(self, state: ConnectionState):
-        # (component_type, message_id, custom_id): (View, Item)
-        self._views: dict[tuple[int, int | None, str], tuple[View, Item]] = {}
-        # message_id: View
-        self._synced_message_views: dict[int, View] = {}
-        self._state: ConnectionState = state
-
-    @property
-    def persistent_views(self) -> Sequence[View]:
-        views = {
-            view.id: view
-            for (_, (view, _)) in self._views.items()
-            if view.is_persistent()
-        }
-        return list(views.values())
-
-    def __verify_integrity(self):
-        to_remove: list[tuple[int, int | None, str]] = []
-        for k, (view, _) in self._views.items():
-            if view.is_finished():
-                to_remove.append(k)
-
-        for k in to_remove:
-            del self._views[k]
-
-    def add_view(self, view: View, message_id: int | None = None):
-        self.__verify_integrity()
-
-        view._start_listening_from_store(self)
-        for item in view.children:
-            if item.is_dispatchable():
-                self._views[(item.type.value, message_id, item.custom_id)] = (view, item)  # type: ignore
-
-        if message_id is not None:
-            self._synced_message_views[message_id] = view
-
-    def remove_view(self, view: View):
-        for item in view.children:
-            if item.is_dispatchable():
-                self._views.pop((item.type.value, item.custom_id), None)  # type: ignore
-
-        for key, value in self._synced_message_views.items():
-            if value.id == view.id:
-                del self._synced_message_views[key]
-                break
-
-    def dispatch(self, component_type: int, custom_id: str, interaction: Interaction):
-        self.__verify_integrity()
-        message_id: int | None = interaction.message and interaction.message.id
-        key = (component_type, message_id, custom_id)
-        # Fallback to None message_id searches in case a persistent view
-        # was added without an associated message_id
-        value = self._views.get(key) or self._views.get(
-            (component_type, None, custom_id)
-        )
-        if value is None:
-            return
-
-        view, item = value
-        item.refresh_state(interaction)
-        view._dispatch_item(item, interaction)
-
-    def is_message_tracked(self, message_id: int):
-        return message_id in self._synced_message_views
-
-    def remove_message_tracking(self, message_id: int) -> View | None:
-        return self._synced_message_views.pop(message_id, None)
-
-    def update_from_message(self, message_id: int, components: list[ComponentPayload]):
-        # pre-req: is_message_tracked == true
-        view = self._synced_message_views[message_id]
-        view.refresh([_component_factory(d) for d in components])

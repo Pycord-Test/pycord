@@ -1584,7 +1584,7 @@ class Client:
             Getting the guild failed.
         """
         data = await self.http.get_guild(guild_id, with_counts=with_counts)
-        return Guild(data=data, state=self._connection)
+        return await Guild._from_data(data=data, state=self._connection)
 
     async def create_guild(
         self,
@@ -1633,7 +1633,7 @@ class Client:
             data = await self.http.create_from_template(code, name, icon_base64)
         else:
             data = await self.http.create_guild(name, icon_base64)
-        return Guild(data=data, state=self._connection)
+        return await Guild._from_data(data=data, state=self._connection)
 
     async def fetch_stage_instance(self, channel_id: int, /) -> StageInstance:
         """|coro|

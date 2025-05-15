@@ -35,8 +35,8 @@ from ..emoji import AppEmoji, GuildEmoji
 from ..guild import Guild
 from ..poll import Poll
 from ..sticker import GuildSticker, Sticker
-from ..ui.modal import Modal, ModalStore
-from ..ui.view import View, ViewStore
+from ..ui.modal import Modal
+from ..ui.view import View
 from ..user import User
 from ..types.user import User as UserPayload
 from ..types.emoji import Emoji as EmojiPayload

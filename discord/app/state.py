@@ -73,8 +73,8 @@ from ..scheduled_events import ScheduledEvent
 from ..stage_instance import StageInstance
 from ..sticker import GuildSticker
 from ..threads import Thread, ThreadMember
-from ..ui.modal import Modal, ModalStore
-from ..ui.view import View, ViewStore
+from ..ui.modal import Modal
+from ..ui.view import View
 from ..user import ClientUser, User
 
 if TYPE_CHECKING:

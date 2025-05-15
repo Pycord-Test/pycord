@@ -638,10 +638,10 @@ class GuildIterator(_AsyncIterator["Guild"]):
         self.retrieve = r
         return r > 0
 
-    def create_guild(self, data):
+    async def create_guild(self, data):
         from .guild import Guild
 
-        return Guild(state=self.state, data=data)
+        return await Guild._from_data(state=self.state, data=data)
 
     async def fill_guilds(self):
         if self._get_retrieve():
@@ -653,7 +653,7 @@ class GuildIterator(_AsyncIterator["Guild"]):
                 data = filter(self._filter, data)
 
             for element in data:
-                await self.guilds.put(self.create_guild(element))
+                await self.guilds.put(await self.create_guild(element))
 
     async def _retrieve_guilds(self, retrieve) -> list[Guild]:
         """Retrieve guilds and update next parameters."""

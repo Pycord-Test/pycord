@@ -82,7 +82,7 @@ class Ready(Event):
         self.guilds = []
 
         for guild_data in data["guilds"]:
-            guild = await Guild(data=guild_data, state=state)._from_data(guild_data)
+            guild = await Guild._from_data(guild_data, state)
             self.guilds.append(guild)
             await state._add_guild(guild)
 
@@ -115,7 +115,7 @@ class GuildCreate(Event, Guild):
         self = cls()
         guild = await state._get_guild(int(data["id"]))
         if guild is None:
-            guild = await Guild(data=data, state=state)._from_data(data)
+            guild = await Guild._from_data(data, state)
             await state._add_guild(guild)
         self.guild = guild
         self.__dict__.update(self.guild.__dict__)

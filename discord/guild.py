@@ -298,19 +298,6 @@ class Guild(Hashable):
         3: _GuildLimit(emoji=250, stickers=60, bitrate=384e3, filesize=104_857_600),
     }
 
-    def __init__(self, *, data: GuildPayload, state: ConnectionState):
-        # NOTE:
-        # Adding an attribute here and getting an AttributeError saying
-        # the attr doesn't exist? it has something to do with the order
-        # of the attr in __slots__
-
-        self._channels: dict[int, GuildChannel] = {}
-        self._members: dict[int, Member] = {}
-        self._scheduled_events: dict[int, ScheduledEvent] = {}
-        self._voice_states: dict[int, VoiceState] = {}
-        self._threads: dict[int, Thread] = {}
-        self._state: ConnectionState = state
-
     def _add_channel(self, channel: GuildChannel, /) -> None:
         self._channels[channel.id] = channel
 
@@ -448,7 +435,20 @@ class Guild(Hashable):
 
         return role
 
-    async def _from_data(self, guild: GuildPayload) -> Self:
+    @classmethod
+    async def _from_data(cls, guild: GuildPayload, state: ConnectionState) -> Self:
+        self = cls()
+        # NOTE:
+        # Adding an attribute here and getting an AttributeError saying
+        # the attr doesn't exist? it has something to do with the order
+        # of the attr in __slots__
+
+        self._channels: dict[int, GuildChannel] = {}
+        self._members: dict[int, Member] = {}
+        self._scheduled_events: dict[int, ScheduledEvent] = {}
+        self._voice_states: dict[int, VoiceState] = {}
+        self._threads: dict[int, Thread] = {}
+        self._state: ConnectionState = state
         member_count = guild.get("member_count")
         # Either the payload includes member_count, or it hasn't been set yet.
         # Prevents valid _member_count from suddenly changing to None
@@ -1906,7 +1906,7 @@ class Guild(Hashable):
             fields["features"] = features
 
         data = await http.edit_guild(self.id, reason=reason, **fields)
-        return Guild(data=data, state=self._state)
+        return Guild._from_data(data=data, state=self._state)
 
     async def fetch_channels(self) -> Sequence[GuildChannel]:
         """|coro|

@@ -156,7 +156,7 @@ class Template:
             source_serialised["id"] = guild_id
             state = _PartialTemplateState(state=self._state)
             # Guild expects a ConnectionState, we're passing a _PartialTemplateState
-            self.source_guild = Guild(data=source_serialised, state=state)  # type: ignore
+            self.source_guild = await Guild._from_data(data=source_serialised, state=state)  # type: ignore
         else:
             self.source_guild = guild
 
@@ -200,7 +200,7 @@ class Template:
             icon = _bytes_to_base64_data(icon)
 
         data = await self._state.http.create_from_template(self.code, name, icon)
-        return Guild(data=data, state=self._state)
+        return await Guild._from_data(data=data, state=self._state)
 
     async def sync(self) -> Template:
         """|coro|
