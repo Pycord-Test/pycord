@@ -33,7 +33,7 @@ from .permissions import Permissions
 
 if TYPE_CHECKING:
     from .guild import Guild
-    from .state import ConnectionState
+    from .app.state import ConnectionState
     from .types.appinfo import AppInfo as AppInfoPayload
     from .types.appinfo import AppInstallParams as AppInstallParamsPayload
     from .types.appinfo import PartialAppInfo as PartialAppInfoPayload
@@ -252,14 +252,13 @@ class AppInfo:
             return None
         return Asset._from_cover_image(self._state, self.id, self._cover_image)
 
-    @property
-    def guild(self) -> Guild | None:
+    async def get_guild(self) -> Guild | None:
         """If this application is a game sold on Discord,
         this field will be the guild to which it has been linked.
 
         .. versionadded:: 1.3
         """
-        return self._state._get_guild(self.guild_id)
+        return await self._state._get_guild(self.guild_id)
 
     @property
     def summary(self) -> str | None:

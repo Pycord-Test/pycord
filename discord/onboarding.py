@@ -236,7 +236,7 @@ class Onboarding:
     def __repr__(self):
         return f"<Onboarding guild={self.guild!r} enabled={self.enabled} mode={self.mode} prompts={self.prompts}>"
 
-    def _update(self, data: OnboardingPayload):
+    async def _update(self, data: OnboardingPayload):
         self.guild_id: Snowflake = data["guild_id"]
         self.prompts: list[OnboardingPrompt] = [
             OnboardingPrompt._from_dict(prompt, self.guild)

@@ -46,7 +46,7 @@ if TYPE_CHECKING:
 
     from .guild import Guild
     from .member import Member
-    from .state import ConnectionState
+    from .app.state import ConnectionState
     from .types.guild import RolePositionUpdate
     from .types.role import Role as RolePayload
     from .types.role import RoleTags as RoleTagPayload
@@ -295,7 +295,7 @@ class Role(Hashable):
             return NotImplemented
         return not r
 
-    def _update(self, data: RolePayload):
+    async def _update(self, data: RolePayload):
         self.name: str = data["name"]
         self._permissions: int = int(data.get("permissions", 0))
         self.position: int = data.get("position", 0)

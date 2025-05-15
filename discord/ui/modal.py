@@ -12,14 +12,13 @@ from typing import TYPE_CHECKING, Any, Callable
 from .input_text import InputText
 
 __all__ = (
-    "Modal",
-    "ModalStore",
+    "Modal"
 )
 
 
 if TYPE_CHECKING:
     from ..interactions import Interaction
-    from ..state import ConnectionState
+    from ..app.state import ConnectionState
 
 
 class Modal:
@@ -68,16 +67,6 @@ class Modal:
         self.__timeout_expiry: float | None = None
         self.__timeout_task: asyncio.Task[None] | None = None
         self.loop = asyncio.get_event_loop()
-
-    def _start_listening_from_store(self, store: ModalStore) -> None:
-        self.__cancel_callback = partial(store.remove_modal)
-        if self.timeout:
-            loop = asyncio.get_running_loop()
-            if self.__timeout_task is not None:
-                self.__timeout_task.cancel()
-
-            self.__timeout_expiry = time.monotonic() + self.timeout
-            self.__timeout_task = loop.create_task(self.__timeout_task_impl())
 
     async def __timeout_task_impl(self) -> None:
         while True:
@@ -305,40 +294,3 @@ class _ModalWeights:
 
     def clear(self) -> None:
         self.weights = [0, 0, 0, 0, 0]
-
-
-class ModalStore:
-    def __init__(self, state: ConnectionState) -> None:
-        # (user_id, custom_id) : Modal
-        self._modals: dict[tuple[int, str], Modal] = {}
-        self._state: ConnectionState = state
-
-    def add_modal(self, modal: Modal, user_id: int):
-        self._modals[(user_id, modal.custom_id)] = modal
-        modal._start_listening_from_store(self)
-
-    def remove_modal(self, modal: Modal, user_id):
-        modal.stop()
-        self._modals.pop((user_id, modal.custom_id))
-
-    async def dispatch(self, user_id: int, custom_id: str, interaction: Interaction):
-        key = (user_id, custom_id)
-        value = self._modals.get(key)
-        if value is None:
-            return
-
-        try:
-            components = [
-                component
-                for parent_component in interaction.data["components"]
-                for component in parent_component["components"]
-            ]
-            for component in components:
-                for child in value.children:
-                    if child.custom_id == component["custom_id"]:  # type: ignore
-                        child.refresh_state(component)
-                        break
-            await value.callback(interaction)
-            self.remove_modal(value, user_id)
-        except Exception as e:
-            return await value.on_error(e, interaction)

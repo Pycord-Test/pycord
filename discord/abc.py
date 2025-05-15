@@ -89,7 +89,7 @@ if TYPE_CHECKING:
     from .member import Member
     from .message import Message, MessageReference, PartialMessage
     from .poll import Poll
-    from .state import ConnectionState
+    from .app.state import ConnectionState
     from .threads import Thread
     from .types.channel import Channel as ChannelPayload
     from .types.channel import GuildChannel as GuildChannelPayload
@@ -350,7 +350,7 @@ class GuildChannel:
     def _sorting_bucket(self) -> int:
         raise NotImplementedError
 
-    def _update(self, guild: Guild, data: dict[str, Any]) -> None:
+    async def _update(self, data: dict[str, Any]) -> None:
         raise NotImplementedError
 
     async def _move(
@@ -1283,7 +1283,7 @@ class GuildChannel:
             target_user_id=target_user.id if target_user else None,
             target_application_id=target_application_id,
         )
-        invite = Invite.from_incomplete(data=data, state=self._state)
+        invite = await Invite.from_incomplete(data=data, state=self._state)
         if target_event:
             invite.set_scheduled_event(target_event)
         return invite
@@ -1669,7 +1669,7 @@ class Messageable:
 
         ret = state.create_message(channel=channel, data=data)
         if view:
-            state.store_view(view, ret.id)
+            await state.store_view(view, ret.id)
             view.message = ret
 
         if delete_after is not None:

@@ -679,7 +679,7 @@ class Intents(BaseFlags):
 
         This also corresponds to the following attributes and classes in terms of cache:
 
-        - :attr:`Client.guilds`
+        - :attr:`Client.get_guilds`
         - :class:`Guild` and all its attributes.
         - :meth:`Client.get_channel`
         - :meth:`Client.get_all_channels`
@@ -773,8 +773,8 @@ class Intents(BaseFlags):
         - :class:`GuildSticker`
         - :meth:`Client.get_emoji`
         - :meth:`Client.get_sticker`
-        - :meth:`Client.emojis`
-        - :meth:`Client.stickers`
+        - :meth:`Client.get_emojis`
+        - :meth:`Client.get_stickers`
         - :attr:`Guild.emojis`
         - :attr:`Guild.stickers`
         """
@@ -887,7 +887,7 @@ class Intents(BaseFlags):
         - :class:`Message`
         - :attr:`Client.cached_messages`
         - :meth:`Client.get_message`
-        - :attr:`Client.polls`
+        - :meth:`Client.get_polls`
         - :meth:`Client.get_poll`
 
         Note that due to an implicit relationship this also corresponds to the following events:
@@ -921,7 +921,7 @@ class Intents(BaseFlags):
         - :class:`Message`
         - :attr:`Client.cached_messages` (only for guilds)
         - :meth:`Client.get_message` (only for guilds)
-        - :attr:`Client.polls` (only for guilds)
+        - :meth:`Client.get_polls` (only for guilds)
         - :meth:`Client.get_poll` (only for guilds)
 
         Note that due to an implicit relationship this also corresponds to the following events:
@@ -962,7 +962,7 @@ class Intents(BaseFlags):
         - :class:`Message`
         - :attr:`Client.cached_messages` (only for DMs)
         - :meth:`Client.get_message` (only for DMs)
-        - :attr:`Client.polls` (only for DMs)
+        - :meth:`Client.get_polls` (only for DMs)
         - :meth:`Client.get_poll` (only for DMs)
 
         Note that due to an implicit relationship this also corresponds to the following events:

@@ -821,7 +821,7 @@ of :class:`enum.Enum`.
         - Changing the guild moderation settings
         - Changing things related to the guild widget
 
-        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        When this is the action, the type of :func:`~AuditLogEntry.get_target` is
         the :class:`Guild`.
 
         Possible attributes for :class:`AuditLogDiff`:
@@ -844,7 +844,7 @@ of :class:`enum.Enum`.
 
         A new channel was created.
 
-        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        When this is the action, the type of :func:`~AuditLogEntry.get_target` is
         either a :class:`abc.GuildChannel` or :class:`Object` with an ID.
 
         A more filled out object in the :class:`Object` case can be found
@@ -863,7 +863,7 @@ of :class:`enum.Enum`.
         - The channel name or topic was changed
         - The channel bitrate was changed
 
-        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        When this is the action, the type of :func:`~AuditLogEntry.get_target` is
         the :class:`abc.GuildChannel` or :class:`Object` with an ID.
 
         A more filled out object in the :class:`Object` case can be found
@@ -885,7 +885,7 @@ of :class:`enum.Enum`.
 
         A channel was deleted.
 
-        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        When this is the action, the type of :func:`~AuditLogEntry.get_target` is
         an :class:`Object` with an ID.
 
         A more filled out object can be found by using the
@@ -901,7 +901,7 @@ of :class:`enum.Enum`.
 
         A channel permission overwrite was created.
 
-        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        When this is the action, the type of :func:`~AuditLogEntry.get_target` is
         the :class:`abc.GuildChannel` or :class:`Object` with an ID.
 
         When this is the action, the type of :attr:`~AuditLogEntry.extra` is
@@ -923,7 +923,7 @@ of :class:`enum.Enum`.
         when the permission values change.
 
         See :attr:`overwrite_create` for more information on how the
-        :attr:`~AuditLogEntry.target` and :attr:`~AuditLogEntry.extra` fields
+        :func:`~AuditLogEntry.get_target` and :attr:`~AuditLogEntry.extra` fields
         are set.
 
         Possible attributes for :class:`AuditLogDiff`:
@@ -938,7 +938,7 @@ of :class:`enum.Enum`.
         A channel permission overwrite was deleted.
 
         See :attr:`overwrite_create` for more information on how the
-        :attr:`~AuditLogEntry.target` and :attr:`~AuditLogEntry.extra` fields
+        :func:`~AuditLogEntry.get_target` and :attr:`~AuditLogEntry.extra` fields
         are set.
 
         Possible attributes for :class:`AuditLogDiff`:
@@ -952,7 +952,7 @@ of :class:`enum.Enum`.
 
         A member was kicked.
 
-        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        When this is the action, the type of :func:`~AuditLogEntry.get_target` is
         the :class:`User` who got kicked.
 
         When this is the action, :attr:`~AuditLogEntry.changes` is empty.
@@ -961,7 +961,7 @@ of :class:`enum.Enum`.
 
         A member prune was triggered.
 
-        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        When this is the action, the type of :func:`~AuditLogEntry.get_target` is
         set to ``None``.
 
         When this is the action, the type of :attr:`~AuditLogEntry.extra` is
@@ -976,7 +976,7 @@ of :class:`enum.Enum`.
 
         A member was banned.
 
-        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        When this is the action, the type of :func:`~AuditLogEntry.get_target` is
         the :class:`User` who got banned.
 
         When this is the action, :attr:`~AuditLogEntry.changes` is empty.
@@ -985,7 +985,7 @@ of :class:`enum.Enum`.
 
         A member was unbanned.
 
-        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        When this is the action, the type of :func:`~AuditLogEntry.get_target` is
         the :class:`User` who got unbanned.
 
         When this is the action, :attr:`~AuditLogEntry.changes` is empty.
@@ -997,7 +997,7 @@ of :class:`enum.Enum`.
         - A nickname was changed
         - They were server muted or deafened (or it was undone)
 
-        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        When this is the action, the type of :func:`~AuditLogEntry.get_target` is
         the :class:`Member` or :class:`User` who got updated.
 
         Possible attributes for :class:`AuditLogDiff`:
@@ -1011,7 +1011,7 @@ of :class:`enum.Enum`.
         A member's role has been updated. This triggers when a member
         either gains a role or loses a role.
 
-        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        When this is the action, the type of :func:`~AuditLogEntry.get_target` is
         the :class:`Member` or :class:`User` who got the role.
 
         Possible attributes for :class:`AuditLogDiff`:
@@ -1047,7 +1047,7 @@ of :class:`enum.Enum`.
 
         A bot was added to the guild.
 
-        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        When this is the action, the type of :func:`~AuditLogEntry.get_target` is
         the :class:`Member` or :class:`User` which was added to the guild.
 
         .. versionadded:: 1.3
@@ -1056,7 +1056,7 @@ of :class:`enum.Enum`.
 
         A new role was created.
 
-        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        When this is the action, the type of :func:`~AuditLogEntry.get_target` is
         the :class:`Role` or a :class:`Object` with the ID.
 
         Possible attributes for :class:`AuditLogDiff`:
@@ -1076,7 +1076,7 @@ of :class:`enum.Enum`.
         - The colour has changed
         - Its hoist/mentionable state has changed
 
-        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        When this is the action, the type of :func:`~AuditLogEntry.get_target` is
         the :class:`Role` or a :class:`Object` with the ID.
 
         Possible attributes for :class:`AuditLogDiff`:
@@ -1091,7 +1091,7 @@ of :class:`enum.Enum`.
 
         A role was deleted.
 
-        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        When this is the action, the type of :func:`~AuditLogEntry.get_target` is
         the :class:`Role` or a :class:`Object` with the ID.
 
         Possible attributes for :class:`AuditLogDiff`:
@@ -1106,7 +1106,7 @@ of :class:`enum.Enum`.
 
         An invite was created.
 
-        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        When this is the action, the type of :func:`~AuditLogEntry.get_target` is
         the :class:`Invite` that was created.
 
         Possible attributes for :class:`AuditLogDiff`:
@@ -1123,14 +1123,14 @@ of :class:`enum.Enum`.
 
         An invite was updated.
 
-        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        When this is the action, the type of :func:`~AuditLogEntry.get_target` is
         the :class:`Invite` that was updated.
 
     .. attribute:: invite_delete
 
         An invite was deleted.
 
-        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        When this is the action, the type of :func:`~AuditLogEntry.get_target` is
         the :class:`Invite` that was deleted.
 
         Possible attributes for :class:`AuditLogDiff`:
@@ -1147,7 +1147,7 @@ of :class:`enum.Enum`.
 
         A webhook was created.
 
-        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        When this is the action, the type of :func:`~AuditLogEntry.get_target` is
         the :class:`Object` with the webhook ID.
 
         Possible attributes for :class:`AuditLogDiff`:
@@ -1163,7 +1163,7 @@ of :class:`enum.Enum`.
         - The webhook name changed
         - The webhook channel changed
 
-        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        When this is the action, the type of :func:`~AuditLogEntry.get_target` is
         the :class:`Object` with the webhook ID.
 
         Possible attributes for :class:`AuditLogDiff`:
@@ -1176,7 +1176,7 @@ of :class:`enum.Enum`.
 
         A webhook was deleted.
 
-        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        When this is the action, the type of :func:`~AuditLogEntry.get_target` is
         the :class:`Object` with the webhook ID.
 
         Possible attributes for :class:`AuditLogDiff`:
@@ -1189,7 +1189,7 @@ of :class:`enum.Enum`.
 
         An emoji was created.
 
-        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        When this is the action, the type of :func:`~AuditLogEntry.get_target` is
         the :class:`GuildEmoji` or :class:`Object` with the emoji ID.
 
         Possible attributes for :class:`AuditLogDiff`:
@@ -1200,7 +1200,7 @@ of :class:`enum.Enum`.
 
         An emoji was updated. This triggers when the name has changed.
 
-        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        When this is the action, the type of :func:`~AuditLogEntry.get_target` is
         the :class:`GuildEmoji` or :class:`Object` with the emoji ID.
 
         Possible attributes for :class:`AuditLogDiff`:
@@ -1211,7 +1211,7 @@ of :class:`enum.Enum`.
 
         An emoji was deleted.
 
-        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        When this is the action, the type of :func:`~AuditLogEntry.get_target` is
         the :class:`Object` with the emoji ID.
 
         Possible attributes for :class:`AuditLogDiff`:
@@ -1223,7 +1223,7 @@ of :class:`enum.Enum`.
         A message was deleted by a moderator. Note that this
         only triggers if the message was deleted by someone other than the author.
 
-        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        When this is the action, the type of :func:`~AuditLogEntry.get_target` is
         the :class:`Member` or :class:`User` who had their message deleted.
 
         When this is the action, the type of :attr:`~AuditLogEntry.extra` is
@@ -1236,7 +1236,7 @@ of :class:`enum.Enum`.
 
         Messages were bulk deleted by a moderator.
 
-        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        When this is the action, the type of :func:`~AuditLogEntry.get_target` is
         the :class:`TextChannel` or :class:`Object` with the ID of the channel that was purged.
 
         When this is the action, the type of :attr:`~AuditLogEntry.extra` is
@@ -1250,7 +1250,7 @@ of :class:`enum.Enum`.
 
         A message was pinned in a channel.
 
-        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        When this is the action, the type of :func:`~AuditLogEntry.get_target` is
         the :class:`Member` or :class:`User` who had their message pinned.
 
         When this is the action, the type of :attr:`~AuditLogEntry.extra` is
@@ -1265,7 +1265,7 @@ of :class:`enum.Enum`.
 
         A message was unpinned in a channel.
 
-        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        When this is the action, the type of :func:`~AuditLogEntry.get_target` is
         the :class:`Member` or :class:`User` who had their message unpinned.
 
         When this is the action, the type of :attr:`~AuditLogEntry.extra` is
@@ -1280,7 +1280,7 @@ of :class:`enum.Enum`.
 
         A guild integration was created.
 
-        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        When this is the action, the type of :func:`~AuditLogEntry.get_target` is
         the :class:`Object` with the integration ID of the integration which was created.
 
         .. versionadded:: 1.3
@@ -1289,7 +1289,7 @@ of :class:`enum.Enum`.
 
         A guild integration was updated.
 
-        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        When this is the action, the type of :func:`~AuditLogEntry.get_target` is
         the :class:`Object` with the integration ID of the integration which was updated.
 
         .. versionadded:: 1.3
@@ -1298,7 +1298,7 @@ of :class:`enum.Enum`.
 
         A guild integration was deleted.
 
-        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        When this is the action, the type of :func:`~AuditLogEntry.get_target` is
         the :class:`Object` with the integration ID of the integration which was deleted.
 
         .. versionadded:: 1.3
@@ -1307,7 +1307,7 @@ of :class:`enum.Enum`.
 
         A stage instance was started.
 
-        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        When this is the action, the type of :func:`~AuditLogEntry.get_target` is
         the :class:`StageInstance` or :class:`Object` with the ID of the stage
         instance which was created.
 
@@ -1322,7 +1322,7 @@ of :class:`enum.Enum`.
 
         A stage instance was updated.
 
-        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        When this is the action, the type of :func:`~AuditLogEntry.get_target` is
         the :class:`StageInstance` or :class:`Object` with the ID of the stage
         instance which was updated.
 
@@ -1343,7 +1343,7 @@ of :class:`enum.Enum`.
 
         A sticker was created.
 
-        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        When this is the action, the type of :func:`~AuditLogEntry.get_target` is
         the :class:`GuildSticker` or :class:`Object` with the ID of the sticker
         which was updated.
 
@@ -1362,7 +1362,7 @@ of :class:`enum.Enum`.
 
         A sticker was updated.
 
-        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        When this is the action, the type of :func:`~AuditLogEntry.get_target` is
         the :class:`GuildSticker` or :class:`Object` with the ID of the sticker
         which was updated.
 
@@ -1381,7 +1381,7 @@ of :class:`enum.Enum`.
 
         A sticker was deleted.
 
-        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        When this is the action, the type of :func:`~AuditLogEntry.get_target` is
         the :class:`GuildSticker` or :class:`Object` with the ID of the sticker
         which was updated.
 
@@ -1400,7 +1400,7 @@ of :class:`enum.Enum`.
 
         A scheduled event was created.
 
-        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        When this is the action, the type of :func:`~AuditLogEntry.get_target` is
         the :class:`ScheduledEvent` or :class:`Object` with the ID of the thread which
         was deleted.
 
@@ -1421,7 +1421,7 @@ of :class:`enum.Enum`.
 
         A scheduled event was updated.
 
-        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        When this is the action, the type of :func:`~AuditLogEntry.get_target` is
         the :class:`ScheduledEvent` or :class:`Object` with the ID of the thread which
         was deleted.
 
@@ -1442,7 +1442,7 @@ of :class:`enum.Enum`.
 
         A scheduled event was deleted.
 
-        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        When this is the action, the type of :func:`~AuditLogEntry.get_target` is
         the :class:`ScheduledEvent` or :class:`Object` with the ID of the thread which
         was deleted.
 
@@ -1463,7 +1463,7 @@ of :class:`enum.Enum`.
 
         A thread was created.
 
-        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        When this is the action, the type of :func:`~AuditLogEntry.get_target` is
         the :class:`Thread` or :class:`Object` with the ID of the thread which
         was created.
 
@@ -1481,7 +1481,7 @@ of :class:`enum.Enum`.
 
         A thread was updated.
 
-        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        When this is the action, the type of :func:`~AuditLogEntry.get_target` is
         the :class:`Thread` or :class:`Object` with the ID of the thread which
         was updated.
 
@@ -1499,7 +1499,7 @@ of :class:`enum.Enum`.
 
         A thread was deleted.
 
-        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        When this is the action, the type of :func:`~AuditLogEntry.get_target` is
         the :class:`Thread` or :class:`Object` with the ID of the thread which
         was deleted.
 
@@ -1517,7 +1517,7 @@ of :class:`enum.Enum`.
 
         An application command's permissions were updated.
 
-        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        When this is the action, the type of :func:`~AuditLogEntry.get_target` is
         an :class:`Object` with the ID of the command that
         had it's permissions edited.
 
@@ -1611,7 +1611,7 @@ of :class:`enum.Enum`.
 
         A voice channel status was updated.
 
-        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        When this is the action, the type of :func:`~AuditLogEntry.get_target` is
         the :class:`VoiceChannel` or :class:`Object` with the ID of the voice
         channel which was updated.
 
@@ -1625,7 +1625,7 @@ of :class:`enum.Enum`.
 
         A voice channel status was deleted.
 
-        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        When this is the action, the type of :func:`~AuditLogEntry.get_target` is
         the :class:`VoiceChannel` or :class:`Object` with the ID of the voice
         channel which was updated.
 

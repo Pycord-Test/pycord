@@ -46,7 +46,7 @@ if TYPE_CHECKING:
     import datetime
 
     from .guild import Guild
-    from .state import ConnectionState
+    from .app.state import ConnectionState
     from .types.sticker import EditGuildSticker
     from .types.sticker import GuildSticker as GuildStickerPayload
     from .types.sticker import ListPremiumStickerPacks as ListPremiumStickerPacksPayload
@@ -435,7 +435,7 @@ class GuildSticker(Sticker):
         The name of a unicode emoji that represents this sticker.
     """
 
-    __slots__ = ("available", "guild_id", "user", "emoji", "type", "_cs_guild")
+    __slots__ = ("available", "guild_id", "user", "emoji", "type")
 
     def _from_data(self, data: GuildStickerPayload) -> None:
         super()._from_data(data)
@@ -452,14 +452,13 @@ class GuildSticker(Sticker):
             f" name={self.name!r} id={self.id} guild_id={self.guild_id} user={self.user!r}>"
         )
 
-    @cached_slot_property("_cs_guild")
-    def guild(self) -> Guild | None:
+    async def get_guild(self) -> Guild | None:
         """The guild that this sticker is from.
         Could be ``None`` if the bot is not in the guild.
 
         .. versionadded:: 2.0
         """
-        return self._state._get_guild(self.guild_id)
+        return await self._state._get_guild(self.guild_id)
 
     async def edit(
         self,

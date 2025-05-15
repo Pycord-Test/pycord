@@ -31,7 +31,7 @@ import signal
 import sys
 import traceback
 from types import TracebackType
-from typing import TYPE_CHECKING, Any, Callable, Coroutine, Generator, Sequence, TypeVar
+from typing import TYPE_CHECKING, Any, AsyncGenerator, Callable, Coroutine, Generator, Sequence, TypeVar
 
 import aiohttp
 
@@ -54,7 +54,7 @@ from .mentions import AllowedMentions
 from .monetization import SKU, Entitlement
 from .object import Object
 from .stage_instance import StageInstance
-from .state import ConnectionState
+from .app.state import ConnectionState
 from .sticker import GuildSticker, StandardSticker, StickerPack, _sticker_factory
 from .template import Template
 from .threads import Thread
@@ -335,62 +335,54 @@ class Client:
         """Represents the connected client. ``None`` if not logged in."""
         return self._connection.user
 
-    @property
-    def guilds(self) -> list[Guild]:
+    async def get_guilds(self) -> list[Guild]:
         """The guilds that the connected client is a member of."""
-        return self._connection.guilds
+        return await self._connection.get_guilds()
 
-    @property
-    def emojis(self) -> list[GuildEmoji | AppEmoji]:
+    async def get_emojis(self) -> list[GuildEmoji | AppEmoji]:
         """The emojis that the connected client has.
 
         .. note::
 
             This only includes the application's emojis if `cache_app_emojis` is ``True``.
         """
-        return self._connection.emojis
+        return await self._connection.get_emojis()
 
-    @property
-    def guild_emojis(self) -> list[GuildEmoji]:
+    async def get_guild_emojis(self) -> list[GuildEmoji]:
         """The :class:`~discord.GuildEmoji` that the connected client has."""
-        return [e for e in self.emojis if isinstance(e, GuildEmoji)]
+        return [e for e in await self.get_emojis() if isinstance(e, GuildEmoji)]
 
-    @property
-    def app_emojis(self) -> list[AppEmoji]:
+    async def get_app_emojis(self) -> list[AppEmoji]:
         """The :class:`~discord.AppEmoji` that the connected client has.
 
         .. note::
 
             This is only available if `cache_app_emojis` is ``True``.
         """
-        return [e for e in self.emojis if isinstance(e, AppEmoji)]
+        return [e for e in await self.get_emojis() if isinstance(e, AppEmoji)]
 
-    @property
-    def stickers(self) -> list[GuildSticker]:
+    async def get_stickers(self) -> list[GuildSticker]:
         """The stickers that the connected client has.
 
         .. versionadded:: 2.0
         """
-        return self._connection.stickers
+        return await self._connection.get_stickers()
 
-    @property
-    def polls(self) -> list[Poll]:
+    async def get_polls(self) -> list[Poll]:
         """The polls that the connected client has.
 
         .. versionadded:: 2.6
         """
-        return self._connection.polls
+        return await self._connection.get_polls()
 
-    @property
-    def cached_messages(self) -> Sequence[Message]:
+    async def get_cached_messages(self) -> Sequence[Message]:
         """Read-only list of messages the connected client has cached.
 
         .. versionadded:: 1.1
         """
-        return utils.SequenceProxy(self._connection._messages or [])
+        return utils.SequenceProxy(await self._connection.cache.get_all_messages())
 
-    @property
-    def private_channels(self) -> list[PrivateChannel]:
+    async def get_private_channels(self) -> list[PrivateChannel]:
         """The private channels that the connected client is participating on.
 
         .. note::
@@ -398,7 +390,7 @@ class Client:
             This returns only up to 128 most recent private channels due to an internal working
             on how Discord deals with private channels.
         """
-        return self._connection.private_channels
+        return await self._connection.get_private_channels()
 
     @property
     def voice_clients(self) -> list[VoiceProtocol]:
@@ -887,10 +879,9 @@ class Client:
 
     # helpers/getters
 
-    @property
-    def users(self) -> list[User]:
+    async def get_users(self) -> list[User]:
         """Returns a list of all the users the bot can see."""
-        return list(self._connection._users.values())
+        return await self._connection.cache.get_all_users()
 
     async def fetch_application(self, application_id: int, /) -> PartialAppInfo:
         """|coro|
@@ -916,7 +907,7 @@ class Client:
         data = await self.http.get_application(application_id)
         return PartialAppInfo(state=self._connection, data=data)
 
-    def get_channel(self, id: int, /) -> GuildChannel | Thread | PrivateChannel | None:
+    async def get_channel(self, id: int, /) -> GuildChannel | Thread | PrivateChannel | None:
         """Returns a channel or thread with the given ID.
 
         Parameters
@@ -929,9 +920,9 @@ class Client:
         Optional[Union[:class:`.abc.GuildChannel`, :class:`.Thread`, :class:`.abc.PrivateChannel`]]
             The returned channel or ``None`` if not found.
         """
-        return self._connection.get_channel(id)
+        return await self._connection.get_channel(id)
 
-    def get_message(self, id: int, /) -> Message | None:
+    async def get_message(self, id: int, /) -> Message | None:
         """Returns a message the given ID.
 
         This is useful if you have a message_id but don't want to do an API call
@@ -947,7 +938,7 @@ class Client:
         Optional[:class:`.Message`]
             The returned message or ``None`` if not found.
         """
-        return self._connection._get_message(id)
+        return await self._connection._get_message(id)
 
     def get_partial_messageable(
         self, id: int, *, type: ChannelType | None = None
@@ -973,7 +964,7 @@ class Client:
         """
         return PartialMessageable(state=self._connection, id=id, type=type)
 
-    def get_stage_instance(self, id: int, /) -> StageInstance | None:
+    async def get_stage_instance(self, id: int, /) -> StageInstance | None:
         """Returns a stage instance with the given stage channel ID.
 
         .. versionadded:: 2.0
@@ -990,12 +981,12 @@ class Client:
         """
         from .channel import StageChannel
 
-        channel = self._connection.get_channel(id)
+        channel = await self._connection.get_channel(id)
 
         if isinstance(channel, StageChannel):
             return channel.instance
 
-    def get_guild(self, id: int, /) -> Guild | None:
+    async def get_guild(self, id: int, /) -> Guild | None:
         """Returns a guild with the given ID.
 
         Parameters
@@ -1008,9 +999,9 @@ class Client:
         Optional[:class:`.Guild`]
             The guild or ``None`` if not found.
         """
-        return self._connection._get_guild(id)
+        return await self._connection._get_guild(id)
 
-    def get_user(self, id: int, /) -> User | None:
+    async def get_user(self, id: int, /) -> User | None:
         """Returns a user with the given ID.
 
         Parameters
@@ -1023,9 +1014,9 @@ class Client:
         Optional[:class:`~discord.User`]
             The user or ``None`` if not found.
         """
-        return self._connection.get_user(id)
+        return await self._connection.get_user(id)
 
-    def get_emoji(self, id: int, /) -> GuildEmoji | AppEmoji | None:
+    async def get_emoji(self, id: int, /) -> GuildEmoji | AppEmoji | None:
         """Returns an emoji with the given ID.
 
         Parameters
@@ -1038,9 +1029,9 @@ class Client:
         Optional[:class:`.GuildEmoji` | :class:`.AppEmoji`]
             The custom emoji or ``None`` if not found.
         """
-        return self._connection.get_emoji(id)
+        return await self._connection.get_emoji(id)
 
-    def get_sticker(self, id: int, /) -> GuildSticker | None:
+    async def get_sticker(self, id: int, /) -> GuildSticker | None:
         """Returns a guild sticker with the given ID.
 
         .. versionadded:: 2.0
@@ -1055,9 +1046,9 @@ class Client:
         Optional[:class:`.GuildSticker`]
             The sticker or ``None`` if not found.
         """
-        return self._connection.get_sticker(id)
+        return await self._connection.get_sticker(id)
 
-    def get_poll(self, id: int, /) -> Poll | None:
+    async def get_poll(self, id: int, /) -> Poll | None:
         """Returns a poll attached to the given message ID.
 
         Parameters
@@ -1070,14 +1061,14 @@ class Client:
         Optional[:class:`.Poll`]
             The poll or ``None`` if not found.
         """
-        return self._connection.get_poll(id)
+        return await self._connection.get_poll(id)
 
-    def get_all_channels(self) -> Generator[GuildChannel]:
+    async def get_all_channels(self) -> AsyncGenerator[GuildChannel]:
         """A generator that retrieves every :class:`.abc.GuildChannel` the client can 'access'.
 
         This is equivalent to: ::
 
-            for guild in client.guilds:
+            for guild in await client.get_guilds():
                 for channel in guild.channels:
                     yield channel
 
@@ -1093,15 +1084,16 @@ class Client:
             A channel the client can 'access'.
         """
 
-        for guild in self.guilds:
-            yield from guild.channels
+        for guild in await self.get_guilds():
+            for channel in guild.channels:
+                yield channel
 
-    def get_all_members(self) -> Generator[Member]:
+    async def get_all_members(self) -> AsyncGenerator[Member]:
         """Returns a generator with every :class:`.Member` the client can see.
 
         This is equivalent to: ::
 
-            for guild in client.guilds:
+            for guild in await client.get_guilds():
                 for member in guild.members:
                     yield member
 
@@ -1110,8 +1102,9 @@ class Client:
         :class:`.Member`
             A member the client can see.
         """
-        for guild in self.guilds:
-            yield from guild.members
+        for guild in await self.get_guilds():
+            for member in guild.members:
+                yield member
 
     async def get_or_fetch_user(self, id: int, /) -> User | None:
         """|coro|
@@ -1447,7 +1440,7 @@ class Client:
 
         await self.ws.change_presence(activity=activity, status=status_str)
 
-        for guild in self._connection.guilds:
+        for guild in await self._connection.get_guilds():
             me = guild.me
             if me is None:
                 continue
@@ -1550,7 +1543,7 @@ class Client:
         """
         code = utils.resolve_template(code)
         data = await self.http.get_template(code)
-        return Template(data=data, state=self._connection)  # type: ignore
+        return await Template.from_data(data=data, state=self._connection)  # type: ignore
 
     async def fetch_guild(self, guild_id: int, /, *, with_counts=True) -> Guild:
         """|coro|
@@ -1591,7 +1584,7 @@ class Client:
             Getting the guild failed.
         """
         data = await self.http.get_guild(guild_id, with_counts=with_counts)
-        return Guild(data=data, state=self._connection)
+        return await Guild._from_data(data=data, state=self._connection)
 
     async def create_guild(
         self,
@@ -1640,7 +1633,7 @@ class Client:
             data = await self.http.create_from_template(code, name, icon_base64)
         else:
             data = await self.http.create_guild(name, icon_base64)
-        return Guild(data=data, state=self._connection)
+        return await Guild._from_data(data=data, state=self._connection)
 
     async def fetch_stage_instance(self, channel_id: int, /) -> StageInstance:
         """|coro|
@@ -1731,7 +1724,7 @@ class Client:
             with_expiration=with_expiration,
             guild_scheduled_event_id=event_id,
         )
-        return Invite.from_incomplete(state=self._connection, data=data)
+        return await Invite.from_incomplete(state=self._connection, data=data)
 
     async def delete_invite(self, invite: Invite | str) -> None:
         """|coro|
@@ -1978,14 +1971,14 @@ class Client:
             The channel that was created.
         """
         state = self._connection
-        found = state._get_private_channel_by_user(user.id)
+        found = await state._get_private_channel_by_user(user.id)
         if found:
             return found
 
         data = await state.http.start_private_message(user.id)
-        return state.add_dm_channel(data)
+        return await state.add_dm_channel(data)
 
-    def add_view(self, view: View, *, message_id: int | None = None) -> None:
+    async def add_view(self, view: View, *, message_id: int | None = None) -> None:
         """Registers a :class:`~discord.ui.View` for persistent listening.
 
         This method should be used for when a view is comprised of components
@@ -2020,15 +2013,14 @@ class Client:
                 " must have no timeout"
             )
 
-        self._connection.store_view(view, message_id)
+        await self._connection.store_view(view, message_id)
 
-    @property
-    def persistent_views(self) -> Sequence[View]:
+    async def get_persistent_views(self) -> Sequence[View]:
         """A sequence of persistent views added to the client.
 
         .. versionadded:: 2.0
         """
-        return self._connection.persistent_views
+        return await self._connection.get_persistent_views()
 
     async def fetch_role_connection_metadata_records(
         self,
@@ -2189,7 +2181,7 @@ class Client:
             self.application_id
         )
         return [
-            self._connection.maybe_store_app_emoji(self.application_id, d)
+            await self._connection.maybe_store_app_emoji(self.application_id, d)
             for d in data["items"]
         ]
 
@@ -2218,7 +2210,7 @@ class Client:
         data = await self._connection.http.get_application_emoji(
             self.application_id, emoji_id
         )
-        return self._connection.maybe_store_app_emoji(self.application_id, data)
+        return await self._connection.maybe_store_app_emoji(self.application_id, data)
 
     async def create_emoji(
         self,
@@ -2255,7 +2247,7 @@ class Client:
         data = await self._connection.http.create_application_emoji(
             self.application_id, name, img
         )
-        return self._connection.maybe_store_app_emoji(self.application_id, data)
+        return await self._connection.maybe_store_app_emoji(self.application_id, data)
 
     async def delete_emoji(self, emoji: Snowflake) -> None:
         """|coro|
@@ -2276,5 +2268,5 @@ class Client:
         await self._connection.http.delete_application_emoji(
             self.application_id, emoji.id
         )
-        if self._connection.cache_app_emojis and self._connection.get_emoji(emoji.id):
-            self._connection.remove_emoji(emoji)
+        if self._connection.cache_app_emojis and await self._connection.get_emoji(emoji.id):
+            await self._connection._remove_emoji(emoji)

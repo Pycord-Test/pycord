@@ -25,6 +25,7 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
+import asyncio
 from typing import TYPE_CHECKING, Any, TypeVar
 
 import discord.abc
@@ -43,7 +44,7 @@ if TYPE_CHECKING:
     from .channel import DMChannel
     from .guild import Guild
     from .message import Message
-    from .state import ConnectionState
+    from .app.state import ConnectionState
     from .types.channel import DMChannel as DMChannelPayload
     from .types.user import PartialUser as PartialUserPayload
     from .types.user import User as UserPayload
@@ -134,7 +135,7 @@ class BaseUser(_UserTag):
     def __hash__(self) -> int:
         return self.id >> 22
 
-    def _update(self, data: UserPayload) -> None:
+    async def _update(self, data: UserPayload) -> None:
         self.name = data["username"]
         self.id = int(data["id"])
         self.discriminator = data["discriminator"]
@@ -417,7 +418,7 @@ class ClientUser(BaseUser):
             f" bot={self.bot} verified={self.verified} mfa_enabled={self.mfa_enabled}>"
         )
 
-    def _update(self, data: UserPayload) -> None:
+    async def _update(self, data: UserPayload) -> None:
         super()._update(data)
         # There's actually an Optional[str] phone field as well, but I won't use it
         self.verified = data.get("verified", False)
@@ -558,7 +559,7 @@ class User(BaseUser, discord.abc.Messageable):
     def __del__(self) -> None:
         try:
             if self._stored:
-                self._state.deref_user(self.id)
+                asyncio.create_task(self._state.deref_user(self.id))
         except Exception:
             pass
 
@@ -572,14 +573,13 @@ class User(BaseUser, discord.abc.Messageable):
         ch = await self.create_dm()
         return ch
 
-    @property
-    def dm_channel(self) -> DMChannel | None:
+    async def get_dm_channel(self) -> DMChannel | None:
         """Returns the channel associated with this user if it exists.
 
         If this returns ``None``, you can create a DM channel by calling the
         :meth:`create_dm` coroutine function.
         """
-        return self._state._get_private_channel_by_user(self.id)
+        return await self._state._get_private_channel_by_user(self.id)
 
     @property
     def mutual_guilds(self) -> list[Guild]:
@@ -614,7 +614,7 @@ class User(BaseUser, discord.abc.Messageable):
 
         state = self._state
         data: DMChannelPayload = await state.http.start_private_message(self.id)
-        return state.add_dm_channel(data)
+        return await state.add_dm_channel(data)
 
     async def create_test_entitlement(self, sku: discord.abc.Snowflake) -> Entitlement:
         """|coro|

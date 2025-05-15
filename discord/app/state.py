@@ -43,52 +43,56 @@ from typing import (
     Union,
 )
 
-from . import utils
-from .activity import BaseActivity
-from .audit_logs import AuditLogEntry
-from .automod import AutoModRule
-from .channel import *
-from .channel import _channel_factory
-from .emoji import AppEmoji, GuildEmoji
-from .enums import ChannelType, InteractionType, ScheduledEventStatus, Status, try_enum
-from .flags import ApplicationFlags, Intents, MemberCacheFlags
-from .guild import Guild
-from .integrations import _integration_factory
-from .interactions import Interaction
-from .invite import Invite
-from .member import Member
-from .mentions import AllowedMentions
-from .message import Message
-from .monetization import Entitlement, Subscription
-from .object import Object
-from .partial_emoji import PartialEmoji
-from .poll import Poll, PollAnswerCount
-from .raw_models import *
-from .role import Role
-from .scheduled_events import ScheduledEvent
-from .stage_instance import StageInstance
-from .sticker import GuildSticker
-from .threads import Thread, ThreadMember
-from .ui.modal import Modal, ModalStore
-from .ui.view import View, ViewStore
-from .user import ClientUser, User
+from discord.app.event_emitter import EventEmitter
+
+from .cache import Cache
+
+from .. import utils
+from ..activity import BaseActivity
+from ..audit_logs import AuditLogEntry
+from ..automod import AutoModRule
+from ..channel import *
+from ..channel import _channel_factory
+from ..emoji import AppEmoji, GuildEmoji
+from ..enums import ChannelType, InteractionType, ScheduledEventStatus, Status, try_enum
+from ..flags import ApplicationFlags, Intents, MemberCacheFlags
+from ..guild import Guild
+from ..integrations import _integration_factory
+from ..interactions import Interaction
+from ..invite import Invite
+from ..member import Member
+from ..mentions import AllowedMentions
+from ..message import Message
+from ..monetization import Entitlement, Subscription
+from ..object import Object
+from ..partial_emoji import PartialEmoji
+from ..poll import Poll, PollAnswerCount
+from ..raw_models import *
+from ..role import Role
+from ..scheduled_events import ScheduledEvent
+from ..stage_instance import StageInstance
+from ..sticker import GuildSticker
+from ..threads import Thread, ThreadMember
+from ..ui.modal import Modal
+from ..ui.view import View
+from ..user import ClientUser, User
 
 if TYPE_CHECKING:
-    from .abc import PrivateChannel
-    from .client import Client
-    from .gateway import DiscordWebSocket
-    from .guild import GuildChannel, VocalGuildChannel
-    from .http import HTTPClient
-    from .message import MessageableChannel
-    from .types.activity import Activity as ActivityPayload
-    from .types.channel import DMChannel as DMChannelPayload
-    from .types.emoji import Emoji as EmojiPayload
-    from .types.guild import Guild as GuildPayload
-    from .types.message import Message as MessagePayload
-    from .types.poll import Poll as PollPayload
-    from .types.sticker import GuildSticker as GuildStickerPayload
-    from .types.user import User as UserPayload
-    from .voice_client import VoiceClient
+    from ..abc import PrivateChannel
+    from ..client import Client
+    from ..gateway import DiscordWebSocket
+    from ..guild import GuildChannel, VocalGuildChannel
+    from ..http import HTTPClient
+    from ..message import MessageableChannel
+    from ..types.activity import Activity as ActivityPayload
+    from ..types.channel import DMChannel as DMChannelPayload
+    from ..types.emoji import Emoji as EmojiPayload
+    from ..types.guild import Guild as GuildPayload
+    from ..types.message import Message as MessagePayload
+    from ..types.poll import Poll as PollPayload
+    from ..types.sticker import GuildSticker as GuildStickerPayload
+    from ..types.user import User as UserPayload
+    from ..voice_client import VoiceClient
 
     T = TypeVar("T")
     CS = TypeVar("CS", bound="ConnectionState")
@@ -112,10 +116,12 @@ class ChunkRequest:
         self.buffer: list[Member] = []
         self.waiters: list[asyncio.Future[list[Member]]] = []
 
-    def add_members(self, members: list[Member]) -> None:
+    async def add_members(self, members: list[Member]) -> None:
         self.buffer.extend(members)
         if self.cache:
             guild = self.resolver(self.guild_id)
+            if inspect.isawaitable(guild):
+                guild = await guild
             if guild is None:
                 return
 
@@ -162,7 +168,7 @@ class ConnectionState:
     def __init__(
         self,
         *,
-        dispatch: Callable,
+        cache: Cache,
         handlers: dict[str, Callable],
         hooks: dict[str, Callable],
         http: HTTPClient,
@@ -175,7 +181,6 @@ class ConnectionState:
         if self.max_messages is not None and self.max_messages <= 0:
             self.max_messages = 1000
 
-        self.dispatch: Callable = dispatch
         self.handlers: dict[str, Callable] = handlers
         self.hooks: dict[str, Callable] = hooks
         self.shard_count: int | None = None
@@ -183,6 +188,7 @@ class ConnectionState:
         self.application_id: int | None = utils._get_as_snowflake(
             options, "application_id"
         )
+        self.application_flags: ApplicationFlags | None = None
         self.heartbeat_timeout: float = options.get("heartbeat_timeout", 60.0)
         self.guild_ready_timeout: float = options.get("guild_ready_timeout", 2.0)
         if self.guild_ready_timeout < 0:
@@ -253,53 +259,22 @@ class ConnectionState:
 
         self.cache_app_emojis: bool = options.get("cache_app_emojis", False)
 
-        self.parsers = parsers = {}
-        for attr, func in inspect.getmembers(self):
-            if attr.startswith("parse_"):
-                parsers[attr[6:].upper()] = func
+        self.emitter = EventEmitter(self)
 
-        self.clear()
+        self.cache: Cache = self.cache
 
     def clear(self, *, views: bool = True) -> None:
         self.user: ClientUser | None = None
-        # Originally, this code used WeakValueDictionary to maintain references to the
-        # global user mapping.
-
-        # However, profiling showed that this came with two cons:
-
-        # 1. The __weakref__ slot caused a non-trivial increase in memory
-        # 2. The performance of the mapping caused store_user to be a bottleneck.
-
-        # Since this is undesirable, a mapping is now used instead with stored
-        # references now using a regular dictionary with eviction being done
-        # using __del__. Testing this for memory leaks led to no discernible leaks,
-        # though more testing will have to be done.
-        self._users: dict[int, User] = {}
-        self._emojis: dict[int, (GuildEmoji, AppEmoji)] = {}
-        self._stickers: dict[int, GuildSticker] = {}
-        self._guilds: dict[int, Guild] = {}
-        self._polls: dict[int, Poll] = {}
-        if views:
-            self._view_store: ViewStore = ViewStore(self)
-        self._modal_store: ModalStore = ModalStore(self)
+        self.cache.clear()
         self._voice_clients: dict[int, VoiceClient] = {}
 
-        # LRU of max size 128
-        self._private_channels: OrderedDict[int, PrivateChannel] = OrderedDict()
-        # extra dict to look up private channels by user id
-        self._private_channels_by_user: dict[int, DMChannel] = {}
-        if self.max_messages is not None:
-            self._messages: Deque[Message] | None = deque(maxlen=self.max_messages)
-        else:
-            self._messages: Deque[Message] | None = None
-
-    def process_chunk_requests(
+    async def process_chunk_requests(
         self, guild_id: int, nonce: str | None, members: list[Member], complete: bool
     ) -> None:
         removed = []
         for key, request in self._chunk_requests.items():
             if request.guild_id == guild_id and request.nonce == nonce:
-                request.add_members(members)
+                await request.add_members(members)
                 if complete:
                     request.done()
                     removed.append(key)
@@ -352,19 +327,11 @@ class ConnectionState:
         for vc in self.voice_clients:
             vc.main_ws = ws  # type: ignore
 
-    def store_user(self, data: UserPayload) -> User:
-        user_id = int(data["id"])
-        try:
-            return self._users[user_id]
-        except KeyError:
-            user = User(state=self, data=data)
-            if user.discriminator != "0000":
-                self._users[user_id] = user
-                user._stored = True
-            return user
+    async def store_user(self, data: UserPayload) -> User:
+        return await self.cache.store_user(data)
 
-    def deref_user(self, user_id: int) -> None:
-        self._users.pop(user_id, None)
+    async def deref_user(self, user_id: int) -> None:
+        return await self.cache.delete_user(user_id)
 
     def create_user(self, data: UserPayload) -> User:
         return User(state=self, data=data)
@@ -372,158 +339,114 @@ class ConnectionState:
     def deref_user_no_intents(self, user_id: int) -> None:
         return
 
-    def get_user(self, id: int | None) -> User | None:
-        # the keys of self._users are ints
-        return self._users.get(id)  # type: ignore
+    async def get_user(self, id: int | None) -> User | None:
+        return await self.cache.get_user(id)
 
-    def store_emoji(self, guild: Guild, data: EmojiPayload) -> GuildEmoji:
-        # the id will be present here
-        emoji_id = int(data["id"])  # type: ignore
-        self._emojis[emoji_id] = emoji = GuildEmoji(guild=guild, state=self, data=data)
-        return emoji
+    async def store_emoji(self, guild: Guild, data: EmojiPayload) -> GuildEmoji:
+        return await self.cache.store_guild_emoji(guild, data)
 
-    def maybe_store_app_emoji(
+    async def maybe_store_app_emoji(
         self, application_id: int, data: EmojiPayload
     ) -> AppEmoji:
         # the id will be present here
         emoji = AppEmoji(application_id=application_id, state=self, data=data)
         if self.cache_app_emojis:
-            emoji_id = int(data["id"])  # type: ignore
-            self._emojis[emoji_id] = emoji
+            await self.cache.store_app_emoji(application_id, data)
         return emoji
 
-    def store_sticker(self, guild: Guild, data: GuildStickerPayload) -> GuildSticker:
-        sticker_id = int(data["id"])
-        self._stickers[sticker_id] = sticker = GuildSticker(state=self, data=data)
-        return sticker
+    async def store_sticker(self, guild: Guild, data: GuildStickerPayload) -> GuildSticker:
+        return await self.cache.store_sticker(guild, data)
 
-    def store_view(self, view: View, message_id: int | None = None) -> None:
-        self._view_store.add_view(view, message_id)
+    async def store_view(self, view: View, message_id: int | None = None) -> None:
+        await self.cache.store_view(view, message_id)
 
-    def store_modal(self, modal: Modal, message_id: int) -> None:
-        self._modal_store.add_modal(modal, message_id)
+    async def store_modal(self, modal: Modal) -> None:
+        await self.cache.store_modal(modal)
 
-    def prevent_view_updates_for(self, message_id: int) -> View | None:
-        return self._view_store.remove_message_tracking(message_id)
+    async def prevent_view_updates_for(self, message_id: int) -> View | None:
+        return await self.cache.delete_view_on(message_id)
 
-    @property
-    def persistent_views(self) -> Sequence[View]:
-        return self._view_store.persistent_views
+    async def get_persistent_views(self) -> Sequence[View]:
+        views = await self.cache.get_all_views()
+        persistent_views = {
+            view.id: view
+            for view in views
+            if view.is_persistent()
+        }
+        return list(persistent_views.values())
 
-    @property
-    def guilds(self) -> list[Guild]:
-        return list(self._guilds.values())
+    async def get_guilds(self) -> list[Guild]:
+        return await self.cache.get_all_guilds()
 
-    def _get_guild(self, guild_id: int | None) -> Guild | None:
-        # the keys of self._guilds are ints
-        return self._guilds.get(guild_id)  # type: ignore
+    async def _get_guild(self, guild_id: int | None) -> Guild | None:
+        return await self.cache.get_guild(guild_id)
 
-    def _add_guild(self, guild: Guild) -> None:
-        self._guilds[guild.id] = guild
+    async def _add_guild(self, guild: Guild) -> None:
+        await self.cache.add_guild(guild)
 
-    def _remove_guild(self, guild: Guild) -> None:
-        self._guilds.pop(guild.id, None)
+    async def _remove_guild(self, guild: Guild) -> None:
+        await self.cache.delete_guild(guild)
 
         for emoji in guild.emojis:
-            self._remove_emoji(emoji)
+            await self.cache.delete_emoji(emoji)
 
         for sticker in guild.stickers:
-            self._stickers.pop(sticker.id, None)
+            await self.cache.delete_sticker(sticker.id)
 
         del guild
 
-    @property
-    def emojis(self) -> list[GuildEmoji | AppEmoji]:
-        return list(self._emojis.values())
+    async def get_emojis(self) -> list[GuildEmoji | AppEmoji]:
+        return await self.cache.get_all_emojis()
 
-    @property
-    def stickers(self) -> list[GuildSticker]:
-        return list(self._stickers.values())
+    async def get_stickers(self) -> list[GuildSticker]:
+        return await self.cache.get_all_stickers()
 
-    def get_emoji(self, emoji_id: int | None) -> GuildEmoji | AppEmoji | None:
-        # the keys of self._emojis are ints
-        return self._emojis.get(emoji_id)  # type: ignore
+    async def get_emoji(self, emoji_id: int | None) -> GuildEmoji | AppEmoji | None:
+        return await self.get_emoji(emoji_id)
 
-    def _remove_emoji(self, emoji: GuildEmoji | AppEmoji) -> None:
-        self._emojis.pop(emoji.id, None)
+    async def _remove_emoji(self, emoji: GuildEmoji | AppEmoji) -> None:
+        await self.cache.delete_emoji(emoji)
 
-    def get_sticker(self, sticker_id: int | None) -> GuildSticker | None:
-        # the keys of self._stickers are ints
-        return self._stickers.get(sticker_id)  # type: ignore
+    async def get_sticker(self, sticker_id: int | None) -> GuildSticker | None:
+        return await self.cache.get_sticker(sticker_id)
 
-    @property
-    def polls(self) -> list[Poll]:
-        return list(self._polls.values())
+    async def get_polls(self) -> list[Poll]:
+        return await self.cache.get_all_polls()
 
-    def store_raw_poll(self, poll: PollPayload, raw):
+    def create_poll(self, poll: PollPayload, raw) -> Poll:
         channel = self.get_channel(raw.channel_id) or PartialMessageable(
             state=self, id=raw.channel_id
         )
         message = channel.get_partial_message(raw.message_id)
-        p = Poll.from_dict(poll, message)
-        self._polls[message.id] = p
-        return p
+        return Poll.from_dict(poll, message)
 
-    def store_poll(self, poll: Poll, message_id: int):
-        self._polls[message_id] = poll
+    async def store_poll(self, poll: Poll, message_id: int):
+        await self.cache.store_poll(poll, message_id)
 
-    def get_poll(self, message_id):
-        return self._polls.get(message_id)
+    async def get_poll(self, message_id: int):
+        return await self.cache.get_poll(message_id)
 
-    @property
-    def private_channels(self) -> list[PrivateChannel]:
-        return list(self._private_channels.values())
+    async def get_private_channels(self) -> list[PrivateChannel]:
+        return await self.cache.get_private_channels()
 
-    def _get_private_channel(self, channel_id: int | None) -> PrivateChannel | None:
-        try:
-            # the keys of self._private_channels are ints
-            value = self._private_channels[channel_id]  # type: ignore
-        except KeyError:
-            return None
-        else:
-            self._private_channels.move_to_end(channel_id)  # type: ignore
-            return value
+    async def _get_private_channel(self, channel_id: int | None) -> PrivateChannel | None:
+        return await self.cache.get_private_channel(channel_id)
 
-    def _get_private_channel_by_user(self, user_id: int | None) -> DMChannel | None:
-        # the keys of self._private_channels are ints
-        return self._private_channels_by_user.get(user_id)  # type: ignore
+    async def _get_private_channel_by_user(self, user_id: int | None) -> DMChannel | None:
+        return await self.cache.get_private_channel_by_user(user_id)
 
-    def _add_private_channel(self, channel: PrivateChannel) -> None:
-        channel_id = channel.id
-        self._private_channels[channel_id] = channel
+    async def _add_private_channel(self, channel: PrivateChannel) -> None:
+        await self.cache.store_private_channel(channel)
 
-        if len(self._private_channels) > 128:
-            _, to_remove = self._private_channels.popitem(last=False)
-            if isinstance(to_remove, DMChannel) and to_remove.recipient:
-                self._private_channels_by_user.pop(to_remove.recipient.id, None)
-
-        if isinstance(channel, DMChannel) and channel.recipient:
-            self._private_channels_by_user[channel.recipient.id] = channel
-
-    def add_dm_channel(self, data: DMChannelPayload) -> DMChannel:
+    async def add_dm_channel(self, data: DMChannelPayload) -> DMChannel:
         # self.user is *always* cached when this is called
         channel = DMChannel(me=self.user, state=self, data=data)  # type: ignore
-        self._add_private_channel(channel)
+        await channel._load()
+        await self._add_private_channel(channel)
         return channel
 
-    def _remove_private_channel(self, channel: PrivateChannel) -> None:
-        self._private_channels.pop(channel.id, None)
-        if isinstance(channel, DMChannel):
-            recipient = channel.recipient
-            if recipient is not None:
-                self._private_channels_by_user.pop(recipient.id, None)
-
-    def _get_message(self, msg_id: int | None) -> Message | None:
-        return (
-            utils.find(lambda m: m.id == msg_id, reversed(self._messages))
-            if self._messages
-            else None
-        )
-
-    def _add_guild_from_data(self, data: GuildPayload) -> Guild:
-        guild = Guild(data=data, state=self)
-        self._add_guild(guild)
-        return guild
+    async def _get_message(self, msg_id: int | None) -> Message | None:
+        return await self.cache.get_message(msg_id)
 
     def _guild_needs_chunking(self, guild: Guild) -> bool:
         # If presences are enabled then we get back the old guild.large behaviour
@@ -533,12 +456,12 @@ class ConnectionState:
             and not (self._intents.presences and not guild.large)
         )
 
-    def _get_guild_channel(
+    async def _get_guild_channel(
         self, data: MessagePayload, guild_id: int | None = None
     ) -> tuple[Channel | Thread, Guild | None]:
         channel_id = int(data["channel_id"])
         try:
-            guild = self._get_guild(int(guild_id or data["guild_id"]))
+            guild = await self._get_guild(int(guild_id or data["guild_id"]))
         except KeyError:
             channel = DMChannel._from_message(self, channel_id)
             guild = None
@@ -600,349 +523,6 @@ class ConnectionState:
                 guild_id,
             )
             raise
-
-    async def _delay_ready(self) -> None:
-
-        if self.cache_app_emojis and self.application_id:
-            data = await self.http.get_all_application_emojis(self.application_id)
-            for e in data.get("items", []):
-                self.maybe_store_app_emoji(self.application_id, e)
-        try:
-            states = []
-            while True:
-                # this snippet of code is basically waiting N seconds
-                # until the last GUILD_CREATE was sent
-                try:
-                    guild = await asyncio.wait_for(
-                        self._ready_state.get(), timeout=self.guild_ready_timeout
-                    )
-                except asyncio.TimeoutError:
-                    break
-                else:
-                    if self._guild_needs_chunking(guild):
-                        future = await self.chunk_guild(guild, wait=False)
-                        states.append((guild, future))
-                    elif guild.unavailable is False:
-                        self.dispatch("guild_available", guild)
-                    else:
-                        self.dispatch("guild_join", guild)
-
-            for guild, future in states:
-                try:
-                    await asyncio.wait_for(future, timeout=5.0)
-                except asyncio.TimeoutError:
-                    _log.warning(
-                        "Shard ID %s timed out waiting for chunks for guild_id %s.",
-                        guild.shard_id,
-                        guild.id,
-                    )
-
-                if guild.unavailable is False:
-                    self.dispatch("guild_available", guild)
-                else:
-                    self.dispatch("guild_join", guild)
-
-            # remove the state
-            try:
-                del self._ready_state
-            except AttributeError:
-                pass  # already been deleted somehow
-
-        except asyncio.CancelledError:
-            pass
-        else:
-            # dispatch the event
-            self.call_handlers("ready")
-            self.dispatch("ready")
-        finally:
-            self._ready_task = None
-
-    def parse_ready(self, data) -> None:
-        if self._ready_task is not None:
-            self._ready_task.cancel()
-
-        self._ready_state = asyncio.Queue()
-        self.clear(views=False)
-        self.user = ClientUser(state=self, data=data["user"])
-        self.store_user(data["user"])
-
-        if self.application_id is None:
-            try:
-                application = data["application"]
-            except KeyError:
-                pass
-            else:
-                self.application_id = utils._get_as_snowflake(application, "id")
-                # flags will always be present here
-                self.application_flags = ApplicationFlags._from_value(application["flags"])  # type: ignore
-
-        for guild_data in data["guilds"]:
-            self._add_guild_from_data(guild_data)
-
-        self.dispatch("connect")
-        self._ready_task = asyncio.create_task(self._delay_ready())
-
-    def parse_resumed(self, data) -> None:
-        self.dispatch("resumed")
-
-    def parse_application_command_permissions_update(self, data) -> None:
-        # unsure what the implementation would be like
-        pass
-
-    def parse_auto_moderation_rule_create(self, data) -> None:
-        rule = AutoModRule(state=self, data=data)
-        self.dispatch("auto_moderation_rule_create", rule)
-
-    def parse_auto_moderation_rule_update(self, data) -> None:
-        # somehow get a 'before' object?
-        rule = AutoModRule(state=self, data=data)
-        self.dispatch("auto_moderation_rule_update", rule)
-
-    def parse_auto_moderation_rule_delete(self, data) -> None:
-        rule = AutoModRule(state=self, data=data)
-        self.dispatch("auto_moderation_rule_delete", rule)
-
-    def parse_auto_moderation_action_execution(self, data) -> None:
-        event = AutoModActionExecutionEvent(self, data)
-        self.dispatch("auto_moderation_action_execution", event)
-
-    def parse_entitlement_create(self, data) -> None:
-        event = Entitlement(data=data, state=self)
-        self.dispatch("entitlement_create", event)
-
-    def parse_entitlement_update(self, data) -> None:
-        event = Entitlement(data=data, state=self)
-        self.dispatch("entitlement_update", event)
-
-    def parse_entitlement_delete(self, data) -> None:
-        event = Entitlement(data=data, state=self)
-        self.dispatch("entitlement_delete", event)
-
-    def parse_subscription_create(self, data) -> None:
-        event = Subscription(data=data, state=self)
-        self.dispatch("subscription_create", event)
-
-    def parse_subscription_update(self, data) -> None:
-        event = Subscription(data=data, state=self)
-        self.dispatch("subscription_update", event)
-
-    def parse_subscription_delete(self, data) -> None:
-        event = Subscription(data=data, state=self)
-        self.dispatch("subscription_delete", event)
-
-    def parse_message_create(self, data) -> None:
-        channel, _ = self._get_guild_channel(data)
-        # channel would be the correct type here
-        message = Message(channel=channel, data=data, state=self)  # type: ignore
-        self.dispatch("message", message)
-        if self._messages is not None:
-            self._messages.append(message)
-        # we ensure that the channel is either a TextChannel, VoiceChannel, StageChannel, or Thread
-        if channel and channel.__class__ in (
-            TextChannel,
-            VoiceChannel,
-            StageChannel,
-            Thread,
-        ):
-            channel.last_message_id = message.id  # type: ignore
-
-    def parse_message_delete(self, data) -> None:
-        raw = RawMessageDeleteEvent(data)
-        found = self._get_message(raw.message_id)
-        raw.cached_message = found
-        self.dispatch("raw_message_delete", raw)
-        if self._messages is not None and found is not None:
-            self.dispatch("message_delete", found)
-            self._messages.remove(found)
-
-    def parse_message_delete_bulk(self, data) -> None:
-        raw = RawBulkMessageDeleteEvent(data)
-        if self._messages:
-            found_messages = [
-                message for message in self._messages if message.id in raw.message_ids
-            ]
-        else:
-            found_messages = []
-        raw.cached_messages = found_messages
-        self.dispatch("raw_bulk_message_delete", raw)
-        if found_messages:
-            self.dispatch("bulk_message_delete", found_messages)
-            for msg in found_messages:
-                # self._messages won't be None here
-                self._messages.remove(msg)  # type: ignore
-
-    def parse_message_update(self, data) -> None:
-        raw = RawMessageUpdateEvent(data)
-        message = self._get_message(raw.message_id)
-        if message is not None:
-            older_message = copy.copy(message)
-            raw.cached_message = older_message
-            self.dispatch("raw_message_edit", raw)
-            message._update(data)
-            # Coerce the `after` parameter to take the new updated Member
-            # ref: #5999
-            older_message.author = message.author
-            self.dispatch("message_edit", older_message, message)
-        else:
-            if poll_data := data.get("poll"):
-                self.store_raw_poll(poll_data, raw)
-            self.dispatch("raw_message_edit", raw)
-
-        if "components" in data and self._view_store.is_message_tracked(raw.message_id):
-            self._view_store.update_from_message(raw.message_id, data["components"])
-
-    def parse_message_reaction_add(self, data) -> None:
-        emoji = data["emoji"]
-        emoji_id = utils._get_as_snowflake(emoji, "id")
-        emoji = PartialEmoji.with_state(
-            self, id=emoji_id, animated=emoji.get("animated", False), name=emoji["name"]
-        )
-        raw = RawReactionActionEvent(data, emoji, "REACTION_ADD")
-
-        member_data = data.get("member")
-        if member_data:
-            guild = self._get_guild(raw.guild_id)
-            if guild is not None:
-                raw.member = Member(data=member_data, guild=guild, state=self)
-            else:
-                raw.member = None
-        else:
-            raw.member = None
-        self.dispatch("raw_reaction_add", raw)
-
-        # rich interface here
-        message = self._get_message(raw.message_id)
-        if message is not None:
-            emoji = self._upgrade_partial_emoji(emoji)
-            reaction = message._add_reaction(data, emoji, raw.user_id)
-            user = raw.member or self._get_reaction_user(message.channel, raw.user_id)
-
-            if user:
-                self.dispatch("reaction_add", reaction, user)
-
-    def parse_message_reaction_remove_all(self, data) -> None:
-        raw = RawReactionClearEvent(data)
-        self.dispatch("raw_reaction_clear", raw)
-
-        message = self._get_message(raw.message_id)
-        if message is not None:
-            old_reactions = message.reactions.copy()
-            message.reactions.clear()
-            self.dispatch("reaction_clear", message, old_reactions)
-
-    def parse_message_reaction_remove(self, data) -> None:
-        emoji = data["emoji"]
-        emoji_id = utils._get_as_snowflake(emoji, "id")
-        emoji = PartialEmoji.with_state(self, id=emoji_id, name=emoji["name"])
-        raw = RawReactionActionEvent(data, emoji, "REACTION_REMOVE")
-
-        member_data = data.get("member")
-        if member_data:
-            guild = self._get_guild(raw.guild_id)
-            if guild is not None:
-                raw.member = Member(data=member_data, guild=guild, state=self)
-            else:
-                raw.member = None
-        else:
-            raw.member = None
-
-        self.dispatch("raw_reaction_remove", raw)
-
-        message = self._get_message(raw.message_id)
-        if message is not None:
-            emoji = self._upgrade_partial_emoji(emoji)
-            try:
-                reaction = message._remove_reaction(data, emoji, raw.user_id)
-            except (AttributeError, ValueError):  # eventual consistency lol
-                pass
-            else:
-                user = self._get_reaction_user(message.channel, raw.user_id)
-                if user:
-                    self.dispatch("reaction_remove", reaction, user)
-
-    def parse_message_reaction_remove_emoji(self, data) -> None:
-        emoji = data["emoji"]
-        emoji_id = utils._get_as_snowflake(emoji, "id")
-        emoji = PartialEmoji.with_state(self, id=emoji_id, name=emoji["name"])
-        raw = RawReactionClearEmojiEvent(data, emoji)
-        self.dispatch("raw_reaction_clear_emoji", raw)
-
-        message = self._get_message(raw.message_id)
-        if message is not None:
-            try:
-                reaction = message._clear_emoji(emoji)
-            except (AttributeError, ValueError):  # eventual consistency lol
-                pass
-            else:
-                if reaction:
-                    self.dispatch("reaction_clear_emoji", reaction)
-
-    def parse_message_poll_vote_add(self, data) -> None:
-        raw = RawMessagePollVoteEvent(data, True)
-        guild = self._get_guild(raw.guild_id)
-        if guild:
-            user = guild.get_member(raw.user_id)
-        else:
-            user = self.get_user(raw.user_id)
-        self.dispatch("raw_poll_vote_add", raw)
-
-        self._get_message(raw.message_id)
-        poll = self.get_poll(raw.message_id)
-        # if message was cached, poll has already updated but votes haven't
-        if poll and poll.results:
-            answer = poll.get_answer(raw.answer_id)
-            counts = poll.results._answer_counts
-            if answer is not None:
-                if answer.id in counts:
-                    counts[answer.id].count += 1
-                else:
-                    counts[answer.id] = PollAnswerCount(
-                        {"id": answer.id, "count": 1, "me_voted": False}
-                    )
-        if poll is not None and user is not None:
-            answer = poll.get_answer(raw.answer_id)
-            if answer is not None:
-                self.dispatch("poll_vote_add", poll, user, answer)
-
-    def parse_message_poll_vote_remove(self, data) -> None:
-        raw = RawMessagePollVoteEvent(data, False)
-        guild = self._get_guild(raw.guild_id)
-        if guild:
-            user = guild.get_member(raw.user_id)
-        else:
-            user = self.get_user(raw.user_id)
-        self.dispatch("raw_poll_vote_remove", raw)
-
-        self._get_message(raw.message_id)
-        poll = self.get_poll(raw.message_id)
-        # if message was cached, poll has already updated but votes haven't
-        if poll and poll.results:
-            answer = poll.get_answer(raw.answer_id)
-            counts = poll.results._answer_counts
-            if answer is not None:
-                if answer.id in counts:
-                    counts[answer.id].count -= 1
-        if poll is not None and user is not None:
-            answer = poll.get_answer(raw.answer_id)
-            if answer is not None:
-                self.dispatch("poll_vote_remove", poll, user, answer)
-
-    def parse_interaction_create(self, data) -> None:
-        interaction = Interaction(data=data, state=self)
-        if data["type"] == 3:  # interaction component
-            custom_id = interaction.data["custom_id"]  # type: ignore
-            component_type = interaction.data["component_type"]  # type: ignore
-            self._view_store.dispatch(component_type, custom_id, interaction)
-        if interaction.type == InteractionType.modal_submit:
-            user_id, custom_id = (
-                interaction.user.id,
-                interaction.data["custom_id"],
-            )
-            asyncio.create_task(
-                self._modal_store.dispatch(user_id, custom_id, interaction)
-            )
-
-        self.dispatch("interaction", interaction)
 
     def parse_presence_update(self, data) -> None:
         guild_id = utils._get_as_snowflake(data, "guild_id")
@@ -1957,21 +1537,21 @@ class ConnectionState:
 
         return self.get_user(user_id)
 
-    def _get_reaction_user(
+    async def _get_reaction_user(
         self, channel: MessageableChannel, user_id: int
     ) -> User | Member | None:
         if isinstance(channel, TextChannel):
             return channel.guild.get_member(user_id)
-        return self.get_user(user_id)
+        return await self.get_user(user_id)
 
-    def get_reaction_emoji(self, data) -> GuildEmoji | AppEmoji | PartialEmoji:
+    async def get_reaction_emoji(self, data) -> GuildEmoji | AppEmoji | PartialEmoji:
         emoji_id = utils._get_as_snowflake(data, "id")
 
         if not emoji_id:
             return data["name"]
 
         try:
-            return self._emojis[emoji_id]
+            return await self.cache.get_emoji(emoji_id)
         except KeyError:
             return PartialEmoji.with_state(
                 self,
@@ -1980,26 +1560,23 @@ class ConnectionState:
                 name=data["name"],
             )
 
-    def _upgrade_partial_emoji(
+    async def _upgrade_partial_emoji(
         self, emoji: PartialEmoji
     ) -> GuildEmoji | AppEmoji | PartialEmoji | str:
         emoji_id = emoji.id
         if not emoji_id:
             return emoji.name
-        try:
-            return self._emojis[emoji_id]
-        except KeyError:
-            return emoji
+        return await self.cache.get_emoji(emoji_id) or emoji
 
-    def get_channel(self, id: int | None) -> Channel | Thread | None:
+    async def get_channel(self, id: int | None) -> Channel | Thread | None:
         if id is None:
             return None
 
-        pm = self._get_private_channel(id)
+        pm = await self._get_private_channel(id)
         if pm is not None:
             return pm
 
-        for guild in self.guilds:
+        for guild in await self.cache.get_all_guilds():
             channel = guild._resolve_channel(id)
             if channel is not None:
                 return channel
@@ -2123,7 +1700,7 @@ class AutoShardedConnectionState(ConnectionState):
         if self.cache_app_emojis and self.application_id:
             data = await self.http.get_all_application_emojis(self.application_id)
             for e in data.get("items", []):
-                self.maybe_store_app_emoji(self.application_id, e)
+                await self.maybe_store_app_emoji(self.application_id, e)
 
         # remove the state
         try:

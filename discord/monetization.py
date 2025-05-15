@@ -37,7 +37,7 @@ if TYPE_CHECKING:
     from datetime import datetime
 
     from .abc import Snowflake, SnowflakeTime
-    from .state import ConnectionState
+    from .app.state import ConnectionState
     from .types.monetization import SKU as SKUPayload
     from .types.monetization import Entitlement as EntitlementPayload
     from .types.monetization import Subscription as SubscriptionPayload
@@ -344,7 +344,6 @@ class Subscription(Hashable):
     def __eq__(self, other: object) -> bool:
         return isinstance(other, self.__class__) and other.id == self.id
 
-    @property
-    def user(self):
+    async def get_user(self):
         """Optional[:class:`User`]: The user that owns this subscription."""
-        return self._state.get_user(self.user_id)
+        return await self._state.get_user(self.user_id)

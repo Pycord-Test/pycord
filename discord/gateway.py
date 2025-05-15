@@ -289,10 +289,6 @@ class DiscordWebSocket:
         self.socket = socket
         self.loop = loop
 
-        # an empty dispatcher to prevent crashes
-        self._dispatch = lambda *args: None
-        # generic event listeners
-        self._dispatch_listeners = []
         # the keep alive
         self._keep_alive = None
         self.thread_id = threading.get_ident()
@@ -313,10 +309,10 @@ class DiscordWebSocket:
     def is_ratelimited(self):
         return self._rate_limiter.is_ratelimited()
 
-    def debug_log_receive(self, data, /):
-        self._dispatch("socket_raw_receive", data)
+    async def debug_log_receive(self, data, /):
+        await self._emitter.emit("socket_raw_receive", data)
 
-    def log_receive(self, _, /):
+    async def log_receive(self, _, /):
         pass
 
     @classmethod
@@ -342,8 +338,7 @@ class DiscordWebSocket:
         # dynamically add attributes needed
         ws.token = client.http.token
         ws._connection = client._connection
-        ws._discord_parsers = client._connection.parsers
-        ws._dispatch = client.dispatch
+        ws._emitter = client._connection.emitter
         ws.gateway = gateway
         ws.call_hooks = client._connection.call_hooks
         ws._initial_identify = initial
@@ -461,13 +456,13 @@ class DiscordWebSocket:
             msg = msg.decode("utf-8")
             self._buffer = bytearray()
 
-        self.log_receive(msg)
+        await self.log_receive(msg)
         msg = utils._from_json(msg)
 
         _log.debug("For Shard ID %s: WebSocket Event: %s", self.shard_id, msg)
         event = msg.get("t")
         if event:
-            self._dispatch("socket_event_type", event)
+            await self._emitter.emit("socket_event_type", event)
 
         op = msg.get("op")
         data = msg.get("d")
@@ -547,12 +542,7 @@ class DiscordWebSocket:
                 ", ".join(trace),
             )
 
-        try:
-            func = self._discord_parsers[event]
-        except KeyError:
-            _log.debug("Unknown event %s.", event)
-        else:
-            func(data)
+        await self._emitter.emit(event, data)
 
         # remove the dispatched listeners
         removed = []
@@ -644,7 +634,7 @@ class DiscordWebSocket:
 
     async def debug_send(self, data, /):
         await self._rate_limiter.block()
-        self._dispatch("socket_raw_send", data)
+        await self._emitter.emit("socket_raw_send", data)
         await self.socket.send_str(data)
 
     async def send(self, data, /):
