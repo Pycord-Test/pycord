@@ -25,7 +25,7 @@ DEALINGS IN THE SOFTWARE.
 from abc import ABC
 from asyncio import Future
 import asyncio
-from typing import Any, Callable, Self, Type, TypeVar
+from typing import Any, Callable, Self, TypeVar
 
 from .state import ConnectionState
 
@@ -42,31 +42,31 @@ class Event(ABC):
 
 class EventEmitter:
     def __init__(self, state: ConnectionState) -> None:
-        self._listeners: dict[Type[Event], list[Callable]] = {}
-        self._events: dict[str, list[Type[Event]]]
-        self._wait_fors: dict[Type[Event], list[Future]] = {}
+        self._listeners: dict[type[Event], list[Callable]] = {}
+        self._events: dict[str, list[type[Event]]]
+        self._wait_fors: dict[type[Event], list[Future]] = {}
         self._state = state
 
-    def add_event(self, event: Type[Event]) -> None:
+    def add_event(self, event: type[Event]) -> None:
         try:
             self._events[event.__event_name__].append(event)
         except KeyError:
             self._events[event.__event_name__] = [event]
 
-    def remove_event(self, event: Type[Event]) -> list[Type[Event]] | None:
+    def remove_event(self, event: type[Event]) -> list[type[Event]] | None:
         return self._events.pop(event.__event_name__, None)
 
-    def add_listener(self, event: Type[Event], listener: Callable) -> None:
+    def add_listener(self, event: type[Event], listener: Callable) -> None:
         try:
             self._listeners[event].append(listener)
         except KeyError:
             self.add_event(event)
             self._listeners[event] = [listener]
 
-    def remove_listener(self, event: Type[Event], listener: Callable) -> None:
+    def remove_listener(self, event: type[Event], listener: Callable) -> None:
         self._listeners[event].remove(listener)
 
-    def add_wait_for(self, event: Type[T]) -> Future[T]:
+    def add_wait_for(self, event: type[T]) -> Future[T]:
         fut = Future()
 
         try:
@@ -76,7 +76,7 @@ class EventEmitter:
 
         return fut
 
-    def remove_wait_for(self, event: Type[Event], fut: Future) -> None:
+    def remove_wait_for(self, event: type[Event], fut: Future) -> None:
         self._wait_fors[event].remove(fut)
 
     async def emit(self, event_str: str, data: Any) -> None:
