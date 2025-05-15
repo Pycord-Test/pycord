@@ -83,7 +83,10 @@ class Cache(Protocol):
     async def get_all_views(self) -> list[View]:
         ...
 
-    async def store_modal(self, modal: Modal) -> None:
+    async def store_modal(self, modal: Modal, user_id: int) -> None:
+        ...
+
+    async def delete_modal(self, custom_id: str) -> None:
         ...
 
     async def get_all_modals(self) -> list[Modal]:
@@ -348,3 +351,6 @@ class MemoryCache(Cache):
 
     async def get_all_messages(self) -> list[Message]:
         return list(self._messages)
+
+    async def delete_modal(self, custom_id: str) -> None:
+        self._modals.pop(custom_id, None)
