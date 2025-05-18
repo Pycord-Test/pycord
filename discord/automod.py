@@ -52,7 +52,7 @@ if TYPE_CHECKING:
     from .guild import Guild
     from .member import Member
     from .role import Role
-    from .state import ConnectionState
+    from .app.state import ConnectionState
     from .types.automod import AutoModAction as AutoModActionPayload
     from .types.automod import AutoModActionMetadata as AutoModActionMetadataPayload
     from .types.automod import AutoModRule as AutoModRulePayload
@@ -416,10 +416,9 @@ class AutoModRule(Hashable):
     def __str__(self) -> str:
         return self.name
 
-    @cached_property
-    def guild(self) -> Guild | None:
+    async def get_guild(self) -> Guild | None:
         """The guild this rule belongs to."""
-        return self._state._get_guild(self.guild_id)
+        return await self._state._get_guild(self.guild_id)
 
     @cached_property
     def creator(self) -> Member | None:

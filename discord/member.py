@@ -30,7 +30,7 @@ import inspect
 import itertools
 import sys
 from operator import attrgetter
-from typing import TYPE_CHECKING, Any, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Self, TypeVar, Union
 
 import discord.abc
 
@@ -57,7 +57,7 @@ if TYPE_CHECKING:
     from .guild import Guild
     from .message import Message
     from .role import Role
-    from .state import ConnectionState
+    from .app.state import ConnectionState
     from .types.activity import PartialPresenceUpdate
     from .types.member import Member as MemberPayload
     from .types.member import MemberWithUser as MemberWithUserPayload
@@ -135,7 +135,7 @@ class VoiceState:
         self.session_id: str = data.get("session_id")
         self._update(data, channel)
 
-    def _update(
+    async def _update(
         self,
         data: VoiceStatePayload | GuildVoiceStatePayload,
         channel: VocalGuildChannel | None,
@@ -315,7 +315,6 @@ class Member(discord.abc.Messageable, _UserTag):
         self, *, data: MemberWithUserPayload, guild: Guild, state: ConnectionState
     ):
         self._state: ConnectionState = state
-        self._user: User = state.store_user(data["user"])
         self.guild: Guild = guild
         self.joined_at: datetime.datetime | None = utils.parse_time(
             data.get("joined_at")
@@ -334,6 +333,12 @@ class Member(discord.abc.Messageable, _UserTag):
             data.get("communication_disabled_until")
         )
         self.flags: MemberFlags = MemberFlags._from_value(data.get("flags", 0))
+
+    @classmethod
+    async def _from_data(cls, data: MemberWithUserPayload, guild: Guild, state: ConnectionState) -> Self:
+        self = cls(data=data, guild=guild, state=state)
+        self._user = await state.store_user(data["user"])
+        return self
 
     def __str__(self) -> str:
         return str(self._user)
@@ -421,7 +426,7 @@ class Member(discord.abc.Messageable, _UserTag):
         ch = await self.create_dm()
         return ch
 
-    def _update(self, data: MemberPayload) -> None:
+    async def _update(self, data: MemberPayload) -> None:
         # the nickname change is optional,
         # if it isn't in the payload then it didn't change
         try:
@@ -912,7 +917,7 @@ class Member(discord.abc.Messageable, _UserTag):
 
         if payload:
             data = await http.edit_member(guild_id, self.id, reason=reason, **payload)
-            return Member(data=data, guild=self.guild, state=self._state)
+            return await Member._from_data(data=data, guild=self.guild, state=self._state)
 
     async def timeout(
         self, until: datetime.datetime | None, *, reason: str | None = None

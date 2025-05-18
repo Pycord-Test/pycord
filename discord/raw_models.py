@@ -26,7 +26,7 @@ DEALINGS IN THE SOFTWARE.
 from __future__ import annotations
 
 import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Self
 
 from .automod import AutoModAction, AutoModTriggerType
 from .enums import AuditLogAction, ChannelType, ReactionType, try_enum
@@ -37,7 +37,7 @@ if TYPE_CHECKING:
     from .member import Member
     from .message import Message
     from .partial_emoji import PartialEmoji
-    from .state import ConnectionState
+    from .app.state import ConnectionState
     from .threads import Thread
     from .types.raw_models import (
         AuditLogEntryEvent,
@@ -654,14 +654,16 @@ class AutoModActionExecutionEvent:
         "data",
     )
 
-    def __init__(self, state: ConnectionState, data: AutoModActionExecution) -> None:
+    @classmethod
+    async def from_data(cls, state: ConnectionState, data: AutoModActionExecution) -> Self:
+        self = cls()
         self.action: AutoModAction = AutoModAction.from_dict(data["action"])
         self.rule_id: int = int(data["rule_id"])
         self.rule_trigger_type: AutoModTriggerType = try_enum(
             AutoModTriggerType, int(data["rule_trigger_type"])
         )
         self.guild_id: int = int(data["guild_id"])
-        self.guild: Guild | None = state._get_guild(self.guild_id)
+        self.guild: Guild | None = await state._get_guild(self.guild_id)
         self.user_id: int = int(data["user_id"])
         self.content: str | None = data.get("content", None)
         self.matched_keyword: str = data["matched_keyword"]
@@ -685,7 +687,7 @@ class AutoModActionExecutionEvent:
 
         try:
             self.message_id: int | None = int(data["message_id"])
-            self.message: Message | None = state._get_message(self.message_id)
+            self.message: Message | None = await state._get_message(self.message_id)
         except KeyError:
             self.message_id: int | None = None
             self.message: Message | None = None
@@ -694,13 +696,14 @@ class AutoModActionExecutionEvent:
             self.alert_system_message_id: int | None = int(
                 data["alert_system_message_id"]
             )
-            self.alert_system_message: Message | None = state._get_message(
+            self.alert_system_message: Message | None = await state._get_message(
                 self.alert_system_message_id
             )
         except KeyError:
             self.alert_system_message_id: int | None = None
             self.alert_system_message: Message | None = None
         self.data: AutoModActionExecution = data
+        return self
 
     def __repr__(self) -> str:
         return (

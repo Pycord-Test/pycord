@@ -79,7 +79,7 @@ if TYPE_CHECKING:
     from .embeds import Embed
     from .mentions import AllowedMentions
     from .poll import Poll
-    from .state import ConnectionState
+    from .app.state import ConnectionState
     from .threads import Thread
     from .types.interactions import Interaction as InteractionPayload
     from .types.interactions import InteractionData
@@ -189,11 +189,13 @@ class Interaction:
 
     def __init__(self, *, data: InteractionPayload, state: ConnectionState):
         self._state: ConnectionState = state
+        self._data = data
         self._session: ClientSession = state.http._HTTPClient__session
         self._original_response: InteractionMessage | None = None
-        self._from_data(data)
 
-    def _from_data(self, data: InteractionPayload):
+    async def load_data(self):
+        data = self._data
+
         self.id: int = int(data["id"])
         self.type: InteractionType = try_enum(InteractionType, data["type"])
         self.data: InteractionData | None = data.get("data")
@@ -233,13 +235,13 @@ class Interaction:
         self._guild: Guild | None = None
         self._guild_data = data.get("guild")
         if self.guild is None and self._guild_data:
-            self._guild = Guild(data=self._guild_data, state=self._state)
+            self._guild = await Guild._from_data(data=self._guild_data, state=self._state)
 
         # TODO: there's a potential data loss here
         if self.guild_id:
             guild = (
                 self.guild
-                or self._state._get_guild(self.guild_id)
+                or await self._state._get_guild(self.guild_id)
                 or Object(id=self.guild_id)
             )
             try:
@@ -250,11 +252,11 @@ class Interaction:
                 self._permissions = int(member.get("permissions", 0))
                 if not isinstance(guild, Object):
                     cache_flag = self._state.member_cache_flags.interaction
-                    self.user = guild._get_and_update_member(
+                    self.user = await guild._get_and_update_member(
                         member, int(member["user"]["id"]), cache_flag
                     )
                 else:
-                    self.user = Member(state=self._state, data=member, guild=guild)
+                    self.user = await Member._from_data(state=self._state, data=member, guild=guild)
         else:
             try:
                 self.user = User(state=self._state, data=data["user"])
@@ -282,7 +284,7 @@ class Interaction:
         self._channel_data = channel
 
         if message_data := data.get("message"):
-            self.message = Message(
+            self.message = await Message._from_data(
                 state=self._state, channel=self.channel, data=message_data
             )
 
@@ -293,12 +295,11 @@ class Interaction:
         """Returns the client that sent the interaction."""
         return self._state._get_client()
 
-    @property
-    def guild(self) -> Guild | None:
+    async def get_guild(self) -> Guild | None:
         """The guild the interaction was sent from."""
         if self._guild:
             return self._guild
-        return self._state and self._state._get_guild(self.guild_id)
+        return self._state and await self._state._get_guild(self.guild_id)
 
     def is_command(self) -> bool:
         """Indicates whether the interaction is an application command."""
@@ -571,7 +572,7 @@ class Interaction:
         message = InteractionMessage(state=state, channel=self.channel, data=data)  # type: ignore
         if view and not view.is_finished():
             view.message = message
-            self._state.store_view(view, message.id)
+            await self._state.store_view(view, message.id)
 
         if delete_after is not None:
             await self.delete_original_response(delay=delete_after)
@@ -1123,7 +1124,7 @@ class InteractionResponse:
             payload["attachments"] = [a.to_dict() for a in attachments]
 
         if view is not MISSING:
-            state.prevent_view_updates_for(message_id)
+            await state.prevent_view_updates_for(message_id)
             payload["components"] = [] if view is None else view.to_components()
 
         if file is not MISSING and files is not MISSING:
@@ -1190,7 +1191,7 @@ class InteractionResponse:
 
         if view and not view.is_finished():
             view.message = msg
-            state.store_view(view, message_id)
+            await state.store_view(view, message_id)
 
         self._responded = True
         if delete_after is not None:
@@ -1279,7 +1280,7 @@ class InteractionResponse:
             )
         )
         self._responded = True
-        self._parent._state.store_modal(modal, self._parent.user.id)
+        await self._parent._state.store_modal(modal)
         return self._parent
 
     @utils.deprecated("a button with type ButtonType.premium", "2.6")
@@ -1348,8 +1349,8 @@ class _InteractionMessageState:
         self._interaction: Interaction = interaction
         self._parent: ConnectionState = parent
 
-    def _get_guild(self, guild_id):
-        return self._parent._get_guild(guild_id)
+    async def _get_guild(self, guild_id):
+        return await self._parent._get_guild(guild_id)
 
     def store_user(self, data):
         return self._parent.store_user(data)
@@ -1559,8 +1560,6 @@ class InteractionMetadata:
         "interacted_message_id",
         "triggering_interaction_metadata",
         "_state",
-        "_cs_original_response_message",
-        "_cs_interacted_message",
     )
 
     def __init__(self, *, data: InteractionMetadataPayload, state: ConnectionState):
@@ -1588,23 +1587,21 @@ class InteractionMetadata:
             f"<InteractionMetadata id={self.id} type={self.type!r} user={self.user!r}>"
         )
 
-    @utils.cached_slot_property("_cs_original_response_message")
-    def original_response_message(self) -> Message | None:
+    async def get_original_response_message(self) -> Message | None:
         """Optional[:class:`Message`]: The original response message.
         Returns ``None`` if the message is not in cache, or if :attr:`original_response_message_id` is ``None``.
         """
         if not self.original_response_message_id:
             return None
-        return self._state._get_message(self.original_response_message_id)
+        return await self._state._get_message(self.original_response_message_id)
 
-    @utils.cached_slot_property("_cs_interacted_message")
-    def interacted_message(self) -> Message | None:
+    async def get_interacted_message(self) -> Message | None:
         """Optional[:class:`Message`]: The message that triggered the interaction.
         Returns ``None`` if the message is not in cache, or if :attr:`interacted_message_id` is ``None``.
         """
         if not self.interacted_message_id:
             return None
-        return self._state._get_message(self.interacted_message_id)
+        return await self._state._get_message(self.interacted_message_id)
 
 
 class AuthorizingIntegrationOwners:
@@ -1622,7 +1619,7 @@ class AuthorizingIntegrationOwners:
         from the user in the bot's DMs.
     """
 
-    __slots__ = ("user_id", "guild_id", "_state", "_cs_user", "_cs_guild")
+    __slots__ = ("user_id", "guild_id", "_state")
 
     def __init__(self, data: dict[str, Any], state: ConnectionState):
         self._state = state
@@ -1645,20 +1642,18 @@ class AuthorizingIntegrationOwners:
     def __ne__(self, other):
         return not self.__eq__(other)
 
-    @utils.cached_slot_property("_cs_user")
-    def user(self) -> User | None:
+    async def get_user(self) -> User | None:
         """Optional[:class:`User`]: The user that authorized the integration.
         Returns ``None`` if the user is not in cache, or if :attr:`user_id` is ``None``.
         """
         if not self.user_id:
             return None
-        return self._state.get_user(self.user_id)
+        return await self._state.get_user(self.user_id)
 
-    @utils.cached_slot_property("_cs_guild")
-    def guild(self) -> Guild | None:
+    async def get_guild(self) -> Guild | None:
         """Optional[:class:`Guild`]: The guild that authorized the integration.
         Returns ``None`` if the guild is not in cache, or if :attr:`guild_id` is ``0`` or ``None``.
         """
         if not self.guild_id:
             return None
-        return self._state._get_guild(self.guild_id)
+        return await self._state._get_guild(self.guild_id)

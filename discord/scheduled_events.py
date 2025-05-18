@@ -51,7 +51,7 @@ if TYPE_CHECKING:
     from .guild import Guild
     from .iterators import AsyncIterator
     from .member import Member
-    from .state import ConnectionState
+    from .app.state import ConnectionState
     from .types.channel import StageChannel, VoiceChannel
     from .types.scheduled_events import ScheduledEvent as ScheduledEventPayload
 
@@ -90,12 +90,12 @@ class ScheduledEventLocation:
         self,
         *,
         state: ConnectionState,
-        value: str | int | StageChannel | VoiceChannel,
+        value: str | Object,
     ):
         self._state = state
         self.value: str | StageChannel | VoiceChannel | Object
         if isinstance(value, int):
-            self.value = self._state.get_channel(id=int(value)) or Object(id=int(value))
+            self.value = Object(id=int(value))
         else:
             self.value = value
 

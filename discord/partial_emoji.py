@@ -37,7 +37,7 @@ __all__ = ("PartialEmoji",)
 if TYPE_CHECKING:
     from datetime import datetime
 
-    from .state import ConnectionState
+    from .app.state import ConnectionState
     from .types.message import PartialEmoji as PartialEmojiPayload
 
 

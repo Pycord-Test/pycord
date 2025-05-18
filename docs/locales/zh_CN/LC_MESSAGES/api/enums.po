@@ -656,8 +656,8 @@ msgstr "Changing the guild moderation settings"
 msgid "Changing things related to the guild widget"
 msgstr "Changing things related to the guild widget"
 
-msgid "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`Guild`."
-msgstr "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`Guild`."
+msgid "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`Guild`."
+msgstr "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`Guild`."
 
 msgid "Possible attributes for :class:`AuditLogDiff`:"
 msgstr "Possible attributes for :class:`AuditLogDiff`:"
@@ -704,8 +704,8 @@ msgstr ":attr:`~AuditLogDiff.vanity_url_code`"
 msgid "A new channel was created."
 msgstr "A new channel was created."
 
-msgid "When this is the action, the type of :attr:`~AuditLogEntry.target` is either a :class:`abc.GuildChannel` or :class:`Object` with an ID."
-msgstr "When this is the action, the type of :attr:`~AuditLogEntry.target` is either a :class:`abc.GuildChannel` or :class:`Object` with an ID."
+msgid "When this is the action, the type of :func:`~AuditLogEntry.get_target` is either a :class:`abc.GuildChannel` or :class:`Object` with an ID."
+msgstr "When this is the action, the type of :func:`~AuditLogEntry.get_target` is either a :class:`abc.GuildChannel` or :class:`Object` with an ID."
 
 msgid "A more filled out object in the :class:`Object` case can be found by using :attr:`~AuditLogEntry.after`."
 msgstr "A more filled out object in the :class:`Object` case can be found by using :attr:`~AuditLogEntry.after`."
@@ -725,8 +725,8 @@ msgstr "The channel name or topic was changed"
 msgid "The channel bitrate was changed"
 msgstr "The channel bitrate was changed"
 
-msgid "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`abc.GuildChannel` or :class:`Object` with an ID."
-msgstr "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`abc.GuildChannel` or :class:`Object` with an ID."
+msgid "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`abc.GuildChannel` or :class:`Object` with an ID."
+msgstr "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`abc.GuildChannel` or :class:`Object` with an ID."
 
 msgid "A more filled out object in the :class:`Object` case can be found by using :attr:`~AuditLogEntry.after` or :attr:`~AuditLogEntry.before`."
 msgstr "A more filled out object in the :class:`Object` case can be found by using :attr:`~AuditLogEntry.after` or :attr:`~AuditLogEntry.before`."
@@ -752,8 +752,8 @@ msgstr ":attr:`~AuditLogDiff.default_auto_archive_duration`"
 msgid "A channel was deleted."
 msgstr "A channel was deleted."
 
-msgid "When this is the action, the type of :attr:`~AuditLogEntry.target` is an :class:`Object` with an ID."
-msgstr "When this is the action, the type of :attr:`~AuditLogEntry.target` is an :class:`Object` with an ID."
+msgid "When this is the action, the type of :func:`~AuditLogEntry.get_target` is an :class:`Object` with an ID."
+msgstr "When this is the action, the type of :func:`~AuditLogEntry.get_target` is an :class:`Object` with an ID."
 
 msgid "A more filled out object can be found by using the :attr:`~AuditLogEntry.before` object."
 msgstr "A more filled out object can be found by using the :attr:`~AuditLogEntry.before` object."
@@ -776,8 +776,8 @@ msgstr ":attr:`~AuditLogDiff.id`"
 msgid "A channel permission overwrite was changed, this is typically when the permission values change."
 msgstr "A channel permission overwrite was changed, this is typically when the permission values change."
 
-msgid "See :attr:`overwrite_create` for more information on how the :attr:`~AuditLogEntry.target` and :attr:`~AuditLogEntry.extra` fields are set."
-msgstr "See :attr:`overwrite_create` for more information on how the :attr:`~AuditLogEntry.target` and :attr:`~AuditLogEntry.extra` fields are set."
+msgid "See :attr:`overwrite_create` for more information on how the :func:`~AuditLogEntry.get_target` and :attr:`~AuditLogEntry.extra` fields are set."
+msgstr "See :attr:`overwrite_create` for more information on how the :func:`~AuditLogEntry.get_target` and :attr:`~AuditLogEntry.extra` fields are set."
 
 msgid "A channel permission overwrite was deleted."
 msgstr "A channel permission overwrite was deleted."
@@ -785,8 +785,8 @@ msgstr "A channel permission overwrite was deleted."
 msgid "A member was kicked."
 msgstr "A member was kicked."
 
-msgid "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`User` who got kicked."
-msgstr "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`User` who got kicked."
+msgid "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`User` who got kicked."
+msgstr "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`User` who got kicked."
 
 msgid "When this is the action, :attr:`~AuditLogEntry.changes` is empty."
 msgstr "When this is the action, :attr:`~AuditLogEntry.changes` is empty."
@@ -794,8 +794,8 @@ msgstr "When this is the action, :attr:`~AuditLogEntry.changes` is empty."
 msgid "A member prune was triggered."
 msgstr "A member prune was triggered."
 
-msgid "When this is the action, the type of :attr:`~AuditLogEntry.target` is set to ``None``."
-msgstr "When this is the action, the type of :attr:`~AuditLogEntry.target` is set to ``None``."
+msgid "When this is the action, the type of :func:`~AuditLogEntry.get_target` is set to ``None``."
+msgstr "When this is the action, the type of :func:`~AuditLogEntry.get_target` is set to ``None``."
 
 msgid "When this is the action, the type of :attr:`~AuditLogEntry.extra` is set to an unspecified proxy object with two attributes:"
 msgstr "When this is the action, the type of :attr:`~AuditLogEntry.extra` is set to an unspecified proxy object with two attributes:"
@@ -809,14 +809,14 @@ msgstr "``members_removed``: An integer specifying how many members were removed
 msgid "A member was banned."
 msgstr "A member was banned."
 
-msgid "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`User` who got banned."
-msgstr "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`User` who got banned."
+msgid "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`User` who got banned."
+msgstr "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`User` who got banned."
 
 msgid "A member was unbanned."
 msgstr "A member was unbanned."
 
-msgid "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`User` who got unbanned."
-msgstr "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`User` who got unbanned."
+msgid "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`User` who got unbanned."
+msgstr "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`User` who got unbanned."
 
 msgid "A member has updated. This triggers in the following situations:"
 msgstr "A member has updated. This triggers in the following situations:"
@@ -827,8 +827,8 @@ msgstr "A nickname was changed"
 msgid "They were server muted or deafened (or it was undone)"
 msgstr "They were server muted or deafened (or it was undone)"
 
-msgid "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`Member` or :class:`User` who got updated."
-msgstr "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`Member` or :class:`User` who got updated."
+msgid "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`Member` or :class:`User` who got updated."
+msgstr "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`Member` or :class:`User` who got updated."
 
 msgid ":attr:`~AuditLogDiff.nick`"
 msgstr ":attr:`~AuditLogDiff.nick`"
@@ -842,8 +842,8 @@ msgstr ":attr:`~AuditLogDiff.deaf`"
 msgid "A member's role has been updated. This triggers when a member either gains a role or loses a role."
 msgstr "A member's role has been updated. This triggers when a member either gains a role or loses a role."
 
-msgid "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`Member` or :class:`User` who got the role."
-msgstr "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`Member` or :class:`User` who got the role."
+msgid "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`Member` or :class:`User` who got the role."
+msgstr "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`Member` or :class:`User` who got the role."
 
 msgid ":attr:`~AuditLogDiff.roles`"
 msgstr ":attr:`~AuditLogDiff.roles`"
@@ -869,14 +869,14 @@ msgstr "``count``: An integer specifying how many members were disconnected."
 msgid "A bot was added to the guild."
 msgstr "A bot was added to the guild."
 
-msgid "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`Member` or :class:`User` which was added to the guild."
-msgstr "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`Member` or :class:`User` which was added to the guild."
+msgid "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`Member` or :class:`User` which was added to the guild."
+msgstr "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`Member` or :class:`User` which was added to the guild."
 
 msgid "A new role was created."
 msgstr "A new role was created."
 
-msgid "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`Role` or a :class:`Object` with the ID."
-msgstr "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`Role` or a :class:`Object` with the ID."
+msgid "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`Role` or a :class:`Object` with the ID."
+msgstr "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`Role` or a :class:`Object` with the ID."
 
 msgid ":attr:`~AuditLogDiff.colour`"
 msgstr ":attr:`~AuditLogDiff.colour`"
@@ -911,8 +911,8 @@ msgstr "A role was deleted."
 msgid "An invite was created."
 msgstr "An invite was created."
 
-msgid "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`Invite` that was created."
-msgstr "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`Invite` that was created."
+msgid "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`Invite` that was created."
+msgstr "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`Invite` that was created."
 
 msgid ":attr:`~AuditLogDiff.max_age`"
 msgstr ":attr:`~AuditLogDiff.max_age`"
@@ -938,20 +938,20 @@ msgstr ":attr:`~AuditLogDiff.max_uses`"
 msgid "An invite was updated."
 msgstr "An invite was updated."
 
-msgid "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`Invite` that was updated."
-msgstr "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`Invite` that was updated."
+msgid "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`Invite` that was updated."
+msgstr "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`Invite` that was updated."
 
 msgid "An invite was deleted."
 msgstr "An invite was deleted."
 
-msgid "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`Invite` that was deleted."
-msgstr "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`Invite` that was deleted."
+msgid "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`Invite` that was deleted."
+msgstr "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`Invite` that was deleted."
 
 msgid "A webhook was created."
 msgstr "A webhook was created."
 
-msgid "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`Object` with the webhook ID."
-msgstr "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`Object` with the webhook ID."
+msgid "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`Object` with the webhook ID."
+msgstr "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`Object` with the webhook ID."
 
 msgid ":attr:`~AuditLogDiff.type` (always set to ``1`` if so)"
 msgstr ":attr:`~AuditLogDiff.type` (always set to ``1`` if so)"
@@ -974,8 +974,8 @@ msgstr "A webhook was deleted."
 msgid "An emoji was created."
 msgstr "An emoji was created."
 
-msgid "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`GuildEmoji` or :class:`Object` with the emoji ID."
-msgstr "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`GuildEmoji` or :class:`Object` with the emoji ID."
+msgid "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`GuildEmoji` or :class:`Object` with the emoji ID."
+msgstr "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`GuildEmoji` or :class:`Object` with the emoji ID."
 
 msgid "An emoji was updated. This triggers when the name has changed."
 msgstr "An emoji was updated. This triggers when the name has changed."
@@ -983,14 +983,14 @@ msgstr "An emoji was updated. This triggers when the name has changed."
 msgid "An emoji was deleted."
 msgstr "An emoji was deleted."
 
-msgid "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`Object` with the emoji ID."
-msgstr "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`Object` with the emoji ID."
+msgid "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`Object` with the emoji ID."
+msgstr "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`Object` with the emoji ID."
 
 msgid "A message was deleted by a moderator. Note that this only triggers if the message was deleted by someone other than the author."
 msgstr "A message was deleted by a moderator. Note that this only triggers if the message was deleted by someone other than the author."
 
-msgid "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`Member` or :class:`User` who had their message deleted."
-msgstr "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`Member` or :class:`User` who had their message deleted."
+msgid "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`Member` or :class:`User` who had their message deleted."
+msgstr "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`Member` or :class:`User` who had their message deleted."
 
 msgid "``count``: An integer specifying how many messages were deleted."
 msgstr "``count``: An integer specifying how many messages were deleted."
@@ -1001,14 +1001,14 @@ msgstr "``channel``: A :class:`TextChannel` or :class:`Object` with the channel 
 msgid "Messages were bulk deleted by a moderator."
 msgstr "Messages were bulk deleted by a moderator."
 
-msgid "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`TextChannel` or :class:`Object` with the ID of the channel that was purged."
-msgstr "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`TextChannel` or :class:`Object` with the ID of the channel that was purged."
+msgid "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`TextChannel` or :class:`Object` with the ID of the channel that was purged."
+msgstr "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`TextChannel` or :class:`Object` with the ID of the channel that was purged."
 
 msgid "A message was pinned in a channel."
 msgstr "A message was pinned in a channel."
 
-msgid "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`Member` or :class:`User` who had their message pinned."
-msgstr "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`Member` or :class:`User` who had their message pinned."
+msgid "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`Member` or :class:`User` who had their message pinned."
+msgstr "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`Member` or :class:`User` who had their message pinned."
 
 msgid "``channel``: A :class:`TextChannel` or :class:`Object` with the channel ID where the message was pinned."
 msgstr "``channel``: A :class:`TextChannel` or :class:`Object` with the channel ID where the message was pinned."
@@ -1019,8 +1019,8 @@ msgstr "``message_id``: the ID of the message which was pinned."
 msgid "A message was unpinned in a channel."
 msgstr "A message was unpinned in a channel."
 
-msgid "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`Member` or :class:`User` who had their message unpinned."
-msgstr "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`Member` or :class:`User` who had their message unpinned."
+msgid "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`Member` or :class:`User` who had their message unpinned."
+msgstr "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`Member` or :class:`User` who had their message unpinned."
 
 msgid "``channel``: A :class:`TextChannel` or :class:`Object` with the channel ID where the message was unpinned."
 msgstr "``channel``: A :class:`TextChannel` or :class:`Object` with the channel ID where the message was unpinned."
@@ -1031,26 +1031,26 @@ msgstr "``message_id``: the ID of the message which was unpinned."
 msgid "A guild integration was created."
 msgstr "A guild integration was created."
 
-msgid "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`Object` with the integration ID of the integration which was created."
-msgstr "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`Object` with the integration ID of the integration which was created."
+msgid "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`Object` with the integration ID of the integration which was created."
+msgstr "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`Object` with the integration ID of the integration which was created."
 
 msgid "A guild integration was updated."
 msgstr "A guild integration was updated."
 
-msgid "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`Object` with the integration ID of the integration which was updated."
-msgstr "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`Object` with the integration ID of the integration which was updated."
+msgid "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`Object` with the integration ID of the integration which was updated."
+msgstr "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`Object` with the integration ID of the integration which was updated."
 
 msgid "A guild integration was deleted."
 msgstr "A guild integration was deleted."
 
-msgid "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`Object` with the integration ID of the integration which was deleted."
-msgstr "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`Object` with the integration ID of the integration which was deleted."
+msgid "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`Object` with the integration ID of the integration which was deleted."
+msgstr "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`Object` with the integration ID of the integration which was deleted."
 
 msgid "A stage instance was started."
 msgstr "A stage instance was started."
 
-msgid "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`StageInstance` or :class:`Object` with the ID of the stage instance which was created."
-msgstr "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`StageInstance` or :class:`Object` with the ID of the stage instance which was created."
+msgid "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`StageInstance` or :class:`Object` with the ID of the stage instance which was created."
+msgstr "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`StageInstance` or :class:`Object` with the ID of the stage instance which was created."
 
 msgid ":attr:`~AuditLogDiff.privacy_level`"
 msgstr ":attr:`~AuditLogDiff.privacy_level`"
@@ -1058,8 +1058,8 @@ msgstr ":attr:`~AuditLogDiff.privacy_level`"
 msgid "A stage instance was updated."
 msgstr "A stage instance was updated."
 
-msgid "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`StageInstance` or :class:`Object` with the ID of the stage instance which was updated."
-msgstr "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`StageInstance` or :class:`Object` with the ID of the stage instance which was updated."
+msgid "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`StageInstance` or :class:`Object` with the ID of the stage instance which was updated."
+msgstr "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`StageInstance` or :class:`Object` with the ID of the stage instance which was updated."
 
 msgid "A stage instance was ended."
 msgstr "A stage instance was ended."
@@ -1067,8 +1067,8 @@ msgstr "A stage instance was ended."
 msgid "A sticker was created."
 msgstr "A sticker was created."
 
-msgid "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`GuildSticker` or :class:`Object` with the ID of the sticker which was updated."
-msgstr "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`GuildSticker` or :class:`Object` with the ID of the sticker which was updated."
+msgid "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`GuildSticker` or :class:`Object` with the ID of the sticker which was updated."
+msgstr "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`GuildSticker` or :class:`Object` with the ID of the sticker which was updated."
 
 msgid ":attr:`~AuditLogDiff.emoji`"
 msgstr ":attr:`~AuditLogDiff.emoji`"
@@ -1091,8 +1091,8 @@ msgstr "A sticker was deleted."
 msgid "A scheduled event was created."
 msgstr "A scheduled event was created."
 
-msgid "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`ScheduledEvent` or :class:`Object` with the ID of the thread which was deleted."
-msgstr "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`ScheduledEvent` or :class:`Object` with the ID of the thread which was deleted."
+msgid "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`ScheduledEvent` or :class:`Object` with the ID of the thread which was deleted."
+msgstr "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`ScheduledEvent` or :class:`Object` with the ID of the thread which was deleted."
 
 msgid ":attr:`~discord.ScheduledEvent.location`"
 msgstr ":attr:`~discord.ScheduledEvent.location`"
@@ -1115,8 +1115,8 @@ msgstr "A scheduled event was deleted."
 msgid "A thread was created."
 msgstr "A thread was created."
 
-msgid "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`Thread` or :class:`Object` with the ID of the thread which was created."
-msgstr "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`Thread` or :class:`Object` with the ID of the thread which was created."
+msgid "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`Thread` or :class:`Object` with the ID of the thread which was created."
+msgstr "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`Thread` or :class:`Object` with the ID of the thread which was created."
 
 msgid ":attr:`~AuditLogDiff.archived`"
 msgstr ":attr:`~AuditLogDiff.archived`"
@@ -1133,20 +1133,20 @@ msgstr ":attr:`~AuditLogDiff.invitable`"
 msgid "A thread was updated."
 msgstr "A thread was updated."
 
-msgid "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`Thread` or :class:`Object` with the ID of the thread which was updated."
-msgstr "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`Thread` or :class:`Object` with the ID of the thread which was updated."
+msgid "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`Thread` or :class:`Object` with the ID of the thread which was updated."
+msgstr "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`Thread` or :class:`Object` with the ID of the thread which was updated."
 
 msgid "A thread was deleted."
 msgstr "A thread was deleted."
 
-msgid "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`Thread` or :class:`Object` with the ID of the thread which was deleted."
-msgstr "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`Thread` or :class:`Object` with the ID of the thread which was deleted."
+msgid "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`Thread` or :class:`Object` with the ID of the thread which was deleted."
+msgstr "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`Thread` or :class:`Object` with the ID of the thread which was deleted."
 
 msgid "An application command's permissions were updated."
 msgstr "An application command's permissions were updated."
 
-msgid "When this is the action, the type of :attr:`~AuditLogEntry.target` is an :class:`Object` with the ID of the command that had it's permissions edited."
-msgstr "When this is the action, the type of :attr:`~AuditLogEntry.target` is an :class:`Object` with the ID of the command that had it's permissions edited."
+msgid "When this is the action, the type of :func:`~AuditLogEntry.get_target` is an :class:`Object` with the ID of the command that had it's permissions edited."
+msgstr "When this is the action, the type of :func:`~AuditLogEntry.get_target` is an :class:`Object` with the ID of the command that had it's permissions edited."
 
 msgid ":attr:`~AuditLogDiff.command_id`"
 msgstr ":attr:`~AuditLogDiff.command_id`"
@@ -1199,8 +1199,8 @@ msgstr "The creator monetization terms were accepted."
 msgid "A voice channel status was updated."
 msgstr "A voice channel status was updated."
 
-msgid "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`VoiceChannel` or :class:`Object` with the ID of the voice channel which was updated."
-msgstr "When this is the action, the type of :attr:`~AuditLogEntry.target` is the :class:`VoiceChannel` or :class:`Object` with the ID of the voice channel which was updated."
+msgid "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`VoiceChannel` or :class:`Object` with the ID of the voice channel which was updated."
+msgstr "When this is the action, the type of :func:`~AuditLogEntry.get_target` is the :class:`VoiceChannel` or :class:`Object` with the ID of the voice channel which was updated."
 
 msgid ":attr:`~AuditLogDiff.status`"
 msgstr ":attr:`~AuditLogDiff.status`"

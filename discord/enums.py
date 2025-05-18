@@ -76,6 +76,7 @@ __all__ = (
     "EntitlementOwnerType",
     "IntegrationType",
     "InteractionContextType",
+    "ApplicationCommandPermissionType"
 )
 
 
@@ -1061,6 +1062,14 @@ class SubscriptionStatus(Enum):
     active = 0
     ending = 1
     inactive = 2
+
+
+class ApplicationCommandPermissionType(Enum):
+    """The type of permission"""
+
+    role = 1
+    user = 2
+    channel = 3
 
 
 T = TypeVar("T")

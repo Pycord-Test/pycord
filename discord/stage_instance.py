@@ -37,7 +37,7 @@ __all__ = ("StageInstance",)
 if TYPE_CHECKING:
     from .channel import StageChannel
     from .guild import Guild
-    from .state import ConnectionState
+    from .app.state import ConnectionState
     from .types.channel import StageInstance as StageInstancePayload
 
 
@@ -87,7 +87,6 @@ class StageInstance(Hashable):
         "privacy_level",
         "discoverable_disabled",
         "scheduled_event",
-        "_cs_channel",
     )
 
     def __init__(
@@ -97,7 +96,7 @@ class StageInstance(Hashable):
         self.guild = guild
         self._update(data)
 
-    def _update(self, data: StageInstancePayload):
+    async def _update(self, data: StageInstancePayload):
         self.id: int = int(data["id"])
         self.channel_id: int = int(data["channel_id"])
         self.topic: str = data["topic"]
@@ -116,11 +115,10 @@ class StageInstance(Hashable):
             f" id={self.id} guild={self.guild!r} channel_id={self.channel_id} topic={self.topic!r}>"
         )
 
-    @cached_slot_property("_cs_channel")
-    def channel(self) -> StageChannel | None:
+    async def get_channel(self) -> StageChannel | None:
         """The channel that stage instance is running in."""
         # the returned channel will always be a StageChannel or None
-        return self._state.get_channel(self.channel_id)  # type: ignore
+        return await self._state.get_channel(self.channel_id)  # type: ignore
 
     def is_public(self) -> bool:
         return False
