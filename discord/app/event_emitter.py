@@ -44,7 +44,7 @@ class EventEmitter:
     def __init__(self, state: ConnectionState) -> None:
         self._listeners: dict[type[Event], list[Callable]] = {}
         self._events: dict[str, list[type[Event]]]
-        self._wait_fors: dict[type[Event], list[Future]] = {}
+        self._wait_fors: dict[type[Event], list[Future]] = defaultdict(list)
         self._state = state
 
     def add_event(self, event: type[Event]) -> None:
@@ -69,10 +69,7 @@ class EventEmitter:
     def add_wait_for(self, event: type[T]) -> Future[T]:
         fut = Future()
 
-        try:
-            self._wait_fors[event].append(fut)
-        except KeyError:
-            self._wait_fors[event] = [fut]
+        self._wait_fors[event].append(fut)
 
         return fut
 
