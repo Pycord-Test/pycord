@@ -1347,6 +1347,7 @@ source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
     { name = "colorlog" },
+    { name = "requests" },
     { name = "typing-extensions" },
 ]
 
@@ -1389,6 +1390,7 @@ voice = [
 requires-dist = [
     { name = "aiohttp", specifier = ">=3.6.0,<4.0" },
     { name = "colorlog", specifier = "~=6.9.0" },
+    { name = "requests", specifier = ">=2.32.3" },
     { name = "typing-extensions", specifier = ">=4,<5" },
 ]
 

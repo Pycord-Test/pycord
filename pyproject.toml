@@ -31,6 +31,7 @@ dynamic = ["version"]
 dependencies = [
     "aiohttp>=3.6.0,<4.0",
     "colorlog~=6.9.0",
+    "requests>=2.32.3",
     "typing-extensions>=4,<5",
 ]
 
