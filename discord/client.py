@@ -35,6 +35,8 @@ from typing import TYPE_CHECKING, Any, AsyncGenerator, Callable, Coroutine, Gene
 
 import aiohttp
 
+from discord.banners import print_banner, start_logging
+
 from . import utils
 from .activity import ActivityTypes, BaseActivity, create_activity
 from .appinfo import AppInfo, PartialAppInfo
@@ -224,6 +226,9 @@ class Client:
         loop: asyncio.AbstractEventLoop | None = None,
         **options: Any,
     ):
+        self._flavor = options.get("flavor", logging.INFO)
+        self._debug = options.get("debug", False)
+        self._banner_module = options.get("banner_module")
         # self.ws is set in the connect method
         self.ws: DiscordWebSocket = None  # type: ignore
         self.loop: asyncio.AbstractEventLoop = (
@@ -600,6 +605,9 @@ class Client:
 
         data = await self.http.static_login(token.strip())
         self._connection.user = ClientUser(state=self._connection, data=data)
+
+        print_banner(bot_name=self._connection.user.display_name, module=self._banner_module or 'discord')
+        start_logging(self._flavor, debug=self._debug)
 
     async def connect(self, *, reconnect: bool = True) -> None:
         """|coro|
