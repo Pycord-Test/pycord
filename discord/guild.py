@@ -540,7 +540,7 @@ class Guild(Hashable):
         empty_tuple = ()
         for presence in data.get("presences", []):
             user_id = int(presence["user"]["id"])
-            member = await self.get_member(user_id)
+            member = self.get_member(user_id)
             if member is not None:
                 member._presence_update(presence, empty_tuple)  # type: ignore
 
