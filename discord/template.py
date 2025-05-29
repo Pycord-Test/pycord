@@ -140,9 +140,7 @@ class Template:
         self.name: str = data["name"]
         self.description: str | None = data["description"]
         creator_data = data.get("creator")
-        self.creator: User | None = (
-            None if creator_data is None else self._state.create_user(creator_data)
-        )
+        self.creator: User | None = None if creator_data is None else self._state.create_user(creator_data)
 
         self.created_at: datetime.datetime | None = parse_time(data.get("created_at"))
         self.updated_at: datetime.datetime | None = parse_time(data.get("updated_at"))
