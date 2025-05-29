@@ -235,7 +235,7 @@ class ReactionIterator(_AsyncIterator[Union["User", "Member"]]):
                     await self.users.put(User(state=self.state, data=element))
                 else:
                     member_id = int(element["id"])
-                    member = self.guild.get_member(member_id)
+                    member = await self.guild.get_member(member_id)
                     if member is not None:
                         await self.users.put(member)
                     else:
@@ -290,7 +290,7 @@ class VoteIterator(_AsyncIterator[Union["User", "Member"]]):
                     await self.users.put(User(state=self.state, data=element))
                 else:
                     member_id = int(element["id"])
-                    member = self.guild.get_member(member_id)
+                    member = await self.guild.get_member(member_id)
                     if member is not None:
                         await self.users.put(member)
                     else:

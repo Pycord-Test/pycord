@@ -420,12 +420,11 @@ class AutoModRule(Hashable):
         """The guild this rule belongs to."""
         return await self._state._get_guild(self.guild_id)
 
-    @cached_property
-    def creator(self) -> Member | None:
+    async def get_creator(self) -> Member | None:
         """The member who created this rule."""
         if self.guild is None:
             return None
-        return self.guild.get_member(self.creator_id)
+        return await self.guild.get_member(self.creator_id)
 
     @cached_property
     def exempt_roles(self) -> list[Role | Object]:

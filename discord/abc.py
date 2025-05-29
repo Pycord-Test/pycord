@@ -629,8 +629,7 @@ class GuildChannel:
 
         return PermissionOverwrite()
 
-    @property
-    def overwrites(self) -> dict[Role | Member, PermissionOverwrite]:
+    async def get_overwrites(self) -> dict[Role | Member, PermissionOverwrite]:
         """Returns all of the channel's overwrites.
 
         This is returned as a dictionary where the key contains the target which
@@ -652,7 +651,7 @@ class GuildChannel:
             if ow.is_role():
                 target = self.guild.get_role(ow.id)
             elif ow.is_member():
-                target = self.guild.get_member(ow.id)
+                target = await self.guild.get_member(ow.id)
 
             # TODO: There is potential data loss here in the non-chunked
             # case, i.e. target is None because get_member returned nothing.

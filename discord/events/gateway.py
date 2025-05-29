@@ -22,7 +22,7 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
 
-from typing import Any, Self
+from typing import Any, Self, cast
 
 from discord import utils
 from discord.emoji import Emoji
@@ -31,7 +31,8 @@ from discord.guild import Guild, GuildChannel
 from discord.member import Member
 from discord.role import Role
 from discord.sticker import Sticker
-from discord.user import ClientUser
+from discord.types.user import User as UserPayload
+from discord.user import ClientUser, User
 
 from ..app.state import ConnectionState
 from ..app.event_emitter import Event
@@ -192,3 +193,49 @@ class ApplicationCommandPermissionsUpdate(Event):
         self.guild_id = int(data["guild_id"])
         self.permissions = [ApplicationCommandPermission(data) for data in data["permissions"]]
         return self
+
+class PresenceUpdate(Event):
+    __event_name__ = "PRESENCE_UPDATE"
+
+    old: Member
+    new: Member
+
+    @classmethod
+    async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
+        self = cls()
+        guild_id = utils._get_as_snowflake(data, "guild_id")
+        guild = await state._get_guild(guild_id)
+        if guild is None:
+            return
+
+        user = data["user"]
+        member_id = int(user["id"])
+        member = await guild.get_member(member_id)
+        if member is None:
+            return
+
+        self.old = Member._copy(member)
+        self.new = member
+        user_update = member._presence_update(data=data, user=user)
+
+class UserUpdate(Event, User):
+    __event_name__ = "USER_UPDATE"
+
+    old: User
+
+    def __init__(self) -> None:
+        ...
+
+    @classmethod
+    async def __load__(cls, data: tuple[User, User] | Any, state: ConnectionState) -> Self | None:
+        self = cls()
+        if isinstance(data, tuple):
+            self.old = data[0]
+            self.__dict__.update(data[1].__dict__)
+            return self
+        else:
+            user = cast(ClientUser, state.user)
+            await user._update(data) # type: ignore
+            ref = await state.cache.get_user(user.id)
+            if ref is not None:
+                await ref._update(data)

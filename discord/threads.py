@@ -269,10 +269,9 @@ class Thread(Messageable, Hashable):
         """The parent channel this thread belongs to."""
         return self.guild.get_channel(self.parent_id)  # type: ignore
 
-    @property
-    def owner(self) -> Member | None:
+    async def get_owner(self) -> Member | None:
         """The member this thread belongs to."""
-        return self.guild.get_member(self.owner_id)
+        return await self.guild.get_member(self.owner_id)
 
     @property
     def mention(self) -> str:

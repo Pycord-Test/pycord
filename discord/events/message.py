@@ -69,6 +69,7 @@ class MessageDelete(Event, Message):
     __event_name__ = "MESSAGE_DELETE"
 
     raw: RawMessageDeleteEvent
+    is_cached: bool
 
     @classmethod
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
@@ -77,9 +78,13 @@ class MessageDelete(Event, Message):
         msg = await state._get_message(raw.message_id)
         raw.cached_message = msg
         self.raw = raw
+        self.id = raw.message_id
         if msg is not None:
+            self.is_cached = True
             await state.cache.delete_message(raw.message_id)
             self.__dict__.update(msg.__dict__)
+        else:
+            self.is_cached = False
 
         return self
 
@@ -281,7 +286,7 @@ class PollVoteAdd(Event):
         self.raw = raw
         guild = await state._get_guild(raw.guild_id)
         if guild:
-            self.user = guild.get_member(raw.user_id)
+            self.user = await guild.get_member(raw.user_id)
         else:
             self.user = await state.get_user(raw.user_id)
         poll = await state.get_poll(raw.message_id)
@@ -318,7 +323,7 @@ class PollVoteRemove(Event):
         self.raw = raw
         guild = await state._get_guild(raw.guild_id)
         if guild:
-            self.user = guild.get_member(raw.user_id)
+            self.user = await guild.get_member(raw.user_id)
         else:
             self.user = await state.get_user(raw.user_id)
         poll = await state.get_poll(raw.message_id)

@@ -22,11 +22,12 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
 
-from collections import OrderedDict, deque
-from typing import Deque, Protocol
+from collections import OrderedDict, defaultdict, deque
+from typing import Deque, Protocol, TypeVar
 
 from discord import utils
 from discord.app.state import ConnectionState
+from discord.member import Member
 from discord.message import Message
 
 from ..abc import MessageableChannel, PrivateChannel
@@ -43,6 +44,8 @@ from ..types.emoji import Emoji as EmojiPayload
 from ..types.sticker import GuildSticker as GuildStickerPayload
 from ..types.channel import DMChannel as DMChannelPayload
 from ..types.message import Message as MessagePayload
+
+T = TypeVar('T')
 
 class Cache(Protocol):
     # users
@@ -167,6 +170,26 @@ class Cache(Protocol):
     async def get_all_messages(self) -> list[Message]:
         ...
 
+    # guild members
+
+    async def store_member(self, member: Member) -> None:
+        ...
+
+    async def get_member(self, guild_id: int, user_id: int) -> Member | None:
+        ...
+
+    async def delete_member(self, guild_id: int, user_id: int) -> None:
+        ...
+
+    async def delete_guild_members(self, guild_id: int) -> None:
+        ...
+
+    async def get_guild_members(self, guild_id: int) -> list[Member]:
+        ...
+
+    async def get_all_members(self) -> list[Member]:
+        ...
+
     def clear(self, views: bool = True) -> None:
         ...
 
@@ -175,6 +198,9 @@ class MemoryCache(Cache):
         self._state = state
         self.max_messages = max_messages
         self.clear()
+
+    def _flatten(self, matrix: list[list[T]]) -> list[T]:
+        return [item for row in matrix for item in row]
 
     def clear(self, views: bool = True) -> None:
         self._users: dict[int, User] = {}
@@ -186,10 +212,12 @@ class MemoryCache(Cache):
         self._modals: dict[str, Modal] = {}
         self._messages: Deque[Message] = deque(maxlen=self.max_messages)
 
-        self._emojis = dict[str, GuildEmoji | AppEmoji] = {}
+        self._emojis: dict[int, list[GuildEmoji | AppEmoji]] = {}
 
         self._private_channels: OrderedDict[int, PrivateChannel] = OrderedDict()
         self._private_channels_by_user: dict[int, DMChannel] = {}
+
+        self._guild_members: dict[int, dict[int, Member]] = defaultdict(dict)
 
     # users
     async def get_all_users(self) -> list[User]:
@@ -200,7 +228,7 @@ class MemoryCache(Cache):
         try:
             return self._users[user_id]
         except KeyError:
-            user = User(state=self, data=payload)
+            user = User(state=self._state, data=payload)
             if user.discriminator != "0000":
                 self._users[user_id] = user
                 user._stored = True
@@ -209,16 +237,19 @@ class MemoryCache(Cache):
     async def delete_user(self, user_id: int) -> None:
         self._users.pop(user_id, None)
 
-    async def get_user(self, user_id: int) -> User:
+    async def get_user(self, user_id: int) -> User | None:
         return self._users.get(user_id)
 
     # stickers
 
     async def get_all_stickers(self) -> list[GuildSticker]:
-        return list(self._stickers.values())
+        return self._flatten(list(self._stickers.values()))
 
     async def get_sticker(self, sticker_id: int) -> GuildSticker | None:
-        return self._stickers.get(sticker_id)
+        stickers = self._flatten(list(self._stickers.values()))
+        for sticker in stickers:
+            if sticker.id == sticker_id:
+                return sticker
 
     async def store_sticker(self, guild: Guild, data: GuildStickerPayload) -> GuildSticker:
         sticker = GuildSticker(state=self._state, data=data)
@@ -285,10 +316,13 @@ class MemoryCache(Cache):
         return emoji
 
     async def get_all_emojis(self) -> list[GuildEmoji | AppEmoji]:
-        return list(self._emojis.values())
+        return self._flatten(list(self._emojis.values()))
 
     async def get_emoji(self, emoji_id: int | None) -> GuildEmoji | AppEmoji | None:
-        return self._emojis.get(emoji_id)
+        emojis = self._flatten(list(self._emojis.values()))
+        for emoji in emojis:
+            if emoji.id == emoji_id:
+                return emoji
 
     async def delete_emoji(self, emoji: GuildEmoji | AppEmoji) -> None:
         if isinstance(emoji, AppEmoji):
@@ -354,3 +388,23 @@ class MemoryCache(Cache):
 
     async def delete_modal(self, custom_id: str) -> None:
         self._modals.pop(custom_id, None)
+
+    # guild members
+
+    async def store_member(self, member: Member) -> None:
+        self._guild_members[member.guild.id][member.id] = member
+
+    async def get_member(self, guild_id: int, user_id: int) -> Member | None:
+        return self._guild_members[guild_id].get(user_id)
+
+    async def delete_member(self, guild_id: int, user_id: int) -> None:
+        self._guild_members[guild_id].pop(user_id, None)
+
+    async def delete_guild_members(self, guild_id: int) -> None:
+        self._guild_members.pop(guild_id, None)
+
+    async def get_guild_members(self, guild_id: int) -> list[Member]:
+        return list(self._guild_members.get(guild_id, {}).values())
+
+    async def get_all_members(self) -> list[Member]:
+        return self._flatten([list(members.values()) for members in self._guild_members.values()])

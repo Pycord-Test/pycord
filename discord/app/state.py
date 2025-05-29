@@ -126,9 +126,9 @@ class ChunkRequest:
                 return
 
             for member in members:
-                existing = guild.get_member(member.id)
+                existing = await guild.get_member(member.id)
                 if existing is None or existing.joined_at is None:
-                    guild._add_member(member)
+                    await guild._add_member(member)
 
     async def wait(self) -> list[Member]:
         future = self.loop.create_future()
@@ -524,174 +524,6 @@ class ConnectionState:
             )
             raise
 
-    def parse_presence_update(self, data) -> None:
-        guild_id = utils._get_as_snowflake(data, "guild_id")
-        # guild_id won't be None here
-        guild = self._get_guild(guild_id)
-        if guild is None:
-            _log.debug(
-                "PRESENCE_UPDATE referencing an unknown guild ID: %s. Discarding.",
-                guild_id,
-            )
-            return
-
-        user = data["user"]
-        member_id = int(user["id"])
-        member = guild.get_member(member_id)
-        if member is None:
-            _log.debug(
-                "PRESENCE_UPDATE referencing an unknown member ID: %s. Discarding",
-                member_id,
-            )
-            return
-
-        old_member = Member._copy(member)
-        user_update = member._presence_update(data=data, user=user)
-        if user_update:
-            self.dispatch("user_update", user_update[0], user_update[1])
-
-        self.dispatch("presence_update", old_member, member)
-
-    def parse_user_update(self, data) -> None:
-        # self.user is *always* cached when this is called
-        user: ClientUser = self.user  # type: ignore
-        user._update(data)
-        ref = self._users.get(user.id)
-        if ref:
-            ref._update(data)
-
-    def parse_invite_create(self, data) -> None:
-        invite = Invite.from_gateway(state=self, data=data)
-        self.dispatch("invite_create", invite)
-
-    def parse_invite_delete(self, data) -> None:
-        invite = Invite.from_gateway(state=self, data=data)
-        self.dispatch("invite_delete", invite)
-
-    def parse_channel_delete(self, data) -> None:
-        guild = self._get_guild(utils._get_as_snowflake(data, "guild_id"))
-        channel_id = int(data["id"])
-        if guild is not None:
-            channel = guild.get_channel(channel_id)
-            if channel is not None:
-                guild._remove_channel(channel)
-                self.dispatch("guild_channel_delete", channel)
-
-    def parse_channel_update(self, data) -> None:
-        channel_type = try_enum(ChannelType, data.get("type"))
-        channel_id = int(data["id"])
-        if channel_type is ChannelType.group:
-            channel = self._get_private_channel(channel_id)
-            old_channel = copy.copy(channel)
-            # the channel is a GroupChannel
-            channel._update_group(data)  # type: ignore
-            self.dispatch("private_channel_update", old_channel, channel)
-            return
-
-        guild_id = utils._get_as_snowflake(data, "guild_id")
-        guild = self._get_guild(guild_id)
-        if guild is not None:
-            channel = guild.get_channel(channel_id)
-            if channel is not None:
-                old_channel = copy.copy(channel)
-                channel._update(guild, data)
-                self.dispatch("guild_channel_update", old_channel, channel)
-            else:
-                _log.debug(
-                    "CHANNEL_UPDATE referencing an unknown channel ID: %s. Discarding.",
-                    channel_id,
-                )
-        else:
-            _log.debug(
-                "CHANNEL_UPDATE referencing an unknown guild ID: %s. Discarding.",
-                guild_id,
-            )
-
-    def parse_channel_create(self, data) -> None:
-        factory, ch_type = _channel_factory(data["type"])
-        if factory is None:
-            _log.debug(
-                "CHANNEL_CREATE referencing an unknown channel type %s. Discarding.",
-                data["type"],
-            )
-            return
-
-        guild_id = utils._get_as_snowflake(data, "guild_id")
-        guild = self._get_guild(guild_id)
-        if guild is not None:
-            # the factory can't be a DMChannel or GroupChannel here
-            channel = factory(guild=guild, state=self, data=data)  # type: ignore
-            guild._add_channel(channel)  # type: ignore
-            self.dispatch("guild_channel_create", channel)
-        else:
-            _log.debug(
-                "CHANNEL_CREATE referencing an unknown guild ID: %s. Discarding.",
-                guild_id,
-            )
-            return
-
-    def parse_channel_pins_update(self, data) -> None:
-        channel_id = int(data["channel_id"])
-        try:
-            guild = self._get_guild(int(data["guild_id"]))
-        except KeyError:
-            guild = None
-            channel = self._get_private_channel(channel_id)
-        else:
-            channel = guild and guild._resolve_channel(channel_id)
-
-        if channel is None:
-            _log.debug(
-                (
-                    "CHANNEL_PINS_UPDATE referencing an unknown channel ID: %s."
-                    " Discarding."
-                ),
-                channel_id,
-            )
-            return
-
-        last_pin = (
-            utils.parse_time(data["last_pin_timestamp"])
-            if data["last_pin_timestamp"]
-            else None
-        )
-
-        if guild is None:
-            self.dispatch("private_channel_pins_update", channel, last_pin)
-        else:
-            self.dispatch("guild_channel_pins_update", channel, last_pin)
-
-    def parse_thread_create(self, data) -> None:
-        guild_id = int(data["guild_id"])
-        guild: Guild | None = self._get_guild(guild_id)
-        if guild is None:
-            _log.debug(
-                "THREAD_CREATE referencing an unknown guild ID: %s. Discarding",
-                guild_id,
-            )
-            return
-
-        cached_thread = guild.get_thread(int(data["id"]))
-        if not cached_thread:
-            thread = Thread(guild=guild, state=guild._state, data=data)
-            guild._add_thread(thread)
-            if data.get("newly_created"):
-                thread._add_member(
-                    ThreadMember(
-                        thread,
-                        {
-                            "id": thread.id,
-                            "user_id": data["owner_id"],
-                            "join_timestamp": data["thread_metadata"][
-                                "create_timestamp"
-                            ],
-                            "flags": utils.MISSING,
-                        },
-                    )
-                )
-                self.dispatch("thread_create", thread)
-        else:
-            self.dispatch("thread_join", cached_thread)
 
     def parse_thread_update(self, data) -> None:
         guild_id = int(data["guild_id"])
@@ -1541,7 +1373,7 @@ class ConnectionState:
         self, channel: MessageableChannel, user_id: int
     ) -> User | Member | None:
         if isinstance(channel, TextChannel):
-            return channel.guild.get_member(user_id)
+            return await channel.guild.get_member(user_id)
         return await self.get_user(user_id)
 
     async def get_reaction_emoji(self, data) -> GuildEmoji | AppEmoji | PartialEmoji:

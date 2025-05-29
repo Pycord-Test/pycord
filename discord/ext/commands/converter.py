@@ -217,7 +217,7 @@ class MemberConverter(IDConverter[discord.Member]):
                 return None
 
             if cache:
-                guild._add_member(member)
+                await guild._add_member(member)
             return member
 
         # If we're not being rate limited then we can use the websocket to actually query
@@ -243,7 +243,7 @@ class MemberConverter(IDConverter[discord.Member]):
         else:
             user_id = int(match.group(1))
             if guild:
-                result = guild.get_member(user_id)
+                result = await guild.get_member(user_id)
                 if ctx.message is not None and result is None:
                     result = _utils_get(ctx.message.mentions, id=user_id)
             else:

@@ -1611,13 +1611,12 @@ class VocalGuildChannel(discord.abc.Connectable, discord.abc.GuildChannel, Hasha
     def _sorting_bucket(self) -> int:
         return ChannelType.voice.value
 
-    @property
-    def members(self) -> list[Member]:
+    async def get_members(self) -> list[Member]:
         """Returns all members that are currently inside this voice channel."""
         ret = []
         for user_id, state in self.guild._voice_states.items():
             if state.channel and state.channel.id == self.id:
-                member = self.guild.get_member(user_id)
+                member = await self.guild.get_member(user_id)
                 if member is not None:
                     ret.append(member)
         return ret
@@ -3235,6 +3234,7 @@ class GroupChannel(discord.abc.Messageable, Hashable):
         "name",
         "me",
         "_state",
+        "_data",
     )
 
     def __init__(
@@ -3256,11 +3256,13 @@ class GroupChannel(discord.abc.Messageable, Hashable):
         else:
             self.owner = utils.find(lambda u: u.id == self.owner_id, self.recipients)
 
-    def _update_group(self) -> None:
+    async def _update_group(self, data: dict[str, Any] | None = None) -> None:
+        if data:
+            self._data = data
         self.owner_id: int | None = utils._get_as_snowflake(self._data, "owner_id")
         self._icon: str | None = self._data.get("icon")
         self.name: str | None = self._data.get("name")
-        asyncio.create_task(self._load())
+        await self._load()
 
     async def _get_channel(self):
         return self

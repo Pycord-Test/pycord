@@ -581,8 +581,7 @@ class User(BaseUser, discord.abc.Messageable):
         """
         return await self._state._get_private_channel_by_user(self.id)
 
-    @property
-    def mutual_guilds(self) -> list[Guild]:
+    async def get_mutual_guilds(self) -> list[Guild]:
         """The guilds that the user shares with the client.
 
         .. note::
@@ -592,7 +591,7 @@ class User(BaseUser, discord.abc.Messageable):
         .. versionadded:: 1.7
         """
         return [
-            guild for guild in self._state._guilds.values() if guild.get_member(self.id)
+            guild for guild in await self._state.cache.get_all_guilds() if await guild.get_member(self.id)
         ]
 
     async def create_dm(self) -> DMChannel:

@@ -670,7 +670,7 @@ class AutoModActionExecutionEvent:
         self.matched_content: str | None = data.get("matched_content", None)
 
         if self.guild:
-            self.member: Member | None = self.guild.get_member(self.user_id)
+            self.member: Member | None = await self.guild.get_member(self.user_id)
         else:
             self.member: Member | None = None
 

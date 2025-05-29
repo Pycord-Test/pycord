@@ -776,22 +776,6 @@ class MessageSnapshot:
         return f"<MessageSnapshot message={self.message!r}>"
 
 
-def flatten_handlers(cls):
-    prefix = len("_handle_")
-    handlers = [
-        (key[prefix:], value)
-        for key, value in cls.__dict__.items()
-        if key.startswith("_handle_") and key != "_handle_member"
-    ]
-
-    # store _handle_member last
-    handlers.append(("member", cls._handle_member))
-    cls._HANDLERS = handlers
-    cls._CACHED_SLOTS = [attr for attr in cls.__slots__ if attr.startswith("_cs_")]
-    return cls
-
-
-@flatten_handlers
 class Message(Hashable):
     r"""Represents a message from Discord.
 
@@ -1104,11 +1088,38 @@ class Message(Hashable):
         except KeyError:
             self.call = None
 
-        for handler in ("author", "member", "mentions", "mention_roles"):
-            try:
-                getattr(self, f"_handle_{handler}")(data[handler])
-            except KeyError:
-                continue
+        self.author = await self._state.store_user(data["author"])
+        if isinstance(self.guild, Guild):
+            found = await self.guild.get_member(self.author.id)
+            if found is not None:
+                self.author = found
+
+        try:
+            # Update member reference
+            self.author._update_from_message(member)  # type: ignore
+        except AttributeError:
+            # It's a user here
+            # TODO: consider adding to cache here
+            self.author = Member._from_message(message=self, data=data["member"])
+
+        self.mentions = r = []
+        if not isinstance(self.guild, Guild):
+            self.mentions = [await state.store_user(m) for m in data["mentions"]]
+        else:
+            for mention in filter(None, data["mentions"]):
+                id_search = int(mention["id"])
+                member = await self.guild.get_member(id_search)
+                if member is not None:
+                    r.append(member)
+                else:
+                    r.append(Member._try_upgrade(data=mention, guild=self.guild, state=state))
+
+        self.role_mentions = []
+        if isinstance(self.guild, Guild):
+            for role_id in map(int, data["mention_roles"]):
+                role = self.guild.get_role(role_id)
+                if role is not None:
+                    self.role_mentions.append(role)
 
         return self
 
