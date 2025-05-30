@@ -66,7 +66,7 @@ if TYPE_CHECKING:
             | Attachment
             | Role
             | Mentionable
-            | Converter # pyright: ignore[reportMissingTypeArgument]
+            | Converter  # pyright: ignore[reportMissingTypeArgument]
             | Enum
             | DiscordEnum
         ]

@@ -1,4 +1,4 @@
-from typing import Union # pyright: ignore[reportDeprecated]
+from typing import Union  # pyright: ignore[reportDeprecated]
 
 from typing_extensions import Annotated
 
