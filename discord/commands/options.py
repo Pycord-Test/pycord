@@ -27,7 +27,7 @@ from __future__ import annotations
 import inspect
 import logging
 from enum import Enum
-from typing import TYPE_CHECKING, Literal, Optional, Type, Union
+from typing import TYPE_CHECKING, Literal, Optional, Union  # pyright: ignore[reportDeprecated]
 
 from ..abc import GuildChannel, Mentionable
 from ..channel import (
@@ -54,22 +54,24 @@ if TYPE_CHECKING:
     from ..user import User
 
     InputType = (
-        Type[str]
-        | Type[bool]
-        | Type[int]
-        | Type[float]
-        | Type[GuildChannel]
-        | Type[Thread]
-        | Type[Member]
-        | Type[User]
-        | Type[Attachment]
-        | Type[Role]
-        | Type[Mentionable]
+        type[
+            str
+            | bool
+            | int
+            | float
+            | GuildChannel
+            | Thread
+            | Member
+            | User
+            | Attachment
+            | Role
+            | Mentionable
+            | Converter # pyright: ignore[reportMissingTypeArgument]
+            | Enum
+            | DiscordEnum
+        ]
         | SlashCommandOptionType
-        | Converter
-        | Type[Converter]
-        | Type[Enum]
-        | Type[DiscordEnum]
+        | Converter  # pyright: ignore[reportMissingTypeArgument]
     )
 
 __all__ = (
@@ -275,7 +277,7 @@ class Option:
         elif self.input_type == SlashCommandOptionType.number:
             minmax_types = (int, float, type(None))
             # TODO: Optional and Union should not be used
-            minmax_typehint = Optional[Union[int, float]] # noqa: UP007
+            minmax_typehint = Optional[Union[int, float]]  # noqa: UP007
         else:
             minmax_types = (type(None),)
             minmax_typehint = type(None)
@@ -283,7 +285,7 @@ class Option:
         if self.input_type == SlashCommandOptionType.string:
             minmax_length_types = (int, type(None))
             # TODO: Optional should not be used
-            minmax_length_typehint = Optional[int] # noqa: UP007
+            minmax_length_typehint = Optional[int]  # noqa: UP007
         else:
             minmax_length_types = (type(None),)
             minmax_length_typehint = type(None)

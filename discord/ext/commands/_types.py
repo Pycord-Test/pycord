@@ -23,7 +23,7 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
 
-from typing import TYPE_CHECKING, Any, Callable, Coroutine, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Callable, Coroutine, TypeVar
 
 if TYPE_CHECKING:
     from .cog import Cog
@@ -36,8 +36,8 @@ Coro = Coroutine[Any, Any, T]
 MaybeCoro = T | Coro[T]
 CoroFunc = Callable[..., Coro[Any]]
 
-Check = Callable[["Cog", "Context[Any]"], MaybeCoro[bool]] | Callable[["Context[Any]"], MaybeCoro[bool]]
-Hook = Callable[["Cog", "Context[Any]"], Coro[Any]] | Callable[["Context[Any]"], Coro[Any]]
+Check = Callable[["Cog", "Context[Any]"], MaybeCoro[bool]] | Callable[["Context[Any]"], MaybeCoro[bool]]  # pyright: ignore[reportExplicitAny]
+Hook = Callable[["Cog", "Context[Any]"], Coro[Any]] | Callable[["Context[Any]"], Coro[Any]]  # pyright: ignore[reportExplicitAny]
 Error = (
-    Callable[["Cog", "Context[Any]", "CommandError"], Coro[Any]] | Callable[["Context[Any]", "CommandError"], Coro[Any]]
+    Callable[["Cog", "Context[Any]", "CommandError"], Coro[Any]] | Callable[["Context[Any]", "CommandError"], Coro[Any]]  # pyright: ignore[reportExplicitAny]
 )

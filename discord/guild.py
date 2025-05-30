@@ -31,12 +31,8 @@ from typing import (
     TYPE_CHECKING,
     Any,
     ClassVar,
-    List,
     NamedTuple,
-    Optional,
     Sequence,
-    Tuple,
-    Union,
     overload,
 )
 
@@ -77,7 +73,7 @@ from .iterators import (
 from .member import Member, VoiceState
 from .mixins import Hashable
 from .monetization import Entitlement
-from .onboarding import Onboarding, OnboardingPrompt, OnboardingMode
+from .onboarding import Onboarding, OnboardingPrompt
 from .permissions import PermissionOverwrite
 from .role import Role
 from .scheduled_events import ScheduledEvent, ScheduledEventLocation
@@ -87,6 +83,7 @@ from .threads import Thread, ThreadMember
 from .user import User
 from .welcome_screen import WelcomeScreen, WelcomeScreenChannel
 from .widget import Widget
+from .enums import OnboardingMode
 
 __all__ = ("Guild",)
 

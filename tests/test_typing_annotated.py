@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Union # pyright: ignore[reportDeprecated]
 
 from typing_extensions import Annotated
 
@@ -78,7 +78,7 @@ def test_typing_annotated_cog_slashgroup():
 
 def test_typing_annotated_optional():
     # TODO: Union should not be used
-    async def echo(ctx, txt: Annotated[Union[str, None], discord.Option()]):  # noqa: UP007
+    async def echo(ctx, txt: Annotated[Union[str, None], discord.Option()]):  # noqa: UP007 # pyright: ignore[reportDeprecated]
         await ctx.respond(txt)
 
     cmd = SlashCommand(echo)

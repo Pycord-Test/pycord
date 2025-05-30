@@ -27,7 +27,7 @@ from __future__ import annotations
 
 import inspect
 import re
-from typing import TYPE_CHECKING, Any, Generic, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 import discord.abc
 import discord.utils

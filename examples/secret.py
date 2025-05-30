@@ -83,7 +83,7 @@ async def voice(
     ctx: commands.Context,
     name: str,
     # TODO: Union should not be used
-    *objects: Union[discord.Role, discord.Member],  # noqa: UP007
+    *objects: Union[discord.Role, discord.Member],  # noqa: UP007 # pyright: ignore[reportDeprecated]
 ):
     """
     This does the same thing as the `text` subcommand

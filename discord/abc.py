@@ -36,7 +36,6 @@ from typing import (
     Protocol,
     Sequence,
     TypeVar,
-    Union,
     overload,
     runtime_checkable,
 )

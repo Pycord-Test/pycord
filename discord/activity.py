@@ -26,7 +26,7 @@ DEALINGS IN THE SOFTWARE.
 from __future__ import annotations
 
 import datetime
-from typing import TYPE_CHECKING, Any, Union, overload
+from typing import TYPE_CHECKING, Any, overload
 
 from .asset import Asset
 from .colour import Colour
