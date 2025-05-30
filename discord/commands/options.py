@@ -53,24 +53,24 @@ if TYPE_CHECKING:
     from ..role import Role
     from ..user import User
 
-    InputType = Union[
-        Type[str],
-        Type[bool],
-        Type[int],
-        Type[float],
-        Type[GuildChannel],
-        Type[Thread],
-        Type[Member],
-        Type[User],
-        Type[Attachment],
-        Type[Role],
-        Type[Mentionable],
-        SlashCommandOptionType,
-        Converter,
-        Type[Converter],
-        Type[Enum],
-        Type[DiscordEnum],
-    ]
+    InputType = (
+        Type[str]
+        | Type[bool]
+        | Type[int]
+        | Type[float]
+        | Type[GuildChannel]
+        | Type[Thread]
+        | Type[Member]
+        | Type[User]
+        | Type[Attachment]
+        | Type[Role]
+        | Type[Mentionable]
+        | SlashCommandOptionType
+        | Converter
+        | Type[Converter]
+        | Type[Enum]
+        | Type[DiscordEnum]
+    )
 
 __all__ = (
     "ThreadOption",
@@ -270,17 +270,20 @@ class Option:
 
         if self.input_type == SlashCommandOptionType.integer:
             minmax_types = (int, type(None))
-            minmax_typehint = Optional[int]
+            # TODO: Optional should not be used
+            minmax_typehint = Optional[int]  # noqa: UP007
         elif self.input_type == SlashCommandOptionType.number:
             minmax_types = (int, float, type(None))
-            minmax_typehint = Optional[int | float]
+            # TODO: Optional and Union should not be used
+            minmax_typehint = Optional[Union[int, float]] # noqa: UP007
         else:
             minmax_types = (type(None),)
             minmax_typehint = type(None)
 
         if self.input_type == SlashCommandOptionType.string:
             minmax_length_types = (int, type(None))
-            minmax_length_typehint = Optional[int]
+            # TODO: Optional should not be used
+            minmax_length_typehint = Optional[int] # noqa: UP007
         else:
             minmax_length_types = (type(None),)
             minmax_length_typehint = type(None)

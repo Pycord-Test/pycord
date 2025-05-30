@@ -59,7 +59,8 @@ def create_overwrites(ctx: commands.Context, *objects: discord.Role | discord.Me
 async def text(
     ctx: commands.Context,
     name: str,
-    *objects: discord.Role | discord.Member,
+    # TODO: Union should not be used
+    *objects: Union[discord.Role, discord.Member],  # noqa: UP007
 ):
     """
     This makes a text channel with the passed name that
@@ -81,7 +82,8 @@ async def text(
 async def voice(
     ctx: commands.Context,
     name: str,
-    *objects: discord.Role | discord.Member,
+    # TODO: Union should not be used
+    *objects: Union[discord.Role, discord.Member],  # noqa: UP007
 ):
     """
     This does the same thing as the `text` subcommand

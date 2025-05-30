@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 
 from typing_extensions import Annotated
 
@@ -77,7 +77,8 @@ def test_typing_annotated_cog_slashgroup():
 
 
 def test_typing_annotated_optional():
-    async def echo(ctx, txt: Annotated[str | None, discord.Option()]):
+    # TODO: Union should not be used
+    async def echo(ctx, txt: Annotated[Union[str, None], discord.Option()]):  # noqa: UP007
         await ctx.respond(txt)
 
     cmd = SlashCommand(echo)

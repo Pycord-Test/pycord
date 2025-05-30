@@ -30,7 +30,7 @@ import inspect
 import itertools
 import sys
 from operator import attrgetter
-from typing import TYPE_CHECKING, Any, TypeVar, Union
+from typing import TYPE_CHECKING, Any, TypeVar
 
 import discord.abc
 
@@ -66,7 +66,7 @@ if TYPE_CHECKING:
     from .types.voice import GuildVoiceState as GuildVoiceStatePayload
     from .types.voice import VoiceState as VoiceStatePayload
 
-    VocalGuildChannel = Union[VoiceChannel, StageChannel]
+    VocalGuildChannel = VoiceChannel | StageChannel
 
 
 class VoiceState:

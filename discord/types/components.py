@@ -25,7 +25,7 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import Literal, Union
+from typing import Literal
 
 from typing_extensions import NotRequired, TypedDict
 
@@ -85,4 +85,4 @@ class SelectMenu(TypedDict):
     custom_id: str
 
 
-Component = Union[ActionRow, ButtonComponent, SelectMenu, InputText]
+Component = ActionRow | ButtonComponent | SelectMenu | InputText

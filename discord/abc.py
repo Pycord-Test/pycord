@@ -71,6 +71,7 @@ T = TypeVar("T", bound=VoiceProtocol)
 
 if TYPE_CHECKING:
     from datetime import datetime
+    from typing import TypeAlias
 
     from .asset import Asset
     from .channel import (
@@ -98,9 +99,9 @@ if TYPE_CHECKING:
     from .ui.view import View
     from .user import ClientUser
 
-    PartialMessageableChannel = Union[TextChannel, VoiceChannel, StageChannel, Thread, DMChannel, PartialMessageable]
-    MessageableChannel = Union[PartialMessageableChannel, GroupChannel]
-    SnowflakeTime = Union["Snowflake", datetime]
+    PartialMessageableChannel = TextChannel | VoiceChannel | StageChannel | Thread | DMChannel | PartialMessageable
+    MessageableChannel = PartialMessageableChannel | GroupChannel
+    SnowflakeTime: TypeAlias = "Snowflake | datetime"
 
 MISSING = utils.MISSING
 

@@ -77,7 +77,7 @@ from .iterators import (
 from .member import Member, VoiceState
 from .mixins import Hashable
 from .monetization import Entitlement
-from .onboarding import Onboarding
+from .onboarding import Onboarding, OnboardingPrompt, OnboardingMode
 from .permissions import PermissionOverwrite
 from .role import Role
 from .scheduled_events import ScheduledEvent, ScheduledEventLocation
@@ -115,9 +115,9 @@ if TYPE_CHECKING:
     from .voice_client import VoiceClient
     from .webhook import Webhook
 
-    VocalGuildChannel = Union[VoiceChannel, StageChannel]
-    GuildChannel = Union[VoiceChannel, StageChannel, TextChannel, ForumChannel, CategoryChannel]
-    ByCategoryItem = Tuple[CategoryChannel | None, List[GuildChannel]]
+    VocalGuildChannel = VoiceChannel | StageChannel
+    GuildChannel = VoiceChannel | StageChannel | TextChannel | ForumChannel | CategoryChannel
+    ByCategoryItem = tuple[CategoryChannel | None, list[GuildChannel]]
 
 
 class BanEntry(NamedTuple):

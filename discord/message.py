@@ -36,7 +36,6 @@ from typing import (
     ClassVar,
     Sequence,
     TypeVar,
-    Union,
     overload,
 )
 from urllib.parse import parse_qs, urlparse
@@ -95,7 +94,7 @@ if TYPE_CHECKING:
     from .user import User
 
     MR = TypeVar("MR", bound="MessageReference")
-    EmojiInputType = Union[GuildEmoji, AppEmoji, PartialEmoji, str]
+    EmojiInputType = GuildEmoji | AppEmoji | PartialEmoji | str
 
 __all__ = (
     "Attachment",

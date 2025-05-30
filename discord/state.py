@@ -40,7 +40,6 @@ from typing import (
     Deque,
     Sequence,
     TypeVar,
-    Union,
 )
 
 from . import utils
@@ -92,7 +91,7 @@ if TYPE_CHECKING:
 
     T = TypeVar("T")
     CS = TypeVar("CS", bound="ConnectionState")
-    Channel = Union[GuildChannel, VocalGuildChannel, PrivateChannel, PartialMessageable]
+    Channel = GuildChannel | VocalGuildChannel | PrivateChannel | PartialMessageable
 
 
 class ChunkRequest:

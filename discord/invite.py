@@ -25,7 +25,7 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, TypeVar, Union
+from typing import TYPE_CHECKING, TypeVar
 
 from .appinfo import PartialAppInfo
 from .asset import Asset
@@ -41,6 +41,8 @@ __all__ = (
 )
 
 if TYPE_CHECKING:
+    from typing import TypeAlias
+
     from .abc import GuildChannel
     from .guild import Guild
     from .scheduled_events import ScheduledEvent
@@ -53,8 +55,8 @@ if TYPE_CHECKING:
     from .types.scheduled_events import ScheduledEvent as ScheduledEventPayload
     from .user import User
 
-    InviteGuildType = Union[Guild, "PartialInviteGuild", Object]
-    InviteChannelType = Union[GuildChannel, "PartialInviteChannel", Object]
+    InviteGuildType: TypeAlias = "Guild | PartialInviteGuild | Object"
+    InviteChannelType: TypeAlias = "GuildChannel | PartialInviteChannel | Object"
 
     import datetime
 

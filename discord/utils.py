@@ -154,7 +154,7 @@ else:
 
 T = TypeVar("T")
 T_co = TypeVar("T_co", covariant=True)
-_Iter = Union[Iterator[T], AsyncIterator[T]]
+_Iter = Iterator[T] | AsyncIterator[T]
 
 
 class CachedSlotProperty(Generic[T, T_co]):
@@ -1157,7 +1157,8 @@ def evaluate_annotation(
         args = tp.__args__
         if not hasattr(tp, "__origin__"):
             if PY_310 and tp.__class__ is types.UnionType:  # type: ignore
-                converted = Union[args]  # type: ignore
+                # TODO: Union is deprecated
+                converted = Union[args]  # type: ignore  # noqa: UP007
                 return evaluate_annotation(converted, globals, locals, cache)
 
             return tp
@@ -1278,9 +1279,9 @@ def generate_snowflake(dt: datetime.datetime | None = None) -> int:
     return int(dt.timestamp() * 1000 - DISCORD_EPOCH) << 22 | 0x3FFFFF
 
 
-V = Union[Iterable[OptionChoice], Iterable[str], Iterable[int], Iterable[float]]
+V = Iterable[OptionChoice] | Iterable[str] | Iterable[int] | Iterable[float]
 AV = Awaitable[V]
-Values = Union[V, Callable[[AutocompleteContext], V | AV], AV]
+Values = V | Callable[[AutocompleteContext], V | AV] | AV
 AutocompleteFunc = Callable[[AutocompleteContext], AV]
 FilterFunc = Callable[[AutocompleteContext, Any], bool | Awaitable[bool]]
 
