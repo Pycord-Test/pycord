@@ -68,6 +68,7 @@ docs = [
 ]
 dev = [
     "bandit==1.8.3",
+    "basedpyright>=1.29.2",
     "codespell==2.4.1",
     "coverage~=7.8",
     "flake8==7.1.2",
