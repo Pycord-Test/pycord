@@ -273,7 +273,7 @@ class Option:
             minmax_typehint = Optional[int]
         elif self.input_type == SlashCommandOptionType.number:
             minmax_types = (int, float, type(None))
-            minmax_typehint = Optional[Union[int, float]]
+            minmax_typehint = Optional[int | float]
         else:
             minmax_types = (type(None),)
             minmax_typehint = type(None)

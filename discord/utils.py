@@ -1280,9 +1280,9 @@ def generate_snowflake(dt: datetime.datetime | None = None) -> int:
 
 V = Union[Iterable[OptionChoice], Iterable[str], Iterable[int], Iterable[float]]
 AV = Awaitable[V]
-Values = Union[V, Callable[[AutocompleteContext], Union[V, AV]], AV]
+Values = Union[V, Callable[[AutocompleteContext], V | AV], AV]
 AutocompleteFunc = Callable[[AutocompleteContext], AV]
-FilterFunc = Callable[[AutocompleteContext, Any], Union[bool, Awaitable[bool]]]
+FilterFunc = Callable[[AutocompleteContext, Any], bool | Awaitable[bool]]
 
 
 def basic_autocomplete(values: Values, *, filter: FilterFunc | None = None) -> AutocompleteFunc:

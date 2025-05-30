@@ -427,7 +427,7 @@ class Role(Hashable):
         else:
             roles.append(self.id)
 
-        payload: list[RolePositionUpdate] = [{"id": z[0], "position": z[1]} for z in zip(roles, change_range)]
+        payload: list[RolePositionUpdate] = [{"id": z[0], "position": z[1]} for z in zip(roles, change_range, strict=False)]
         await http.move_role_position(self.guild.id, payload, reason=reason)
 
     async def edit(
