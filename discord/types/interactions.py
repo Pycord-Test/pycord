@@ -25,6 +25,7 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
+from turtle import st
 from typing import TYPE_CHECKING, Dict, Literal, Union
 
 from ..permissions import Permissions

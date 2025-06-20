@@ -25,6 +25,7 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
+import asyncio
 import copy
 import unicodedata
 from typing import (
@@ -34,9 +35,11 @@ from typing import (
     List,
     NamedTuple,
     Optional,
+    Self,
     Sequence,
     Tuple,
     Union,
+    cast,
     overload,
 )
 
@@ -104,7 +107,7 @@ if TYPE_CHECKING:
         VoiceChannel,
     )
     from .permissions import Permissions
-    from .state import ConnectionState
+    from .app.state import ConnectionState
     from .template import Template
     from .types.guild import Ban as BanPayload
     from .types.guild import Guild as GuildPayload
@@ -265,7 +268,6 @@ class Guild(Hashable):
         "preferred_locale",
         "nsfw_level",
         "_scheduled_events",
-        "_members",
         "_channels",
         "_icon",
         "_banner",
@@ -294,20 +296,6 @@ class Guild(Hashable):
         3: _GuildLimit(emoji=250, stickers=60, bitrate=384e3, filesize=104_857_600),
     }
 
-    def __init__(self, *, data: GuildPayload, state: ConnectionState):
-        # NOTE:
-        # Adding an attribute here and getting an AttributeError saying
-        # the attr doesn't exist? it has something to do with the order
-        # of the attr in __slots__
-
-        self._channels: dict[int, GuildChannel] = {}
-        self._members: dict[int, Member] = {}
-        self._scheduled_events: dict[int, ScheduledEvent] = {}
-        self._voice_states: dict[int, VoiceState] = {}
-        self._threads: dict[int, Thread] = {}
-        self._state: ConnectionState = state
-        self._from_data(data)
-
     def _add_channel(self, channel: GuildChannel, /) -> None:
         self._channels[channel.id] = channel
 
@@ -317,32 +305,32 @@ class Guild(Hashable):
     def _voice_state_for(self, user_id: int, /) -> VoiceState | None:
         return self._voice_states.get(user_id)
 
-    def _add_member(self, member: Member, /) -> None:
-        self._members[member.id] = member
+    async def _add_member(self, member: Member, /) -> None:
+        await cast(ConnectionState, self._state).cache.store_member(member)
 
-    def _get_and_update_member(self, payload: MemberPayload, user_id: int, cache_flag: bool, /) -> Member:
+    async def _get_and_update_member(
+        self, payload: MemberPayload, user_id: int, cache_flag: bool, /
+    ) -> Member:
+        members = await cast(ConnectionState, self._state).cache.get_guild_members(self.id)
         # we always get the member, and we only update if the cache_flag (this cache
         # flag should always be MemberCacheFlag.interaction) is set to True
-        if user_id in self._members:
-            member = self.get_member(user_id)
-            member._update(payload) if cache_flag else None
+        if user_id in members:
+            member = cast(Member, await self.get_member(user_id))
+            await member._update(payload) if cache_flag else None
         else:
             # NOTE:
             # This is a fallback in case the member is not found in the guild's members.
             # If this fallback occurs, multiple aspects of the Member
             # class will be incorrect such as status and activities.
-            member = Member(guild=self, state=self._state, data=payload)  # type: ignore
+            member = await Member._from_data(guild=self, state=self._state, data=payload)  # type: ignore
             if cache_flag:
-                self._members[user_id] = member
+                await cast(ConnectionState, self._state).cache.store_member(member)
         return member
 
     def _store_thread(self, payload: ThreadPayload, /) -> Thread:
         thread = Thread(guild=self, state=self._state, data=payload)
         self._threads[thread.id] = thread
         return thread
-
-    def _remove_member(self, member: Snowflake, /) -> None:
-        self._members.pop(member.id, None)
 
     def _add_scheduled_event(self, event: ScheduledEvent, /) -> None:
         self._scheduled_events[event.id] = event
@@ -389,7 +377,7 @@ class Guild(Hashable):
         inner = " ".join("%s=%r" % t for t in attrs)
         return f"<Guild {inner}>"
 
-    def _update_voice_state(
+    async def _update_voice_state(
         self, data: GuildVoiceState, channel_id: int
     ) -> tuple[Member | None, VoiceState, VoiceState]:
         user_id = int(data["user_id"])
@@ -402,17 +390,17 @@ class Guild(Hashable):
                 after = self._voice_states[user_id]
 
             before = copy.copy(after)
-            after._update(data, channel)
+            await after._update(data, channel)
         except KeyError:
             # if we're here then we're getting added into the cache
             after = VoiceState(data=data, channel=channel)
             before = VoiceState(data=data, channel=None)
             self._voice_states[user_id] = after
 
-        member = self.get_member(user_id)
+        member = await self.get_member(user_id)
         if member is None:
             try:
-                member = Member(data=data["member"], state=self._state, guild=self)
+                member = await Member._from_data(data=data["member"], state=self._state, guild=self)
             except KeyError:
                 member = None
 
@@ -441,7 +429,19 @@ class Guild(Hashable):
 
         return role
 
-    def _from_data(self, guild: GuildPayload) -> None:
+    @classmethod
+    async def _from_data(cls, guild: GuildPayload, state: ConnectionState) -> Self:
+        self = cls()
+        # NOTE:
+        # Adding an attribute here and getting an AttributeError saying
+        # the attr doesn't exist? it has something to do with the order
+        # of the attr in __slots__
+
+        self._channels: dict[int, GuildChannel] = {}
+        self._scheduled_events: dict[int, ScheduledEvent] = {}
+        self._voice_states: dict[int, VoiceState] = {}
+        self._threads: dict[int, Thread] = {}
+        self._state = state
         member_count = guild.get("member_count")
         # Either the payload includes member_count, or it hasn't been set yet.
         # Prevents valid _member_count from suddenly changing to None
@@ -466,10 +466,14 @@ class Guild(Hashable):
             self._roles[role.id] = role
 
         self.mfa_level: MFALevel = guild.get("mfa_level")
-        self.emojis: tuple[GuildEmoji, ...] = tuple(map(lambda d: state.store_emoji(self, d), guild.get("emojis", [])))
-        self.stickers: tuple[GuildSticker, ...] = tuple(
-            map(lambda d: state.store_sticker(self, d), guild.get("stickers", []))
-        )
+        emojis = []
+        for emoji in guild.get("emojis", []):
+            emojis.append(await state.store_emoji(self, emoji))
+        self.emojis: tuple[GuildEmoji, ...] = tuple(emojis)
+        stickers = []
+        for sticker in guild.get("stickers", []):
+            stickers.append(await state.store_sticker(self, sticker))
+        self.stickers: tuple[GuildSticker, ...] = tuple(stickers)
         self.features: list[GuildFeature] = guild.get("features", [])
         self._splash: str | None = guild.get("splash")
         self._system_channel_id: int | None = utils._get_as_snowflake(guild, "system_channel_id")
@@ -497,14 +501,22 @@ class Guild(Hashable):
         cache_joined = self._state.member_cache_flags.joined
         self_id = self._state.self_id
         for mdata in guild.get("members", []):
-            member = Member(data=mdata, guild=self, state=state)
+            member = await Member._from_data(data=mdata, guild=self, state=state)
             if cache_joined or member.id == self_id:
-                self._add_member(member)
+                await self._add_member(member)
 
         events = []
         for event in guild.get("guild_scheduled_events", []):
-            creator = None if not event.get("creator", None) else self.get_member(event.get("creator_id"))
-            events.append(ScheduledEvent(state=self._state, guild=self, creator=creator, data=event))
+            creator = (
+                None
+                if not event.get("creator", None)
+                else await self.get_member(event.get("creator_id"))
+            )
+            events.append(
+                ScheduledEvent(
+                    state=self._state, guild=self, creator=creator, data=event
+                )
+            )
         self._scheduled_events_from_list(events)
 
         self._sync(guild)
@@ -514,7 +526,9 @@ class Guild(Hashable):
         self.afk_channel: VoiceChannel | None = self.get_channel(utils._get_as_snowflake(guild, "afk_channel_id"))  # type: ignore
 
         for obj in guild.get("voice_states", []):
-            self._update_voice_state(obj, int(obj["channel_id"]))
+            await self._update_voice_state(obj, int(obj["channel_id"]))
+
+        return self
 
     # TODO: refactor/remove?
     def _sync(self, data: GuildPayload) -> None:
@@ -563,15 +577,14 @@ class Guild(Hashable):
         """
         return f"https://discord.com/channels/{self.id}"
 
-    @property
-    def large(self) -> bool:
+    async def is_large(self) -> bool:
         """Indicates if the guild is a 'large' guild.
 
         A large guild is defined as having more than ``large_threshold`` count
         members, which for this library is set to the maximum of 250.
         """
         if self._large is None:
-            return (self._member_count or len(self._members)) >= 250
+            return (self._member_count or len(await cast(ConnectionState, self._state).cache.get_guild_members(self.id))) >= 250
         return self._large
 
     @property
@@ -608,14 +621,13 @@ class Guild(Hashable):
         r.sort(key=lambda c: (c.position or -1, c.id))
         return r
 
-    @property
-    def me(self) -> Member:
+    async def get_me(self) -> Member:
         """Similar to :attr:`Client.user` except an instance of :class:`Member`.
         This is essentially used to get the member version of yourself.
         """
         self_id = self._state.user.id
         # The self member is *always* cached
-        return self.get_member(self_id)  # type: ignore
+        return await self.get_member(self_id)  # type: ignore
 
     @property
     def voice_client(self) -> VoiceClient | None:
@@ -801,12 +813,11 @@ class Guild(Hashable):
         """The maximum number of bytes files can have when uploaded to this guild."""
         return self._PREMIUM_GUILD_LIMITS[self.premium_tier].filesize
 
-    @property
-    def members(self) -> list[Member]:
+    async def get_members(self) -> list[Member]:
         """A list of members that belong to this guild."""
-        return list(self._members.values())
+        return await cast(ConnectionState, self._state).cache.get_guild_members(self.id)
 
-    def get_member(self, user_id: int, /) -> Member | None:
+    async def get_member(self, user_id: int, /) -> Member | None:
         """Returns a member with the given ID.
 
         Parameters
@@ -819,7 +830,7 @@ class Guild(Hashable):
         Optional[:class:`Member`]
             The member or ``None`` if not found.
         """
-        return self._members.get(user_id)
+        return await cast(ConnectionState, self._state).cache.get_member(self.id, user_id)
 
     @property
     def premium_subscribers(self) -> list[Member]:
@@ -906,10 +917,9 @@ class Guild(Hashable):
         """
         return self._stage_instances.get(stage_instance_id)
 
-    @property
-    def owner(self) -> Member | None:
+    async def get_owner(self) -> Member | None:
         """The member that owns the guild."""
-        return self.get_member(self.owner_id)  # type: ignore
+        return await self.get_member(self.owner_id)  # type: ignore
 
     @property
     def icon(self) -> Asset | None:
@@ -950,8 +960,7 @@ class Guild(Hashable):
         """
         return self._member_count
 
-    @property
-    def chunked(self) -> bool:
+    async def is_chunked(self) -> bool:
         """Returns a boolean indicating if the guild is "chunked".
 
         A chunked guild means that :attr:`member_count` is equal to the
@@ -962,7 +971,7 @@ class Guild(Hashable):
         """
         if self._member_count is None:
             return False
-        return self._member_count == len(self._members)
+        return self._member_count == len(await cast(ConnectionState, self._state).cache.get_guild_members(self.id))
 
     @property
     def shard_id(self) -> int:
@@ -1173,6 +1182,7 @@ class Guild(Hashable):
             **options,
         )
         channel = TextChannel(state=self._state, guild=self, data=data)
+        await channel._update()
 
         # temporarily add to the cache
         self._channels[channel.id] = channel
@@ -1820,7 +1830,7 @@ class Guild(Hashable):
             fields["features"] = features
 
         data = await http.edit_guild(self.id, reason=reason, **fields)
-        return Guild(data=data, state=self._state)
+        return Guild._from_data(data=data, state=self._state)
 
     async def fetch_channels(self) -> Sequence[GuildChannel]:
         """|coro|
@@ -1968,7 +1978,7 @@ class Guild(Hashable):
         """
 
         data = await self._state.http.search_members(self.id, query, limit)
-        return [Member(data=m, guild=self, state=self._state) for m in data]
+        return [await Member._from_data(data=m, guild=self, state=self._state) for m in data]
 
     async def fetch_member(self, member_id: int, /) -> Member:
         """|coro|
@@ -1998,7 +2008,7 @@ class Guild(Hashable):
             Fetching the member failed.
         """
         data = await self._state.http.get_member(self.id, member_id)
-        return Member(data=data, state=self._state, guild=self)
+        return await Member._from_data(data=data, state=self._state, guild=self)
 
     async def fetch_ban(self, user: Snowflake) -> BanEntry:
         """|coro|
@@ -2227,7 +2237,7 @@ class Guild(Hashable):
         from .template import Template
 
         data = await self._state.http.guild_templates(self.id)
-        return [Template(data=d, state=self._state) for d in data]
+        return [await Template.from_data(data=d, state=self._state) for d in data]
 
     async def webhooks(self) -> list[Webhook]:
         """|coro|
@@ -2346,7 +2356,7 @@ class Guild(Hashable):
 
         data = await self._state.http.create_template(self.id, payload)
 
-        return Template(state=self._state, data=data)
+        return await Template.from_data(state=self._state, data=data)
 
     async def create_integration(self, *, type: str, id: int) -> None:
         """|coro|
@@ -2650,8 +2660,10 @@ class Guild(Hashable):
 
         img = utils._bytes_to_base64_data(image)
         role_ids = [role.id for role in roles] if roles else []
-        data = await self._state.http.create_custom_emoji(self.id, name, img, roles=role_ids, reason=reason)
-        return self._state.store_emoji(self, data)
+        data = await self._state.http.create_custom_emoji(
+            self.id, name, img, roles=role_ids, reason=reason
+        )
+        return await self._state.store_emoji(self, data)
 
     async def delete_emoji(self, emoji: Snowflake, *, reason: str | None = None) -> None:
         """|coro|
@@ -3149,7 +3161,7 @@ class Guild(Hashable):
         return Invite(state=self._state, data=payload, guild=self, channel=channel)
 
     # TODO: use MISSING when async iterators get refactored
-    def audit_logs(
+    async def audit_logs(
         self,
         *,
         limit: int | None = 100,
@@ -3200,12 +3212,12 @@ class Guild(Hashable):
         Getting the first 100 entries: ::
 
             async for entry in guild.audit_logs(limit=100):
-                print(f"{entry.user} did {entry.action} to {entry.target}")
+                print(f'{entry.user} did {entry.action} to {await entry.get_target()}')
 
         Getting entries for a specific action: ::
 
             async for entry in guild.audit_logs(action=discord.AuditLogAction.ban):
-                print(f"{entry.user} banned {entry.target}")
+                print(f'{entry.user} banned {await entry.get_target()}')
 
         Getting entries made by a specific user: ::
 
@@ -3542,8 +3554,16 @@ class Guild(Hashable):
         data = await self._state.http.get_scheduled_events(self.id, with_user_count=with_user_count)
         result = []
         for event in data:
-            creator = None if not event.get("creator", None) else self.get_member(event.get("creator_id"))
-            result.append(ScheduledEvent(state=self._state, guild=self, creator=creator, data=event))
+            creator = (
+                None
+                if not event.get("creator", None)
+                else await self.get_member(event.get("creator_id"))
+            )
+            result.append(
+                ScheduledEvent(
+                    state=self._state, guild=self, creator=creator, data=event
+                )
+            )
 
         self._scheduled_events_from_list(result)
         return result
@@ -3582,8 +3602,14 @@ class Guild(Hashable):
         data = await self._state.http.get_scheduled_event(
             guild_id=self.id, event_id=event_id, with_user_count=with_user_count
         )
-        creator = None if not data.get("creator", None) else self.get_member(data.get("creator_id"))
-        event = ScheduledEvent(state=self._state, guild=self, creator=creator, data=data)
+        creator = (
+            None
+            if not data.get("creator", None)
+            else await self.get_member(data.get("creator_id"))
+        )
+        event = ScheduledEvent(
+            state=self._state, guild=self, creator=creator, data=data
+        )
 
         old_event = self._scheduled_events.get(event.id)
         if old_event:

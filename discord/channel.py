@@ -25,6 +25,7 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
+import asyncio
 import datetime
 from typing import TYPE_CHECKING, Any, Callable, Iterable, Mapping, TypeVar, overload
 
@@ -76,7 +77,7 @@ if TYPE_CHECKING:
     from .member import Member, VoiceState
     from .message import EmojiInputType, Message, PartialMessage
     from .role import Role
-    from .state import ConnectionState
+    from .app.state import ConnectionState
     from .types.channel import CategoryChannel as CategoryChannelPayload
     from .types.channel import DMChannel as DMChannelPayload
     from .types.channel import ForumChannel as ForumChannelPayload
@@ -204,7 +205,7 @@ class _TextChannel(discord.abc.GuildChannel, Hashable):
     ):
         self._state: ConnectionState = state
         self.id: int = int(data["id"])
-        self._update(guild, data)
+        self.guild = guild
 
     @property
     def _repr_attrs(self) -> tuple[str, ...]:
@@ -215,9 +216,10 @@ class _TextChannel(discord.abc.GuildChannel, Hashable):
         joined = " ".join("%s=%r" % t for t in attrs)
         return f"<{self.__class__.__name__} {joined}>"
 
-    def _update(self, guild: Guild, data: TextChannelPayload | ForumChannelPayload) -> None:
+    async def _update(
+        self, data: TextChannelPayload | ForumChannelPayload
+    ) -> None:
         # This data will always exist
-        self.guild: Guild = guild
         self.name: str = data["name"]
         self.category_id: int | None = utils._get_as_snowflake(data, "parent_id")
         self._type: int = data["type"]
@@ -269,8 +271,7 @@ class _TextChannel(discord.abc.GuildChannel, Hashable):
         """Checks if the channel is NSFW."""
         return self.nsfw
 
-    @property
-    def last_message(self) -> Message | None:
+    async def get_last_message(self) -> Message | None:
         """Fetches the last message from this channel in cache.
 
         The message might not be valid or point to an existing message.
@@ -288,7 +289,11 @@ class _TextChannel(discord.abc.GuildChannel, Hashable):
         Optional[:class:`Message`]
             The last message in this channel or ``None`` if not found.
         """
-        return self._state._get_message(self.last_message_id) if self.last_message_id else None
+        return (
+            await self._state._get_message(self.last_message_id)
+            if self.last_message_id
+            else None
+        )
 
     async def edit(self, **options) -> _TextChannel:
         """Edits the channel."""
@@ -711,8 +716,8 @@ class TextChannel(discord.abc.Messageable, _TextChannel):
     def _repr_attrs(self) -> tuple[str, ...]:
         return super()._repr_attrs + ("news",)
 
-    def _update(self, guild: Guild, data: TextChannelPayload) -> None:
-        super()._update(guild, data)
+    async def _update(self, data: TextChannelPayload) -> None:
+        super()._update(data)
 
     async def _get_channel(self) -> TextChannel:
         return self
@@ -986,8 +991,8 @@ class ForumChannel(_TextChannel):
     def __init__(self, *, state: ConnectionState, guild: Guild, data: ForumChannelPayload):
         super().__init__(state=state, guild=guild, data=data)
 
-    def _update(self, guild: Guild, data: ForumChannelPayload) -> None:
-        super()._update(guild, data)
+    async def _update(self, data: ForumChannelPayload) -> None:
+        super()._update(data)
         self.available_tags: list[ForumTag] = [
             ForumTag.from_data(state=self._state, data=tag) for tag in (data.get("available_tags") or [])
         ]
@@ -1001,7 +1006,7 @@ class ForumChannel(_TextChannel):
             if emoji_name is not None:
                 self.default_reaction_emoji = reaction_emoji_ctx["emoji_name"]
             else:
-                self.default_reaction_emoji = self._state.get_emoji(
+                self.default_reaction_emoji = await self._state.get_emoji(
                     utils._get_as_snowflake(reaction_emoji_ctx, "emoji_id")
                 )
 
@@ -1292,7 +1297,7 @@ class ForumChannel(_TextChannel):
         ret = Thread(guild=self.guild, state=self._state, data=data)
         msg = ret.get_partial_message(int(data["last_message_id"]))
         if view:
-            state.store_view(view, msg.id)
+            await state.store_view(view, msg.id)
 
         if delete_message_after is not None:
             await msg.delete(delay=delete_message_after)
@@ -1517,7 +1522,8 @@ class VocalGuildChannel(discord.abc.Connectable, discord.abc.GuildChannel, Hasha
     ):
         self._state: ConnectionState = state
         self.id: int = int(data["id"])
-        self._update(guild, data)
+        self.guild = guild
+        self._update(data)
 
     def _get_voice_client_key(self) -> tuple[int, str]:
         return self.guild.id, "guild_id"
@@ -1525,9 +1531,10 @@ class VocalGuildChannel(discord.abc.Connectable, discord.abc.GuildChannel, Hasha
     def _get_voice_state_pair(self) -> tuple[int, int]:
         return self.guild.id, self.id
 
-    def _update(self, guild: Guild, data: VoiceChannelPayload | StageChannelPayload) -> None:
+    async def _update(
+        self, data: VoiceChannelPayload | StageChannelPayload
+    ) -> None:
         # This data will always exist
-        self.guild = guild
         self.name: str = data["name"]
         self.category_id: int | None = utils._get_as_snowflake(data, "parent_id")
 
@@ -1549,13 +1556,12 @@ class VocalGuildChannel(discord.abc.Connectable, discord.abc.GuildChannel, Hasha
     def _sorting_bucket(self) -> int:
         return ChannelType.voice.value
 
-    @property
-    def members(self) -> list[Member]:
+    async def get_members(self) -> list[Member]:
         """Returns all members that are currently inside this voice channel."""
         ret = []
         for user_id, state in self.guild._voice_states.items():
             if state.channel and state.channel.id == self.id:
-                member = self.guild.get_member(user_id)
+                member = await self.guild.get_member(user_id)
                 if member is not None:
                     ret.append(member)
         return ret
@@ -1673,8 +1679,8 @@ class VoiceChannel(discord.abc.Messageable, VocalGuildChannel):
         self.status: str | None = None
         super().__init__(state=state, guild=guild, data=data)
 
-    def _update(self, guild: Guild, data: VoiceChannelPayload):
-        super()._update(guild, data)
+    async def _update(self, data: VoiceChannelPayload):
+        super()._update(data)
         if data.get("status"):
             self.status = data.get("status")
 
@@ -1700,8 +1706,7 @@ class VoiceChannel(discord.abc.Messageable, VocalGuildChannel):
         """Checks if the channel is NSFW."""
         return self.nsfw
 
-    @property
-    def last_message(self) -> Message | None:
+    async def get_last_message(self) -> Message | None:
         """Fetches the last message from this channel in cache.
 
         The message might not be valid or point to an existing message.
@@ -1719,7 +1724,11 @@ class VoiceChannel(discord.abc.Messageable, VocalGuildChannel):
         Optional[:class:`Message`]
             The last message in this channel or ``None`` if not found.
         """
-        return self._state._get_message(self.last_message_id) if self.last_message_id else None
+        return (
+            await self._state._get_message(self.last_message_id)
+            if self.last_message_id
+            else None
+        )
 
     def get_partial_message(self, message_id: int, /) -> PartialMessage:
         """Creates a :class:`PartialMessage` from the message ID.
@@ -2176,8 +2185,8 @@ class StageChannel(discord.abc.Messageable, VocalGuildChannel):
 
     __slots__ = ("topic",)
 
-    def _update(self, guild: Guild, data: StageChannelPayload) -> None:
-        super()._update(guild, data)
+    async def _update(self, data: StageChannelPayload) -> None:
+        super()._update(data)
         self.topic = data.get("topic")
 
     def __repr__(self) -> str:
@@ -2227,8 +2236,7 @@ class StageChannel(discord.abc.Messageable, VocalGuildChannel):
         """Checks if the channel is NSFW."""
         return self.nsfw
 
-    @property
-    def last_message(self) -> Message | None:
+    async def get_last_message(self) -> Message | None:
         """Fetches the last message from this channel in cache.
 
         The message might not be valid or point to an existing message.
@@ -2246,7 +2254,11 @@ class StageChannel(discord.abc.Messageable, VocalGuildChannel):
         Optional[:class:`Message`]
             The last message in this channel or ``None`` if not found.
         """
-        return self._state._get_message(self.last_message_id) if self.last_message_id else None
+        return (
+            await self._state._get_message(self.last_message_id)
+            if self.last_message_id
+            else None
+        )
 
     def get_partial_message(self, message_id: int, /) -> PartialMessage:
         """Creates a :class:`PartialMessage` from the message ID.
@@ -2714,14 +2726,14 @@ class CategoryChannel(discord.abc.GuildChannel, Hashable):
     def __init__(self, *, state: ConnectionState, guild: Guild, data: CategoryChannelPayload):
         self._state: ConnectionState = state
         self.id: int = int(data["id"])
-        self._update(guild, data)
+        self.guild = guild
+        self._update(data)
 
     def __repr__(self) -> str:
         return f"<CategoryChannel id={self.id} name={self.name!r} position={self.position} nsfw={self.nsfw}>"
 
-    def _update(self, guild: Guild, data: CategoryChannelPayload) -> None:
+    async def _update(self, data: CategoryChannelPayload) -> None:
         # This data will always exist
-        self.guild: Guild = guild
         self.name: str = data["name"]
         self.category_id: int | None = utils._get_as_snowflake(data, "parent_id")
 
@@ -2957,11 +2969,17 @@ class DMChannel(discord.abc.Messageable, Hashable):
 
     def __init__(self, *, me: ClientUser, state: ConnectionState, data: DMChannelPayload):
         self._state: ConnectionState = state
+        self._recipients = data.get("recipients")
         self.recipient: User | None = None
-        if r := data.get("recipients"):
-            self.recipient = state.store_user(r[0])
         self.me: ClientUser = me
         self.id: int = int(data["id"])
+        # there shouldn't be any point in time where a DM channel
+        # is made without the event loop having started
+        asyncio.create_task(self._load())
+
+    async def _load(self) -> None:
+        if r := self._recipients:
+            self.recipient = await self._state.store_user(r[0])
 
     async def _get_channel(self):
         return self
@@ -3104,19 +3122,24 @@ class GroupChannel(discord.abc.Messageable, Hashable):
         "name",
         "me",
         "_state",
+        "_data",
     )
 
     def __init__(self, *, me: ClientUser, state: ConnectionState, data: GroupChannelPayload):
         self._state: ConnectionState = state
+        self._data = data
         self.id: int = int(data["id"])
         self.me: ClientUser = me
-        self._update_group(data)
 
-    def _update_group(self, data: GroupChannelPayload) -> None:
-        self.owner_id: int | None = utils._get_as_snowflake(data, "owner_id")
-        self._icon: str | None = data.get("icon")
-        self.name: str | None = data.get("name")
-        self.recipients: list[User] = [self._state.store_user(u) for u in data.get("recipients", [])]
+    async def _update_group(self, data: dict[str, Any] | None = None) -> None:
+        if data:
+            self._data = data
+        self.owner_id: int | None = utils._get_as_snowflake(self._data, "owner_id")
+        self._icon: str | None = self._data.get("icon")
+        self.name: str | None = self._data.get("name")
+        self.recipients: list[User] = [
+            await self._state.store_user(u) for u in self._data.get("recipients", [])
+        ]
 
         self.owner: BaseUser | None
         if self.owner_id == self.me.id:

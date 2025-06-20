@@ -235,7 +235,7 @@ class ReactionIterator(_AsyncIterator[Union["User", "Member"]]):
                     await self.users.put(User(state=self.state, data=element))
                 else:
                     member_id = int(element["id"])
-                    member = self.guild.get_member(member_id)
+                    member = await self.guild.get_member(member_id)
                     if member is not None:
                         await self.users.put(member)
                     else:
@@ -290,7 +290,7 @@ class VoteIterator(_AsyncIterator[Union["User", "Member"]]):
                     await self.users.put(User(state=self.state, data=element))
                 else:
                     member_id = int(element["id"])
-                    member = self.guild.get_member(member_id)
+                    member = await self.guild.get_member(member_id)
                     if member is not None:
                         await self.users.put(member)
                     else:
@@ -620,10 +620,10 @@ class GuildIterator(_AsyncIterator["Guild"]):
         self.retrieve = r
         return r > 0
 
-    def create_guild(self, data):
+    async def create_guild(self, data):
         from .guild import Guild
 
-        return Guild(state=self.state, data=data)
+        return await Guild._from_data(state=self.state, data=data)
 
     async def fill_guilds(self):
         if self._get_retrieve():
@@ -635,7 +635,7 @@ class GuildIterator(_AsyncIterator["Guild"]):
                 data = filter(self._filter, data)
 
             for element in data:
-                await self.guilds.put(self.create_guild(element))
+                await self.guilds.put(await self.create_guild(element))
 
     async def _retrieve_guilds(self, retrieve) -> list[Guild]:
         """Retrieve guilds and update next parameters."""
@@ -708,12 +708,12 @@ class MemberIterator(_AsyncIterator["Member"]):
         self.after = Object(id=int(data[-1]["user"]["id"]))
 
         for element in reversed(data):
-            await self.members.put(self.create_member(element))
+            await self.members.put(await self.create_member(element))
 
-    def create_member(self, data):
+    async def create_member(self, data):
         from .member import Member
 
-        return Member(data=data, guild=self.guild, state=self.state)
+        return await Member._from_data(data=data, guild=self.guild, state=self.state)
 
 
 class BanIterator(_AsyncIterator["BanEntry"]):
@@ -904,7 +904,7 @@ class ScheduledEventSubscribersIterator(_AsyncIterator[Union["User", "Member"]])
         self.retrieve = r
         return r > 0
 
-    def member_from_payload(self, data):
+    async def member_from_payload(self, data):
         from .member import Member
 
         user = data.pop("user")
@@ -912,7 +912,7 @@ class ScheduledEventSubscribersIterator(_AsyncIterator[Union["User", "Member"]])
         member = data.pop("member")
         member["user"] = user
 
-        return Member(data=member, guild=self.event.guild, state=self.event._state)
+        return await Member._from_data(data=member, guild=self.event.guild, state=self.event._state)
 
     def user_from_payload(self, data):
         from .user import User
@@ -946,7 +946,7 @@ class ScheduledEventSubscribersIterator(_AsyncIterator[Union["User", "Member"]])
 
         for element in reversed(data):
             if "member" in element:
-                await self.subscribers.put(self.member_from_payload(element))
+                await self.subscribers.put(await self.member_from_payload(element))
             else:
                 await self.subscribers.put(self.user_from_payload(element))
 
@@ -957,8 +957,8 @@ class EntitlementIterator(_AsyncIterator["Entitlement"]):
         state,
         user_id: int | None = None,
         sku_ids: list[int] | None = None,
-        before: datetime.datetime | Object | None = None,
-        after: datetime.datetime | Object | None = None,
+        before: datetime.datetime | Snowflake | None = None,
+        after: datetime.datetime | Snowflake | None = None,
         limit: int | None = None,
         guild_id: int | None = None,
         exclude_ended: bool | None = None,

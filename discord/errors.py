@@ -64,6 +64,7 @@ __all__ = (
     "ApplicationCommandError",
     "CheckFailure",
     "ApplicationCommandInvokeError",
+    "MissingApplicationID",
 )
 
 
@@ -404,3 +405,14 @@ class ApplicationCommandInvokeError(ApplicationCommandError):
     def __init__(self, e: Exception) -> None:
         self.original: Exception = e
         super().__init__(f"Application Command raised an exception: {e.__class__.__name__}: {e}")
+
+
+class MissingApplicationID(ClientException):
+    """Exception raised when you try to perform an operation that involves the application
+    ID, but this has not yet been set.
+
+    This inherits from :exc:`ClientException`
+    """
+
+    def __init__(self) -> None:
+        super().__init__("The application ID has not yet been set")

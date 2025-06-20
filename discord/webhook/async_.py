@@ -76,7 +76,7 @@ if TYPE_CHECKING:
     from ..http import Response
     from ..mentions import AllowedMentions
     from ..poll import Poll
-    from ..state import ConnectionState
+    from ..app.state import ConnectionState
     from ..types.message import Message as MessagePayload
     from ..types.webhook import FollowerWebhook as FollowerWebhookPayload
     from ..types.webhook import Webhook as WebhookPayload
@@ -800,9 +800,9 @@ class _WebhookState:
         # state parameter is artificial
         return BaseUser(state=self, data=data)  # type: ignore
 
-    def store_poll(self, poll: Poll, message_id: int):
+    async def store_poll(self, poll: Poll, message_id: int):
         if self._parent is not None:
-            return self._parent.store_poll(poll, message_id)
+            return await self._parent.store_poll(poll, message_id)
         # state parameter is artificial
         return None
 
@@ -1003,7 +1003,7 @@ class BaseWebhook(Hashable):
         self._state: ConnectionState | _WebhookState = state or _WebhookState(self, parent=state)
         self._update(data)
 
-    def _update(self, data: WebhookPayload | FollowerWebhookPayload):
+    async def _update(self, data: WebhookPayload | FollowerWebhookPayload):
         self.id = int(data["id"])
         self.type = try_enum(WebhookType, int(data["type"]))
         self.channel_id = utils._get_as_snowflake(data, "channel_id")
@@ -1044,13 +1044,12 @@ class BaseWebhook(Hashable):
         """
         return self.auth_token is not None
 
-    @property
-    def guild(self) -> Guild | None:
+    async def get_guild(self) -> Guild | None:
         """The guild this webhook belongs to.
 
         If this is a partial webhook, then this will always return ``None``.
         """
-        return self._state and self._state._get_guild(self.guild_id)
+        return self._state and await self._state._get_guild(self.guild_id)
 
     @property
     def channel(self) -> TextChannel | None:
@@ -1794,9 +1793,8 @@ class Webhook(BaseWebhook):
             msg = self._create_message(data)
 
         if view is not MISSING and not view.is_finished():
-            message_id = None if msg is None else msg.id
             view.message = None if msg is None else msg
-            self._state.store_view(view, message_id)
+            await self._state.store_view(view)
 
         if delete_after is not None:
 
@@ -1949,7 +1947,7 @@ class Webhook(BaseWebhook):
             if isinstance(self._state, _WebhookState):
                 raise InvalidArgument("This webhook does not have state associated with it")
 
-            self._state.prevent_view_updates_for(message_id)
+            await self._state.prevent_view_updates_for(message_id)
 
         previous_mentions: AllowedMentions | None = getattr(self._state, "allowed_mentions", None)
         params = handle_message_parameters(
@@ -1986,7 +1984,7 @@ class Webhook(BaseWebhook):
         message = self._create_message(data)
         if view and not view.is_finished():
             view.message = message
-            self._state.store_view(view, message_id)
+            await self._state.store_view(view)
         return message
 
     async def delete_message(self, message_id: int, *, thread_id: int | None = None) -> None:

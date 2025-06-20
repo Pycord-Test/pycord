@@ -80,9 +80,9 @@ __all__ = (
 )
 
 
-def _get_from_guilds(bot, getter, argument):
+async def _get_from_guilds(bot, getter, argument):
     result = None
-    for guild in bot.guilds:
+    for guild in await bot.get_guilds():
         result = getattr(guild, getter)(argument)
         if result:
             return result
@@ -213,7 +213,7 @@ class MemberConverter(IDConverter[discord.Member]):
                 return None
 
             if cache:
-                guild._add_member(member)
+                await guild._add_member(member)
             return member
 
         # If we're not being rate limited then we can use the websocket to actually query
@@ -233,15 +233,15 @@ class MemberConverter(IDConverter[discord.Member]):
             if guild:
                 result = guild.get_member_named(argument)
             else:
-                result = _get_from_guilds(bot, "get_member_named", argument)
+                result = await _get_from_guilds(bot, "get_member_named", argument)
         else:
             user_id = int(match.group(1))
             if guild:
-                result = guild.get_member(user_id)
+                result = await guild.get_member(user_id)
                 if ctx.message is not None and result is None:
                     result = _utils_get(ctx.message.mentions, id=user_id)
             else:
-                result = _get_from_guilds(bot, "get_member", user_id)
+                result = await _get_from_guilds(bot, "get_member", user_id)
 
         if result is None:
             if guild is None:
@@ -285,7 +285,7 @@ class UserConverter(IDConverter[discord.User]):
 
         if match is not None:
             user_id = int(match.group(1))
-            result = ctx.bot.get_user(user_id)
+            result = await ctx.bot.get_user(user_id)
             if ctx.message is not None and result is None:
                 result = _utils_get(ctx.message.mentions, id=user_id)
             if result is None:
@@ -308,12 +308,12 @@ class UserConverter(IDConverter[discord.User]):
             discrim = arg[-4:]
             name = arg[:-5]
             predicate = lambda u: u.name == name and u.discriminator == discrim
-            result = discord.utils.find(predicate, state._users.values())
+            result = discord.utils.find(predicate, await state.cache.get_all_users())
             if result is not None:
                 return result
 
         predicate = lambda u: arg in (u.name, u.global_name)
-        result = discord.utils.find(predicate, state._users.values())
+        result = discord.utils.find(predicate, await state.cache.get_all_users())
 
         if result is None:
             raise UserNotFound(argument)
@@ -396,8 +396,10 @@ class MessageConverter(IDConverter[discord.Message]):
     """
 
     async def convert(self, ctx: Context, argument: str) -> discord.Message:
-        guild_id, message_id, channel_id = PartialMessageConverter._get_id_matches(ctx, argument)
-        message = ctx.bot._connection._get_message(message_id)
+        guild_id, message_id, channel_id = PartialMessageConverter._get_id_matches(
+            ctx, argument
+        )
+        message = await ctx.bot._connection._get_message(message_id)
         if message:
             return message
         channel = PartialMessageConverter._resolve_channel(ctx, guild_id, channel_id)
@@ -427,10 +429,14 @@ class GuildChannelConverter(IDConverter[discord.abc.GuildChannel]):
     """
 
     async def convert(self, ctx: Context, argument: str) -> discord.abc.GuildChannel:
-        return self._resolve_channel(ctx, argument, "channels", discord.abc.GuildChannel)
+        return await self._resolve_channel(
+            ctx, argument, "channels", discord.abc.GuildChannel
+        )
 
     @staticmethod
-    def _resolve_channel(ctx: Context, argument: str, attribute: str, type: type[CT]) -> CT:
+    async def _resolve_channel(
+        ctx: Context, argument: str, attribute: str, type: type[CT]
+    ) -> CT:
         bot = ctx.bot
 
         match = IDConverter._get_id_match(argument) or re.match(r"<#([0-9]{15,20})>$", argument)
@@ -453,7 +459,7 @@ class GuildChannelConverter(IDConverter[discord.abc.GuildChannel]):
             if guild:
                 result = guild.get_channel(channel_id)
             else:
-                result = _get_from_guilds(bot, "get_channel", channel_id)
+                result = await _get_from_guilds(bot, "get_channel", channel_id)
 
         if not isinstance(result, type):
             raise ChannelNotFound(argument)
@@ -760,7 +766,7 @@ class GuildConverter(IDConverter[discord.Guild]):
             result = ctx.bot.get_guild(guild_id)
 
         if result is None:
-            result = discord.utils.get(ctx.bot.guilds, name=argument)
+            result = discord.utils.get(await ctx.bot.get_guilds(), name=argument)
 
             if result is None:
                 raise GuildNotFound(argument)
@@ -795,12 +801,12 @@ class EmojiConverter(IDConverter[discord.GuildEmoji]):
                 result = discord.utils.get(guild.emojis, name=argument)
 
             if result is None:
-                result = discord.utils.get(bot.emojis, name=argument)
+                result = discord.utils.get(await bot.get_emojis(), name=argument)
         else:
             emoji_id = int(match.group(1))
 
             # Try to look up emoji by id.
-            result = bot.get_emoji(emoji_id)
+            result = await bot.get_emoji(emoji_id)
 
         if result is None:
             raise EmojiNotFound(argument)
@@ -861,12 +867,12 @@ class GuildStickerConverter(IDConverter[discord.GuildSticker]):
                 result = discord.utils.get(guild.stickers, name=argument)
 
             if result is None:
-                result = discord.utils.get(bot.stickers, name=argument)
+                result = discord.utils.get(await bot.get_stickers(), name=argument)
         else:
             sticker_id = int(match.group(1))
 
             # Try to look up sticker by id.
-            result = bot.get_sticker(sticker_id)
+            result = await bot.get_sticker(sticker_id)
 
         if result is None:
             raise GuildStickerNotFound(argument)
@@ -923,7 +929,10 @@ class clean_content(Converter[str]):
         else:
 
             def resolve_member(id: int) -> str:
-                m = (None if msg is None else _utils_get(msg.mentions, id=id)) or ctx.bot.get_user(id)
+                # TODO: how tf to fix this???
+                m = (
+                    None if msg is None else _utils_get(msg.mentions, id=id)
+                ) or ctx.bot.get_user(id)
                 return f"@{m.name}" if m else "@deleted-user"
 
             def resolve_role(id: int) -> str:

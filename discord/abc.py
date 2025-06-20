@@ -89,7 +89,7 @@ if TYPE_CHECKING:
     from .member import Member
     from .message import Message, MessageReference, PartialMessage
     from .poll import Poll
-    from .state import ConnectionState
+    from .app.state import ConnectionState
     from .threads import Thread
     from .types.channel import Channel as ChannelPayload
     from .types.channel import GuildChannel as GuildChannelPayload
@@ -344,7 +344,7 @@ class GuildChannel:
     def _sorting_bucket(self) -> int:
         raise NotImplementedError
 
-    def _update(self, guild: Guild, data: dict[str, Any]) -> None:
+    async def _update(self, data: dict[str, Any]) -> None:
         raise NotImplementedError
 
     async def _move(
@@ -594,8 +594,7 @@ class GuildChannel:
 
         return PermissionOverwrite()
 
-    @property
-    def overwrites(self) -> dict[Role | Member, PermissionOverwrite]:
+    async def get_overwrites(self) -> dict[Role | Member, PermissionOverwrite]:
         """Returns all of the channel's overwrites.
 
         This is returned as a dictionary where the key contains the target which
@@ -617,7 +616,7 @@ class GuildChannel:
             if ow.is_role():
                 target = self.guild.get_role(ow.id)
             elif ow.is_member():
-                target = self.guild.get_member(ow.id)
+                target = await self.guild.get_member(ow.id)
 
             # TODO: There is potential data loss here in the non-chunked
             # case, i.e. target is None because get_member returned nothing.
@@ -1225,7 +1224,7 @@ class GuildChannel:
             target_user_id=target_user.id if target_user else None,
             target_application_id=target_application_id,
         )
-        invite = Invite.from_incomplete(data=data, state=self._state)
+        invite = await Invite.from_incomplete(data=data, state=self._state)
         if target_event:
             invite.set_scheduled_event(target_event)
         return invite
@@ -1605,7 +1604,7 @@ class Messageable:
 
         ret = state.create_message(channel=channel, data=data)
         if view:
-            state.store_view(view, ret.id)
+            await state.store_view(view, ret.id)
             view.message = ret
 
         if delete_after is not None:

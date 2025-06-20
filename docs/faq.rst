@@ -201,7 +201,7 @@ to do anything special. You **cannot** send ``':thumbsup:'`` style shorthands.
 
 For custom emoji, you should pass an instance of :class:`GuildEmoji` or :class:`AppEmoji`. You can also pass a ``'<:name:id>'`` string, but if you
 can use said emoji, you should be able to use :meth:`Client.get_emoji` to get an emoji via ID or use :func:`utils.find`/
-:func:`utils.get` on :attr:`Client.emojis` or :attr:`Guild.emojis` collections.
+:func:`utils.get` on :meth:`Client.get_emojis` or :attr:`Guild.emojis` collections.
 
 The name and ID of a custom emoji can be found with the client by prefixing ``:custom_emoji:`` with a backslash.
 For example, sending the message ``\:python3:`` with the client will result in ``<:python3:232720527448342530>``.
@@ -285,7 +285,7 @@ specific models.
 Quick example: ::
 
     # find a guild by name
-    guild = discord.utils.get(client.guilds, name='My Server')
+    guild = discord.utils.get(await client.get_guilds(), name='My Server')
 
     # make sure to check if it's found
     if guild is not None:

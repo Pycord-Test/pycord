@@ -69,7 +69,7 @@ class Select(Item[V]):
 
     This is usually represented as a drop down menu.
 
-    In order to get the selected items that the user has chosen, use :attr:`Select.values`.
+    In order to get the selected items that the user has chosen, use :meth:`Select.get_values`.
 
     .. versionadded:: 2.0
 
@@ -321,8 +321,7 @@ class Select(Item[V]):
 
         self._underlying.options.append(option)
 
-    @property
-    def values(
+    async def get_values(
         self,
     ) -> list[str] | list[Member | User] | list[Role] | list[Member | User | Role] | list[GuildChannel | Thread]:
         """List[:class:`str`] | List[:class:`discord.Member` | :class:`discord.User`]] | List[:class:`discord.Role`]] |
@@ -371,7 +370,9 @@ class Select(Item[V]):
                         member = dict(_member_data)
                         member["user"] = _data
                         _data = member
-                        result = guild._get_and_update_member(_data, int(_id), cache_flag)
+                        result = await guild._get_and_update_member(
+                            _data, int(_id), cache_flag
+                        )
                     else:
                         result = User(state=state, data=_data)
                     resolved.append(result)
@@ -447,7 +448,7 @@ def select(
     the :class:`discord.Interaction` you receive.
 
     In order to get the selected items that the user has chosen within the callback
-    use :attr:`Select.values`.
+    use :meth:`Select.get_values`.
 
     .. versionchanged:: 2.3
 

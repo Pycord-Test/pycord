@@ -48,7 +48,7 @@ if TYPE_CHECKING:
     from .message import Message, PartialMessage
     from .permissions import Permissions
     from .role import Role
-    from .state import ConnectionState
+    from .app.state import ConnectionState
     from .types.snowflake import SnowflakeList
     from .types.threads import Thread as ThreadPayload
     from .types.threads import ThreadArchiveDuration
@@ -224,7 +224,7 @@ class Thread(Messageable, Hashable):
         self.invitable = data.get("invitable", True)
         self.created_at = parse_time(data.get("create_timestamp", None))
 
-    def _update(self, data):
+    async def _update(self, data):
         try:
             self.name = data["name"]
         except KeyError:
@@ -249,10 +249,9 @@ class Thread(Messageable, Hashable):
         """The parent channel this thread belongs to."""
         return self.guild.get_channel(self.parent_id)  # type: ignore
 
-    @property
-    def owner(self) -> Member | None:
+    async def get_owner(self) -> Member | None:
         """The member this thread belongs to."""
-        return self.guild.get_member(self.owner_id)
+        return await self.guild.get_member(self.owner_id)
 
     @property
     def mention(self) -> str:
@@ -289,8 +288,7 @@ class Thread(Messageable, Hashable):
             return [tag for tag_id in self._applied_tags if (tag := self.parent.get_tag(tag_id)) is not None]
         return []
 
-    @property
-    def last_message(self) -> Message | None:
+    async def get_last_message(self) -> Message | None:
         """Returns the last message from this thread in cache.
 
         The message might not be valid or point to an existing message.
@@ -308,7 +306,11 @@ class Thread(Messageable, Hashable):
         Optional[:class:`Message`]
             The last message in this channel or ``None`` if not found.
         """
-        return self._state._get_message(self.last_message_id) if self.last_message_id else None
+        return (
+            await self._state._get_message(self.last_message_id)
+            if self.last_message_id
+            else None
+        )
 
     @property
     def category(self) -> CategoryChannel | None:
@@ -350,8 +352,7 @@ class Thread(Messageable, Hashable):
             raise ClientException("Parent channel not found")
         return parent.category_id
 
-    @property
-    def starting_message(self) -> Message | None:
+    async def get_starting_message(self) -> Message | None:
         """Returns the message that started this thread.
 
         The message might not be valid or point to an existing message.
@@ -364,7 +365,7 @@ class Thread(Messageable, Hashable):
         Optional[:class:`Message`]
             The message that started this thread or ``None`` if not found in the cache.
         """
-        return self._state._get_message(self.id)
+        return await self._state._get_message(self.id)
 
     def is_pinned(self) -> bool:
         """Whether the thread is pinned to the top of its parent forum or media channel.

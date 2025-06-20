@@ -328,7 +328,7 @@ Connection
 .. function:: on_ready()
 
     Called when the client is done preparing the data received from Discord. Usually after login is successful
-    and the :attr:`Client.guilds` and co. are filled up.
+    and the :func:`Client.get_guilds` and co. are filled up.
 
     .. warning::
 
@@ -434,7 +434,7 @@ Guilds
     - The client or the guild owner deleted the guild.
 
     In order for this event to be invoked then the :class:`Client` must have
-    been part of the guild to begin with. (i.e. it is part of :attr:`Client.guilds`)
+    been part of the guild to begin with. (i.e. it is part of :func:`Client.get_guilds`)
 
     This requires :attr:`Intents.guilds` to be enabled.
 
@@ -512,7 +512,7 @@ Guilds
               on_guild_unavailable(guild)
 
     Called when a guild becomes available or unavailable. The guild must have
-    existed in the :attr:`Client.guilds` cache.
+    existed in the :func:`Client.get_guilds` cache.
 
     This requires :attr:`Intents.guilds` to be enabled.
 

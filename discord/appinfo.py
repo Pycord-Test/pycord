@@ -33,16 +33,14 @@ from .permissions import Permissions
 
 if TYPE_CHECKING:
     from .guild import Guild
-    from .state import ConnectionState
+    from .app.state import ConnectionState
     from .types.appinfo import AppInfo as AppInfoPayload
     from .types.appinfo import AppInstallParams as AppInstallParamsPayload
-    from .types.appinfo import PartialAppInfo as PartialAppInfoPayload
     from .types.appinfo import Team as TeamPayload
     from .user import User
 
 __all__ = (
     "AppInfo",
-    "PartialAppInfo",
     "AppInstallParams",
 )
 
@@ -242,14 +240,13 @@ class AppInfo:
             return None
         return Asset._from_cover_image(self._state, self.id, self._cover_image)
 
-    @property
-    def guild(self) -> Guild | None:
+    async def get_guild(self) -> Guild | None:
         """If this application is a game sold on Discord,
         this field will be the guild to which it has been linked.
 
         .. versionadded:: 1.3
         """
-        return self._state._get_guild(self.guild_id)
+        return await self._state._get_guild(self.guild_id)
 
     @property
     def summary(self) -> str | None:
@@ -267,69 +264,6 @@ class AppInfo:
             reference="https://discord.com/developers/docs/resources/application#application-object-application-structure",
         )
         return self._summary
-
-
-class PartialAppInfo:
-    """Represents a partial AppInfo given by :func:`~discord.abc.GuildChannel.create_invite`
-
-    .. versionadded:: 2.0
-
-    Attributes
-    ----------
-    id: :class:`int`
-        The application ID.
-    name: :class:`str`
-        The application name.
-    description: :class:`str`
-        The application description.
-    rpc_origins: Optional[List[:class:`str`]]
-        A list of RPC origin URLs, if RPC is enabled.
-    summary: :class:`str`
-        If this application is a game sold on Discord,
-        this field will be the summary field for the store page of its primary SKU.
-    verify_key: :class:`str`
-        The hex encoded key for verification in interactions and the
-        GameSDK's `GetTicket <https://discord.com/developers/docs/game-sdk/applications#getticket>`_.
-    terms_of_service_url: Optional[:class:`str`]
-        The application's terms of service URL, if set.
-    privacy_policy_url: Optional[:class:`str`]
-        The application's privacy policy URL, if set.
-    """
-
-    __slots__ = (
-        "_state",
-        "id",
-        "name",
-        "description",
-        "rpc_origins",
-        "summary",
-        "verify_key",
-        "terms_of_service_url",
-        "privacy_policy_url",
-        "_icon",
-    )
-
-    def __init__(self, *, state: ConnectionState, data: PartialAppInfoPayload):
-        self._state: ConnectionState = state
-        self.id: int = int(data["id"])
-        self.name: str = data["name"]
-        self._icon: str | None = data.get("icon")
-        self.description: str = data["description"]
-        self.rpc_origins: list[str] | None = data.get("rpc_origins")
-        self.summary: str = data["summary"]
-        self.verify_key: str = data["verify_key"]
-        self.terms_of_service_url: str | None = data.get("terms_of_service_url")
-        self.privacy_policy_url: str | None = data.get("privacy_policy_url")
-
-    def __repr__(self) -> str:
-        return f"<{self.__class__.__name__} id={self.id} name={self.name!r} description={self.description!r}>"
-
-    @property
-    def icon(self) -> Asset | None:
-        """Retrieves the application's icon asset, if any."""
-        if self._icon is None:
-            return None
-        return Asset._from_icon(self._state, self.id, self._icon, path="app")
 
 
 class AppInstallParams:

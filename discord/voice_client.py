@@ -62,7 +62,7 @@ if TYPE_CHECKING:
     from .client import Client
     from .guild import Guild
     from .opus import Encoder
-    from .state import ConnectionState
+    from .app.state import ConnectionState
     from .types.voice import GuildVoiceState as GuildVoiceStatePayload
     from .types.voice import SupportedModes
     from .types.voice import VoiceServerUpdate as VoiceServerUpdatePayload

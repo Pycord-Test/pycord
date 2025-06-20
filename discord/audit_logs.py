@@ -25,6 +25,7 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
+from inspect import isawaitable
 from typing import TYPE_CHECKING, Any, Callable, ClassVar, Generator, TypeVar
 
 from . import enums, utils
@@ -53,7 +54,7 @@ if TYPE_CHECKING:
     from .role import Role
     from .scheduled_events import ScheduledEvent
     from .stage_instance import StageInstance
-    from .state import ConnectionState
+    from .app.state import ConnectionState
     from .sticker import GuildSticker
     from .threads import Thread
     from .types.audit_log import AuditLogChange as AuditLogChangePayload
@@ -102,10 +103,10 @@ def _transform_member_id(entry: AuditLogEntry, data: Snowflake | None) -> Member
     return entry._get_member(int(data))
 
 
-def _transform_guild_id(entry: AuditLogEntry, data: Snowflake | None) -> Guild | None:
+async def _transform_guild_id(entry: AuditLogEntry, data: Snowflake | None) -> Guild | None:
     if data is None:
         return None
-    return entry._state._get_guild(data)
+    return await entry._state._get_guild(data)
 
 
 def _transform_overwrites(
@@ -269,7 +270,13 @@ class AuditLogChanges:
         "exempt_channels": (None, _transform_channels),
     }
 
-    def __init__(
+    async def _maybe_await(func: Any) -> Any:
+        if isawaitable(func):
+            return await func
+        else:
+            return func
+
+    async def _from_data(
         self,
         entry: AuditLogEntry,
         data: list[AuditLogChangePayload],
@@ -332,7 +339,7 @@ class AuditLogChanges:
                 before = None
             else:
                 if transformer:
-                    before = transformer(entry, before)
+                    before = await self._maybe_await(transformer(entry, before))
 
             if attr == "location" and hasattr(self.before, "location_type"):
                 from .scheduled_events import ScheduledEventLocation
@@ -350,7 +357,7 @@ class AuditLogChanges:
                 after = None
             else:
                 if transformer:
-                    after = transformer(entry, after)
+                    after = await self._maybe_await(transformer(entry, after))
 
             if attr == "location" and hasattr(self.after, "location_type"):
                 from .scheduled_events import ScheduledEventLocation
@@ -562,8 +569,8 @@ class AuditLogEntry(Hashable):
         self.user = self._get_member(utils._get_as_snowflake(data, "user_id"))  # type: ignore
         self._target_id = utils._get_as_snowflake(data, "target_id")
 
-    def _get_member(self, user_id: int) -> Member | User | None:
-        return self.guild.get_member(user_id) or self._users.get(user_id)
+    async def _get_member(self, user_id: int) -> Member | User | None:
+        return await self.guild.get_member(user_id) or self._users.get(user_id)
 
     def __repr__(self) -> str:
         return f"<AuditLogEntry id={self.id} action={self.action} user={self.user!r}>"
@@ -573,8 +580,7 @@ class AuditLogEntry(Hashable):
         """Returns the entry's creation time in UTC."""
         return utils.snowflake_time(self.id)
 
-    @utils.cached_property
-    def target(
+    async def get_target(
         self,
     ) -> (
         Guild
@@ -595,17 +601,19 @@ class AuditLogEntry(Hashable):
         except AttributeError:
             return Object(id=self._target_id)
         else:
-            return converter(self._target_id)
+            r = converter(self._target_id)
+            if isawaitable(r):
+                r = await r
+            return r
 
     @utils.cached_property
     def category(self) -> enums.AuditLogActionCategory:
         """The category of the action, if applicable."""
         return self.action.category
 
-    @utils.cached_property
-    def changes(self) -> AuditLogChanges:
+    async def changes(self) -> AuditLogChanges:
         """The list of changes this entry has."""
-        obj = AuditLogChanges(self, self._changes, state=self._state)
+        obj = AuditLogChanges().from_data(self, self._changes, state=self._state)
         del self._changes
         return obj
 
@@ -625,8 +633,8 @@ class AuditLogEntry(Hashable):
     def _convert_target_channel(self, target_id: int) -> abc.GuildChannel | Object:
         return self.guild.get_channel(target_id) or Object(id=target_id)
 
-    def _convert_target_user(self, target_id: int) -> Member | User | None:
-        return self._get_member(target_id)
+    async def _convert_target_user(self, target_id: int) -> Member | User | None:
+        return await self._get_member(target_id)
 
     def _convert_target_role(self, target_id: int) -> Role | Object:
         return self.guild.get_role(target_id) or Object(id=target_id)
@@ -651,17 +659,17 @@ class AuditLogEntry(Hashable):
             pass
         return obj
 
-    def _convert_target_emoji(self, target_id: int) -> GuildEmoji | Object:
-        return self._state.get_emoji(target_id) or Object(id=target_id)
+    async def _convert_target_emoji(self, target_id: int) -> GuildEmoji | Object:
+        return (await self._state.get_emoji(target_id)) or Object(id=target_id)
 
-    def _convert_target_message(self, target_id: int) -> Member | User | None:
-        return self._get_member(target_id)
+    async def _convert_target_message(self, target_id: int) -> Member | User | None:
+        return await self._get_member(target_id)
 
     def _convert_target_stage_instance(self, target_id: int) -> StageInstance | Object:
         return self.guild.get_stage_instance(target_id) or Object(id=target_id)
 
-    def _convert_target_sticker(self, target_id: int) -> GuildSticker | Object:
-        return self._state.get_sticker(target_id) or Object(id=target_id)
+    async def _convert_target_sticker(self, target_id: int) -> GuildSticker | Object:
+        return (await self._state.get_sticker(target_id)) or Object(id=target_id)
 
     def _convert_target_thread(self, target_id: int) -> Thread | Object:
         return self.guild.get_thread(target_id) or Object(id=target_id)
