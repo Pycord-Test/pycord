@@ -102,18 +102,14 @@ __all__ = (
 DISCORD_EPOCH = 1420070400000
 
 
-class _MissingSentinel:
-    def __eq__(self, other) -> bool:
+class Undefined(Enum):
+    MISSING = auto()
+
+    def __bool__(self) -> Literal[False]:
         return False
 
-    def __bool__(self) -> bool:
-        return False
 
-    def __repr__(self) -> str:
-        return "..."
-
-
-MISSING: Any = _MissingSentinel()
+MISSING: Literal[Undefined.MISSING] = Undefined.MISSING
 
 
 class _cached_property:
