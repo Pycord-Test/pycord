@@ -29,6 +29,7 @@ import array
 import asyncio
 import collections.abc
 import datetime
+from enum import Enum, auto
 import functools
 import itertools
 import json
