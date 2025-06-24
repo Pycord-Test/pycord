@@ -29,7 +29,6 @@ import array
 import asyncio
 import collections.abc
 import datetime
-from enum import Enum, auto
 import functools
 import itertools
 import json
@@ -40,7 +39,6 @@ import unicodedata
 import warnings
 from base64 import b64encode
 from bisect import bisect_left
-from dataclasses import field
 from inspect import isawaitable as _isawaitable
 from inspect import signature as _signature
 from operator import attrgetter
@@ -104,14 +102,18 @@ __all__ = (
 DISCORD_EPOCH = 1420070400000
 
 
-class Undefined(Enum):
-    MISSING = auto()
-
-    def __bool__(self) -> Literal[False]:
+class _MissingSentinel:
+    def __eq__(self, other) -> bool:
         return False
 
+    def __bool__(self) -> bool:
+        return False
 
-MISSING: Literal[Undefined.MISSING] = Undefined.MISSING
+    def __repr__(self) -> str:
+        return "..."
+
+
+MISSING: Any = _MissingSentinel()
 
 
 class _cached_property:
@@ -378,10 +380,10 @@ def deprecated(
 def oauth_url(
     client_id: int | str,
     *,
-    permissions: Permissions | Undefined = MISSING,
-    guild: Snowflake | Undefined = MISSING,
-    redirect_uri: str | Undefined = MISSING,
-    scopes: Iterable[str] | Undefined = MISSING,
+    permissions: Permissions = MISSING,
+    guild: Snowflake = MISSING,
+    redirect_uri: str = MISSING,
+    scopes: Iterable[str] = MISSING,
     disable_guild_select: bool = False,
 ) -> str:
     """A helper function that returns the OAuth2 URL for inviting the bot
@@ -921,7 +923,7 @@ def remove_markdown(text: str, *, ignore_links: bool = True) -> str:
     regex = _MARKDOWN_STOCK_REGEX
     if ignore_links:
         regex = f"(?:{_URL_REGEX}|{regex})"
-    return re.sub(regex, replacement, text, 0, re.MULTILINE)
+    return re.sub(regex, replacement, text, count=0, flags=re.MULTILINE)
 
 
 def escape_markdown(text: str, *, as_needed: bool = False, ignore_links: bool = True) -> str:
@@ -961,7 +963,7 @@ def escape_markdown(text: str, *, as_needed: bool = False, ignore_links: bool = 
         regex = _MARKDOWN_STOCK_REGEX
         if ignore_links:
             regex = f"(?:{_URL_REGEX}|{regex})"
-        return re.sub(regex, replacement, text, 0, re.MULTILINE | re.X)
+        return re.sub(regex, replacement, text, count=0, flags=re.MULTILINE | re.X)
     else:
         text = re.sub(r"\\", r"\\\\", text)
         return _MARKDOWN_ESCAPE_REGEX.sub(r"\\\1", text)

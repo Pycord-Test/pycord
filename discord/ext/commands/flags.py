@@ -55,6 +55,10 @@ if TYPE_CHECKING:
     from .context import Context
 
 
+def _missing_field_factory() -> field:
+    return field(default_factory=lambda: MISSING)
+
+
 @dataclass
 class Flag:
     """Represents a flag parameter for :class:`FlagConverter`.
@@ -82,14 +86,14 @@ class Flag:
         Whether multiple given values overrides the previous value.
     """
 
-    name: str | Undefined = MISSING
+    name: str | Undefined = _missing_field_factory()
     aliases: list[str] = field(default_factory=list)
-    attribute: str | Undefined = MISSING
-    annotation: Any | Undefined = MISSING
-    default: Any | Undefined = MISSING
-    max_args: int | Undefined = MISSING
-    override: bool | Undefined = MISSING
-    cast_to_dict: bool = False
+    attribute: str | Undefined = _missing_field_factory()
+    annotation: Any | Undefined = _missing_field_factory()
+    default: Any | Undefined = _missing_field_factory()
+    max_args: int | Undefined = _missing_field_factory()
+    override: bool | Undefined = _missing_field_factory()
+    cast_to_dict: bool | Undefined = False
 
     @property
     def required(self) -> bool:
