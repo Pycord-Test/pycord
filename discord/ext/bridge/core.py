@@ -492,7 +492,7 @@ def guild_only():
         else:
             func.__guild_only__ = True
 
-        from ..commands import guild_only
+        from ..commands import guild_only  # noqa: PLC0415
 
         return guild_only()(func)
 
@@ -516,7 +516,7 @@ def is_nsfw():
         else:
             func.__nsfw__ = True
 
-        from ..commands import is_nsfw
+        from ..commands import is_nsfw  # noqa: PLC0415
 
         return is_nsfw()(func)
 
@@ -538,7 +538,7 @@ def has_permissions(**perms: bool):
     """
 
     def predicate(func: Callable | ApplicationCommand):
-        from ..commands import has_permissions
+        from ..commands import has_permissions  # noqa: PLC0415
 
         func = has_permissions(**perms)(func)
         _perms = Permissions(**perms)
