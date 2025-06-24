@@ -93,7 +93,7 @@ class Flag:
     default: Any | Undefined = _missing_field_factory()
     max_args: int | Undefined = _missing_field_factory()
     override: bool | Undefined = _missing_field_factory()
-    cast_to_dict: bool | Undefined = False
+    cast_to_dict: bool = False
 
     @property
     def required(self) -> bool:
