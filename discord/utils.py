@@ -377,10 +377,10 @@ def deprecated(
 def oauth_url(
     client_id: int | str,
     *,
-    permissions: Permissions = MISSING,
-    guild: Snowflake = MISSING,
-    redirect_uri: str = MISSING,
-    scopes: Iterable[str] = MISSING,
+    permissions: Permissions | Undefined = MISSING,
+    guild: Snowflake | Undefined = MISSING,
+    redirect_uri: str | Undefined = MISSING,
+    scopes: Iterable[str] | Undefined = MISSING,
     disable_guild_select: bool = False,
 ) -> str:
     """A helper function that returns the OAuth2 URL for inviting the bot
