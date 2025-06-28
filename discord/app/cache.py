@@ -147,7 +147,7 @@ class Cache(Protocol):
     async def get_private_channel(self, channel_id: int) -> PrivateChannel:
         ...
 
-    async def get_private_channel_by_user(self, user_id: int) -> PrivateChannel:
+    async def get_private_channel_by_user(self, user_id: int) -> PrivateChannel | None:
         ...
 
     async def store_private_channel(self, channel: PrivateChannel) -> None:
@@ -190,19 +190,32 @@ class Cache(Protocol):
     async def get_all_members(self) -> list[Member]:
         ...
 
-    def clear(self, views: bool = True) -> None:
+    async def clear(self, views: bool = True) -> None:
         ...
 
 class MemoryCache(Cache):
     def __init__(self, max_messages: int | None = None, *, state: ConnectionState):
         self._state = state
         self.max_messages = max_messages
-        self.clear()
+        self._users: dict[int, User] = {}
+        self._guilds: dict[int, Guild] = {}
+        self._polls: dict[int, Poll] = {}
+        self._stickers: dict[int, list[GuildSticker]] = {}
+        self._views: dict[str, View] = {}
+        self._modals: dict[str, Modal] = {}
+        self._messages: Deque[Message] = deque(maxlen=self.max_messages)
+
+        self._emojis: dict[int, list[GuildEmoji | AppEmoji]] = {}
+
+        self._private_channels: OrderedDict[int, PrivateChannel] = OrderedDict()
+        self._private_channels_by_user: dict[int, DMChannel] = {}
+
+        self._guild_members: dict[int, dict[int, Member]] = defaultdict(dict)
 
     def _flatten(self, matrix: list[list[T]]) -> list[T]:
         return [item for row in matrix for item in row]
 
-    def clear(self, views: bool = True) -> None:
+    async def clear(self, views: bool = True) -> None:
         self._users: dict[int, User] = {}
         self._guilds: dict[int, Guild] = {}
         self._polls: dict[int, Poll] = {}

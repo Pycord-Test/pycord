@@ -41,6 +41,7 @@ from typing import (
     Sequence,
     TypeVar,
     Union,
+    cast,
 )
 
 from discord.app.event_emitter import EventEmitter
@@ -263,9 +264,9 @@ class ConnectionState:
 
         self.cache: Cache = self.cache
 
-    def clear(self, *, views: bool = True) -> None:
+    async def clear(self, *, views: bool = True) -> None:
         self.user: ClientUser | None = None
-        self.cache.clear()
+        await self.cache.clear()
         self._voice_clients: dict[int, VoiceClient] = {}
 
     async def process_chunk_requests(
@@ -340,7 +341,7 @@ class ConnectionState:
         return
 
     async def get_user(self, id: int | None) -> User | None:
-        return await self.cache.get_user(id)
+        return await self.cache.get_user(cast(int, id))
 
     async def store_emoji(self, guild: Guild, data: EmojiPayload) -> GuildEmoji:
         return await self.cache.store_guild_emoji(guild, data)
@@ -360,8 +361,8 @@ class ConnectionState:
     async def store_view(self, view: View, message_id: int | None = None) -> None:
         await self.cache.store_view(view, message_id)
 
-    async def store_modal(self, modal: Modal) -> None:
-        await self.cache.store_modal(modal)
+    async def store_modal(self, modal: Modal, user_id: int) -> None:
+        await self.cache.store_modal(modal, user_id)
 
     async def prevent_view_updates_for(self, message_id: int) -> View | None:
         return await self.cache.delete_view_on(message_id)
@@ -379,7 +380,7 @@ class ConnectionState:
         return await self.cache.get_all_guilds()
 
     async def _get_guild(self, guild_id: int | None) -> Guild | None:
-        return await self.cache.get_guild(guild_id)
+        return await self.cache.get_guild(cast(int, guild_id))
 
     async def _add_guild(self, guild: Guild) -> None:
         await self.cache.add_guild(guild)
@@ -408,17 +409,10 @@ class ConnectionState:
         await self.cache.delete_emoji(emoji)
 
     async def get_sticker(self, sticker_id: int | None) -> GuildSticker | None:
-        return await self.cache.get_sticker(sticker_id)
+        return await self.cache.get_sticker(cast(int, sticker_id))
 
     async def get_polls(self) -> list[Poll]:
         return await self.cache.get_all_polls()
-
-    def create_poll(self, poll: PollPayload, raw) -> Poll:
-        channel = self.get_channel(raw.channel_id) or PartialMessageable(
-            state=self, id=raw.channel_id
-        )
-        message = channel.get_partial_message(raw.message_id)
-        return Poll.from_dict(poll, message)
 
     async def store_poll(self, poll: Poll, message_id: int):
         await self.cache.store_poll(poll, message_id)
@@ -430,10 +424,10 @@ class ConnectionState:
         return await self.cache.get_private_channels()
 
     async def _get_private_channel(self, channel_id: int | None) -> PrivateChannel | None:
-        return await self.cache.get_private_channel(channel_id)
+        return await self.cache.get_private_channel(cast(int, channel_id))
 
     async def _get_private_channel_by_user(self, user_id: int | None) -> DMChannel | None:
-        return await self.cache.get_private_channel_by_user(user_id)
+        return cast(DMChannel | None, await self.cache.get_private_channel_by_user(cast(int, user_id)))
 
     async def _add_private_channel(self, channel: PrivateChannel) -> None:
         await self.cache.store_private_channel(channel)
@@ -446,7 +440,7 @@ class ConnectionState:
         return channel
 
     async def _get_message(self, msg_id: int | None) -> Message | None:
-        return await self.cache.get_message(msg_id)
+        return await self.cache.get_message(cast(int, msg_id))
 
     def _guild_needs_chunking(self, guild: Guild) -> bool:
         # If presences are enabled then we get back the old guild.large behaviour
@@ -461,7 +455,8 @@ class ConnectionState:
     ) -> tuple[Channel | Thread, Guild | None]:
         channel_id = int(data["channel_id"])
         try:
-            guild = await self._get_guild(int(guild_id or data["guild_id"]))
+            # guild_id is in data
+            guild = await self._get_guild(int(guild_id or data["guild_id"])) # type: ignore
         except KeyError:
             channel = DMChannel._from_message(self, channel_id)
             guild = None

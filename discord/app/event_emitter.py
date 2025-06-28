@@ -22,9 +22,10 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
 
-from abc import ABC
+from abc import ABC, abstractmethod
 from asyncio import Future
 import asyncio
+from collections import defaultdict
 from typing import Any, Callable, Self, TypeVar
 
 from .state import ConnectionState

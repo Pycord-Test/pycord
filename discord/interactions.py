@@ -1243,7 +1243,8 @@ class InteractionResponse:
             )
         )
         self._responded = True
-        await self._parent._state.store_modal(modal)
+        # _data should be present
+        await self._parent._state.store_modal(modal, int(self._parent._data["user"]["id"])) # type: ignore
         return self._parent
 
     @utils.deprecated("a button with type ButtonType.premium", "2.6")
