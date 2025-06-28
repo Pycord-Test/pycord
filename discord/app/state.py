@@ -519,57 +519,6 @@ class ConnectionState:
             )
             raise
 
-
-    def parse_thread_update(self, data) -> None:
-        guild_id = int(data["guild_id"])
-        guild = self._get_guild(guild_id)
-        raw = RawThreadUpdateEvent(data)
-        if guild is None:
-            _log.debug(
-                "THREAD_UPDATE referencing an unknown guild ID: %s. Discarding",
-                guild_id,
-            )
-            return
-        else:
-            thread = guild.get_thread(raw.thread_id)
-            if thread is not None:
-                old = copy.copy(thread)
-                thread._update(data)
-                if thread.archived:
-                    guild._remove_thread(thread)
-                self.dispatch("thread_update", old, thread)
-            else:
-                thread = Thread(guild=guild, state=guild._state, data=data)
-                if not thread.archived:
-                    guild._add_thread(thread)
-                self.dispatch("thread_join", thread)
-            raw.thread = thread
-        self.dispatch("raw_thread_update", raw)
-
-    def parse_thread_delete(self, data) -> None:
-        guild_id = int(data["guild_id"])
-        guild = self._get_guild(guild_id)
-
-        if guild is None:
-            _log.debug(
-                "THREAD_DELETE referencing an unknown guild ID: %s. Discarding",
-                guild_id,
-            )
-            return
-
-        raw = RawThreadDeleteEvent(data)
-        thread = guild.get_thread(raw.thread_id)
-        raw.thread = thread
-
-        self.dispatch("raw_thread_delete", raw)
-
-        if thread is not None:
-            guild._remove_thread(thread)  # type: ignore
-            self.dispatch("thread_delete", thread)
-
-            if (msg := thread.starting_message) is not None:
-                msg.thread = None
-
     def parse_thread_list_sync(self, data) -> None:
         guild_id = int(data["guild_id"])
         guild: Guild | None = self._get_guild(guild_id)
