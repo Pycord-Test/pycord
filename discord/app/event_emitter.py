@@ -36,6 +36,7 @@ class Event(ABC):
     __event_name__: str
 
     @classmethod
+    @abstractmethod
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         ...
 
