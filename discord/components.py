@@ -154,7 +154,6 @@ class InputText(Component):
     """
 
     __slots__: tuple[str, ...] = (
-        "type",
         "style",
         "custom_id",
         "label",

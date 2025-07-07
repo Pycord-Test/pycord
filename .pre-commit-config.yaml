@@ -33,3 +33,11 @@ repos:
       - id: prettier
         args: [--prose-wrap=always, --print-width=88]
         exclude: \.(po|pot|yml|yaml)$
+  - repo: https://github.com/ariebovenberg/slotscheck
+    rev: v0.19.1
+    hooks:
+      - id: slotscheck
+        additional_dependencies:
+          - "typing-extensions>=4,<5"
+          - "colorlog~=6.9.0"
+          - "aiohttp>=3.6.0,<4.0"

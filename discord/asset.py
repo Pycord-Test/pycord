@@ -51,6 +51,8 @@ class AssetMixin:
     url: str
     _state: Any | None
 
+    __slots__: tuple[str, ...] = ("_state", "url")
+
     async def read(self) -> bytes:
         """|coro|
 
@@ -148,7 +150,6 @@ class Asset(AssetMixin):
     """
 
     __slots__: tuple[str, ...] = (
-        "_state",
         "_url",
         "_animated",
         "_key",
