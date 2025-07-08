@@ -15,7 +15,7 @@ def test_typing_annotated():
     bot = discord.Bot()
     bot.add_application_command(cmd)
     dict_result = cmd.to_dict()
-    assert dict_result.get("options")[0].get("type") == SlashCommandOptionType.string.value
+    assert dict_result["options"][0].get("type") == SlashCommandOptionType.string.value
 
 
 def test_typing_annotated_decorator():
@@ -27,7 +27,7 @@ def test_typing_annotated_decorator():
 
     dict_result = echo.to_dict()
 
-    option = dict_result.get("options")[0]
+    option = dict_result["options"][0]
     assert option.get("type") == SlashCommandOptionType.string.value
     assert option.get("description") == "Some text"
 
@@ -48,7 +48,7 @@ def test_typing_annotated_cog():
 
     dict_result = cog.echo.to_dict()
 
-    option = dict_result.get("options")[0]
+    option = dict_result["options"][0]
     assert option.get("type") == SlashCommandOptionType.string.value
     assert option.get("description") == "Some text"
 
@@ -71,7 +71,7 @@ def test_typing_annotated_cog_slashgroup():
 
     dict_result = cog.echo.to_dict()
 
-    option = dict_result.get("options")[0]
+    option = dict_result["options"][0]
     assert option.get("type") == SlashCommandOptionType.string.value
     assert option.get("description") == "Some text"
 
@@ -86,7 +86,7 @@ def test_typing_annotated_optional():
 
     dict_result = cmd.to_dict()
 
-    option = dict_result.get("options")[0]
+    option = dict_result["options"][0]
     assert option.get("type") == SlashCommandOptionType.string.value
 
 
@@ -100,7 +100,7 @@ def test_no_annotation():
 
     dict_result = cmd.to_dict()
 
-    option = dict_result.get("options")[0]
+    option = dict_result["options"][0]
     assert option.get("type") == SlashCommandOptionType.string.value
 
 
@@ -114,5 +114,5 @@ def test_annotated_no_option():
 
     dict_result = cmd.to_dict()
 
-    option = dict_result.get("options")[0]
+    option = dict_result["options"][0]
     assert option.get("type") == SlashCommandOptionType.string.value
