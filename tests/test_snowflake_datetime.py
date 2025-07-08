@@ -1,4 +1,26 @@
-# tests/test_snowflake_utils.py
+"""
+The MIT License (MIT)
+
+Copyright (c) 2021-present Pycord Development
+
+Permission is hereby granted, free of charge, to any person obtaining a
+copy of this software and associated documentation files (the "Software"),
+to deal in the Software without restriction, including without limitation
+the rights to use, copy, modify, merge, publish, distribute, sublicense,
+and/or sell copies of the Software, and to permit persons to whom the
+Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+"""
 
 import datetime
 import pytest
@@ -18,17 +40,13 @@ DATETIME_CASES = [
 
 @pytest.mark.parametrize(("dt", "expected_ms"), DATETIME_CASES)
 def test_generate_snowflake_realistic(dt, expected_ms):
-    """Realistic mode should set lower 22 bits to 0x3FFFFF."""
     sf = generate_snowflake(dt, mode="realistic")
-    # top bits are the timestamp
     assert (sf >> 22) == expected_ms
-    # lower 22 bits are all ones in realistic mode
     assert (sf & ((1 << 22) - 1)) == 0x3FFFFF
 
 
 @pytest.mark.parametrize(("dt", "expected_ms"), DATETIME_CASES)
 def test_generate_snowflake_boundary_low(dt, expected_ms):
-    """Boundary mode low should zero out lower 22 bits."""
     sf = generate_snowflake(dt, mode="boundary", high=False)
     assert (sf >> 22) == expected_ms
     assert (sf & ((1 << 22) - 1)) == 0
@@ -36,7 +54,6 @@ def test_generate_snowflake_boundary_low(dt, expected_ms):
 
 @pytest.mark.parametrize(("dt", "expected_ms"), DATETIME_CASES)
 def test_generate_snowflake_boundary_high(dt, expected_ms):
-    """Boundary mode high should set lower 22 bits to max."""
     sf = generate_snowflake(dt, mode="boundary", high=True)
     assert (sf >> 22) == expected_ms
     assert (sf & ((1 << 22) - 1)) == (2**22 - 1)
@@ -44,22 +61,18 @@ def test_generate_snowflake_boundary_high(dt, expected_ms):
 
 @pytest.mark.parametrize(("dt", "expected_ms"), DATETIME_CASES)
 def test_snowflake_time_roundtrip_boundary(dt, expected_ms):
-    """Converting boundary snowflake back to datetime yields the original dt."""
     sf_low = generate_snowflake(dt, mode="boundary", high=False)
     sf_high = generate_snowflake(dt, mode="boundary", high=True)
-    # snowflake_time ignores low bits, so both should map to dt
     assert snowflake_time(sf_low) == dt
     assert snowflake_time(sf_high) == dt
 
 
 @pytest.mark.parametrize(("dt", "expected_ms"), DATETIME_CASES)
 def test_snowflake_time_roundtrip_realistic(dt, expected_ms):
-    """Converting realistic snowflake back to datetime yields the original dt."""
     sf = generate_snowflake(dt, mode="realistic")
     assert snowflake_time(sf) == dt
 
 
 def test_generate_snowflake_invalid_mode():
-    """Passing an invalid mode should raise ValueError."""
     with pytest.raises(ValueError, match="Invalid mode 'nope'. Must be 'realistic' or 'boundary'"):
         generate_snowflake(datetime.datetime.now(tz=UTC), mode="nope")
