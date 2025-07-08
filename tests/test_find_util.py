@@ -44,7 +44,11 @@ def is_even(x):
     ],
 )
 def test_find_basic_parametrized(seq, predicate, expected):
-    assert find(predicate, seq) is expected
+    result = find(predicate, seq)
+    if expected is None:
+        assert result is None
+    else:
+        assert result == expected
 
 
 def test_find_with_truthy_non_boolean_predicate():
