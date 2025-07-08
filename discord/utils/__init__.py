@@ -52,10 +52,8 @@ from .public import (
     raw_role_mentions,
     remove_markdown,
     escape_markdown,
+    DISCORD_EPOCH,
 )
-
-DISCORD_EPOCH = 1420070400000
-
 
 __all__ = (
     "oauth_url",
@@ -74,6 +72,7 @@ __all__ = (
     "basic_autocomplete",
     "Undefined",
     "MISSING",
+    "DISCORD_EPOCH",
 )
 
 
