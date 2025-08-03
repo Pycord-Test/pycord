@@ -843,7 +843,7 @@ class Member(discord.abc.Messageable, _UserTag):
         if nick is not MISSING:
             nick = nick or ""
             if me:
-                await http.change_my_nickname(guild_id, nick, reason=reason)
+                await http.edit_current_member(guild_id, reason=reason, nick=nick)
             else:
                 payload["nick"] = nick
 

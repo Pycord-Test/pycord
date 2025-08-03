@@ -420,13 +420,6 @@ class HTTPClient:
 
     # Group functionality
 
-    def start_group(self, user_id: Snowflake, recipients: list[int]) -> Response[channel.GroupDMChannel]:
-        payload = {
-            "recipients": recipients,
-        }
-
-        return self.request(Route("POST", "/users/{user_id}/channels", user_id=user_id), json=payload)
-
     def leave_group(self, channel_id) -> Response[None]:
         return self.request(Route("DELETE", "/channels/{channel_id}", channel_id=channel_id))
 
@@ -952,19 +945,6 @@ class HTTPClient:
     def edit_profile(self, payload: dict[str, Any]) -> Response[user.User]:
         return self.request(Route("PATCH", "/users/@me"), json=payload)
 
-    def change_my_nickname(
-        self,
-        guild_id: Snowflake,
-        nickname: str,
-        *,
-        reason: str | None = None,
-    ) -> Response[member.Nickname]:
-        r = Route("PATCH", "/guilds/{guild_id}/members/@me", guild_id=guild_id)
-        payload = {
-            "nick": nickname,
-        }
-        return self.request(r, json=payload, reason=reason)
-
     def change_nickname(
         self,
         guild_id: Snowflake,
@@ -997,6 +977,16 @@ class HTTPClient:
         )
         return self.request(r, json=payload)
 
+    def edit_current_member(
+        self,
+        guild_id: Snowflake,
+        *,
+        reason: str | None = None,
+        **fields: Any,
+    ) -> Response[member.Member]:
+        r = Route("PATCH", "/guilds/{guild_id}/members/@me", guild_id=guild_id)
+        return self.request(r, json=fields, reason=reason)
+
     def edit_member(
         self,
         guild_id: Snowflake,
@@ -1025,6 +1015,7 @@ class HTTPClient:
         r = Route("PATCH", "/channels/{channel_id}", channel_id=channel_id)
         valid_keys = (
             "name",
+            "icon",
             "parent_id",
             "topic",
             "bitrate",
@@ -1405,18 +1396,6 @@ class HTTPClient:
         params = {"with_counts": int(with_counts)}
         return self.request(Route("GET", "/guilds/{guild_id}", guild_id=guild_id), params=params)
 
-    def delete_guild(self, guild_id: Snowflake) -> Response[None]:
-        return self.request(Route("DELETE", "/guilds/{guild_id}", guild_id=guild_id))
-
-    def create_guild(self, name: str, icon: str | None) -> Response[guild.Guild]:
-        payload = {
-            "name": name,
-        }
-        if icon:
-            payload["icon"] = icon
-
-        return self.request(Route("POST", "/guilds"), json=payload)
-
     def edit_guild(self, guild_id: Snowflake, *, reason: str | None = None, **fields: Any) -> Response[guild.Guild]:
         valid_keys = (
             "name",
@@ -1504,15 +1483,6 @@ class HTTPClient:
                 code=code,
             )
         )
-
-    def create_from_template(self, code: str, name: str, icon: str | None) -> Response[guild.Guild]:
-        payload = {
-            "name": name,
-        }
-        if icon:
-            payload["icon"] = icon
-
-        return self.request(Route("POST", "/guilds/templates/{code}", code=code), json=payload)
 
     def get_bans(
         self,
@@ -1843,15 +1813,6 @@ class HTTPClient:
 
         return self.request(r)
 
-    def create_integration(self, guild_id: Snowflake, type: integration.IntegrationType, id: int) -> Response[None]:
-        payload = {
-            "type": type,
-            "id": id,
-        }
-
-        r = Route("POST", "/guilds/{guild_id}/integrations", guild_id=guild_id)
-        return self.request(r, json=payload)
-
     def edit_integration(self, guild_id: Snowflake, integration_id: Snowflake, **payload: Any) -> Response[None]:
         r = Route(
             "PATCH",
@@ -2027,16 +1988,6 @@ class HTTPClient:
         )
         return self.request(r, reason=reason)
 
-    def replace_roles(
-        self,
-        user_id: Snowflake,
-        guild_id: Snowflake,
-        role_ids: list[int],
-        *,
-        reason: str | None = None,
-    ) -> Response[member.MemberWithUser]:
-        return self.edit_member(guild_id=guild_id, user_id=user_id, roles=role_ids, reason=reason)
-
     def create_role(self, guild_id: Snowflake, *, reason: str | None = None, **fields: Any) -> Response[role.Role]:
         r = Route("POST", "/guilds/{guild_id}/roles", guild_id=guild_id)
         return self.request(r, json=fields, reason=reason)
@@ -2140,16 +2091,6 @@ class HTTPClient:
         )
 
     # Voice management
-
-    def move_member(
-        self,
-        user_id: Snowflake,
-        guild_id: Snowflake,
-        channel_id: Snowflake,
-        *,
-        reason: str | None = None,
-    ) -> Response[member.MemberWithUser]:
-        return self.edit_member(guild_id=guild_id, user_id=user_id, channel_id=channel_id, reason=reason)
 
     def set_voice_channel_status(
         self, channel_id: Snowflake, status: str | None, *, reason: str | None = None
@@ -2774,20 +2715,6 @@ class HTTPClient:
             application_id=application_id,
             guild_id=guild_id,
             command_id=command_id,
-        )
-        return self.request(r, json=payload)
-
-    def bulk_edit_guild_application_command_permissions(
-        self,
-        application_id: Snowflake,
-        guild_id: Snowflake,
-        payload: list[interactions.PartialGuildApplicationCommandPermissions],
-    ) -> Response[None]:
-        r = Route(
-            "PUT",
-            "/applications/{application_id}/guilds/{guild_id}/commands/permissions",
-            application_id=application_id,
-            guild_id=guild_id,
         )
         return self.request(r, json=payload)
 

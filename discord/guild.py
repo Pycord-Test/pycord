@@ -1538,21 +1538,6 @@ class Guild(Hashable):
         """
         await self._state.http.leave_guild(self.id)
 
-    async def delete(self) -> None:
-        """|coro|
-
-        Deletes the guild. You must be the guild owner to delete the
-        guild.
-
-        Raises
-        ------
-        HTTPException
-            Deleting the guild failed.
-        Forbidden
-            You do not have permissions to delete the guild.
-        """
-        await self._state.http.delete_guild(self.id)
-
     async def set_mfa_required(self, required: bool, *, reason: str = None) -> None:
         """|coro|
 
@@ -2347,32 +2332,6 @@ class Guild(Hashable):
         data = await self._state.http.create_template(self.id, payload)
 
         return Template(state=self._state, data=data)
-
-    async def create_integration(self, *, type: str, id: int) -> None:
-        """|coro|
-
-        Attaches an integration to the guild.
-
-        You must have the :attr:`~Permissions.manage_guild` permission to
-        do this.
-
-        .. versionadded:: 1.4
-
-        Parameters
-        ----------
-        type: :class:`str`
-            The integration type (e.g. Twitch).
-        id: :class:`int`
-            The integration ID.
-
-        Raises
-        ------
-        Forbidden
-            You do not have permission to create the integration.
-        HTTPException
-            The account could not be found.
-        """
-        await self._state.http.create_integration(self.id, type, id)
 
     async def integrations(self) -> list[Integration]:
         """|coro|

@@ -501,6 +501,13 @@ class GuildChannel:
                 default_reaction_emoji._to_forum_reaction_payload() if default_reaction_emoji else None
             )
 
+        try:
+            icon = options["icon"]
+        except KeyError:
+            pass
+        else:
+            options["icon"] = icon and utils._bytes_to_base64_data(icon)
+
         if options:
             return await self._state.http.edit_channel(self.id, reason=reason, **options)
 
