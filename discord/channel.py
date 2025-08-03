@@ -3220,7 +3220,7 @@ class GroupChannel(discord.abc.Messageable, Hashable):
         self,
         *,
         name: str = ...,
-        icon: icon: bytes | None = ...,
+        icon: bytes | None = ...,
     ) -> GroupChannel: ...
 
     @overload
