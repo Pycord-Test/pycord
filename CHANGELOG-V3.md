@@ -5,6 +5,10 @@ release.
 
 ### Added
 
+- Added `StickerFormatType.unknown` for unknown sticker format types instead of
+  defaulting to `StickerFormatType.png` in
+  [#58](https://github.com/Pycord-Development/pycord-next/pull/58)
+
 ### Fixed
 
 ### Changed
