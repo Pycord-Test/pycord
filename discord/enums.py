@@ -636,15 +636,14 @@ class StickerFormatType(Enum):
     gif = 4
 
     @property
-    def file_extension(self) -> str:
+    def file_extension(self) -> str | None:
         lookup: dict[StickerFormatType, str] = {
             StickerFormatType.png: "png",
             StickerFormatType.apng: "png",
             StickerFormatType.lottie: "json",
             StickerFormatType.gif: "gif",
         }
-        # TODO: Improve handling of unknown sticker format types if possible
-        return lookup.get(self, "png")
+        return lookup.get(self)
 
 
 class InviteTarget(Enum):
@@ -833,8 +832,8 @@ class SlashCommandOptionType(Enum):
         if issubclass(datatype, float):
             return cls.number
 
-        from .commands.context import ApplicationContext  # noqa: PLC0415
-        from .ext.bridge import BridgeContext  # noqa: PLC0415
+        from .commands.context import ApplicationContext
+        from .ext.bridge import BridgeContext
 
         if not issubclass(
             datatype, (ApplicationContext, BridgeContext)
