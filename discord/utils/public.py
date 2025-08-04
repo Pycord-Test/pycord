@@ -6,7 +6,7 @@ import datetime
 from enum import Enum, auto
 import itertools
 from collections.abc import Awaitable, Callable, Iterable
-from typing import TYPE_CHECKING, Any, Literal, Iterable, TypeVar
+from typing import TYPE_CHECKING, Any, Literal, TypeVar
 
 if TYPE_CHECKING:
     from ..abc import Snowflake
