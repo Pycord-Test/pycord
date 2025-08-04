@@ -139,7 +139,7 @@ def resolve_template(code: Template | str) -> str:
     :class:`str`
         The template code.
     """
-    from .template import Template  # noqa: PLC0415 # circular import
+    from ..template import Template  # noqa: PLC0415 # circular import
 
     if isinstance(code, Template):
         return code.code
