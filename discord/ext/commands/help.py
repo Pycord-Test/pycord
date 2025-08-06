@@ -571,7 +571,7 @@ class HelpCommand:
             key = lambda c: c.name
 
         # Ignore Application Commands because they don't have hidden/docs
-        from ...commands import ApplicationCommand  # noqa: PLC0415
+        from discord import ApplicationCommand  # noqa: PLC0415
 
         new_commands = [
             command
