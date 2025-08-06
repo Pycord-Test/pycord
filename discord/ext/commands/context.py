@@ -30,7 +30,6 @@ import re
 from typing import TYPE_CHECKING, Any, Generic, TypeVar, Union
 
 import discord.abc
-import discord.utils
 from discord.message import Message
 from discord.utils.private import copy_doc
 from discord.utils import Undefined, MISSING
