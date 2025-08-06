@@ -535,15 +535,15 @@ def cached_slot_property(
 try:
     import msgspec
 
-    def _to_json(obj: Any) -> str:  # type: ignore
+    def to_json(obj: Any) -> str:  # type: ignore
         return msgspec.json.encode(obj).decode("utf-8")
 
-    _from_json = msgspec.json.decode  # type: ignore
+    from_json = msgspec.json.decode  # type: ignore
 
 except ModuleNotFoundError:
     import json
 
-    def _to_json(obj: Any) -> str:
+    def to_json(obj: Any) -> str:
         return json.dumps(obj, separators=(",", ":"), ensure_ascii=True)
 
-    _from_json = json.loads
+    from_json = json.loads
