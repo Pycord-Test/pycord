@@ -516,8 +516,7 @@ class ApplicationCommandMixin(ABC):
                         }
                     )
                     continue
-                # We can assume the command item is a com
-                # mand, since it's only a string if action is delete
+                # We can assume the command item is a command, since it's only a string if action is delete
                 match = find(lambda c: c.name == cmd["command"].name and c.type == cmd["command"].type, pending)
                 if match is None:
                     continue

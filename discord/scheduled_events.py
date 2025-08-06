@@ -27,7 +27,6 @@ from __future__ import annotations
 import datetime
 from typing import TYPE_CHECKING, Any
 
-from .utils.private import get_as_snowflake, bytes_to_base64_data
 from . import utils
 from .asset import Asset
 from .enums import (
@@ -40,7 +39,7 @@ from .errors import InvalidArgument, ValidationError
 from .iterators import ScheduledEventSubscribersIterator
 from .mixins import Hashable
 from .object import Object
-from .utils.private import warn_deprecated
+from .utils.private import warn_deprecated, get_as_snowflake, bytes_to_base64_data
 
 __all__ = (
     "ScheduledEvent",
