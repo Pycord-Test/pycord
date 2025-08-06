@@ -45,7 +45,7 @@ from typing import (
 import discord
 from discord.utils.private import evaluate_annotation, async_all, maybe_awaitable
 from discord import utils
-from ...utils import Undefined
+from discord.utils import Undefined
 
 from ...commands import (
     ApplicationCommand,

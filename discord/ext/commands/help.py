@@ -31,8 +31,8 @@ import itertools
 import re
 from typing import TYPE_CHECKING, Any
 
-from ... import utils
-from ...utils.private import string_width, maybe_awaitable
+from discord import utils
+from discord.utils.private import string_width, maybe_awaitable
 
 from .core import Command, Group
 from .errors import CommandError

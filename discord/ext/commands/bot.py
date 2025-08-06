@@ -32,7 +32,7 @@ import traceback
 from typing import TYPE_CHECKING, Any, Callable, Coroutine, Iterable, TypeVar
 
 import discord
-from ...utils import Undefined
+from discord.utils import Undefined
 from discord.utils.private import copy_doc, maybe_awaitable, async_all
 
 from . import errors
