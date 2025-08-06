@@ -565,27 +565,42 @@ class TextDisplay(Component):
 
     This inherits from :class:`Component`.
 
-    .. note::
-
-        This class is not useable by end-users; see :class:`discord.ui.TextDisplay` instead.
-
     .. versionadded:: 2.7
+    .. versionchanged:: 3.0
 
     Attributes
     ----------
     content: :class:`str`
         The component's text content.
+    id: Optional[:class:`int`]
+        The component's ID. If not provided, it is set sequentially by Discord.
+        The ID `0` is treated as if no ID was provided.
+
+    Parameters
+    ----------
+    content: :class:`str`
+        The text content of the component.
+    id: Optional[:class:`int`]
+        The component's ID. If not provided, it is set sequentially by Discord.
+        The ID `0` is treated as if no ID was provided.
     """
 
     __slots__: tuple[str, ...] = ("content",)
 
     __repr_info__: ClassVar[tuple[str, ...]] = __slots__
     versions: tuple[int, ...] = (2,)
+    type = ComponentType.text_display
 
-    def __init__(self, data: TextDisplayComponentPayload):
-        self.type: ComponentType = try_enum(ComponentType, data["type"])
-        self.id: int = data.get("id")
-        self.content: str = data.get("content")
+    def __init__(self, content: str, id: int | None = None):
+        self.id: int | None = id
+        self.content: str = content
+
+    @classmethod
+    def from_payload(cls, data: TextDisplayComponentPayload) -> Self:
+        return cls(
+            content=data["content"],
+            id=data["id"],
+        )
 
     def to_dict(self) -> TextDisplayComponentPayload:
         return {"type": int(self.type), "id": self.id, "content": self.content}
@@ -642,11 +657,8 @@ class Thumbnail(Component):
 
     This inherits from :class:`Component`.
 
-    .. note::
-
-        This class is not useable by end-users; see :class:`discord.ui.Thumbnail` instead.
-
     .. versionadded:: 2.7
+    .. versionchanged:: 3.0
 
     Attributes
     ----------
@@ -656,28 +668,57 @@ class Thumbnail(Component):
         The thumbnail's description, up to 1024 characters.
     spoiler: Optional[:class:`bool`]
         Whether the thumbnail has the spoiler overlay.
+
+    Parameters
+    ----------
+    url: :class:`str` | :class:`UnfurledMediaItem`
+        The URL of the thumbnail. This can either be an arbitrary URL or an ``attachment://`` URL to work with local files.
+    id: Optional[:class:`int`]
+        The thumbnail's ID. If not provided, it is set sequentially by Discord.
+        The ID `0` is treated as if no ID was provided.
+    description: Optional[:class:`str`]
+        The thumbnail's description, up to 1024 characters.
+    spoiler: Optional[:class:`bool`]
+        Whether the thumbnail has the spoiler overlay. Defaults to ``False``.
     """
 
     __slots__: tuple[str, ...] = (
-        "media",
+        "file",
         "description",
         "spoiler",
     )
 
     __repr_info__: ClassVar[tuple[str, ...]] = __slots__
     versions: tuple[int, ...] = (2,)
+    type = ComponentType.thumbnail
 
-    def __init__(self, data: ThumbnailComponentPayload, state=None):
-        self.type: ComponentType = try_enum(ComponentType, data["type"])
-        self.id: int = data.get("id")
-        self.media: UnfurledMediaItem = (umi := data.get("media")) and UnfurledMediaItem.from_dict(umi, state=state)
-        self.description: str | None = data.get("description")
-        self.spoiler: bool | None = data.get("spoiler")
+    def __init__(
+        self,
+        url: str | UnfurledMediaItem,
+        *,
+        id: int | None = None,
+        description: str | None = None,
+        spoiler: bool | None = False,
+    ):
+        self.id: int | None = id
+        self.file: UnfurledMediaItem = url if isinstance(url, UnfurledMediaItem) else UnfurledMediaItem(url)
+        self.description: str | None = description
+        self.spoiler: bool | None = spoiler
 
     @property
     def url(self) -> str:
         """Returns the URL of this thumbnail's underlying media item."""
-        return self.media.url
+        return self.file.url
+
+    @classmethod
+    def from_payload(cls, payload: ThumbnailComponentPayload, state=None) -> Self:
+        file = UnfurledMediaItem.from_dict(payload.get("file", {}), state=state)
+        return cls(
+            url=file,
+            id=payload["id"],
+            description=payload.get("description"),
+            spoiler=payload.get("spoiler", False),
+        )
 
     def to_dict(self) -> ThumbnailComponentPayload:
         payload = {"type": int(self.type), "id": self.id, "media": self.media.to_dict()}
@@ -694,6 +735,7 @@ class MediaGalleryItem:
     This is used as an underlying component for other media-based components such as :class:`Thumbnail`, :class:`FileComponent`, and :class:`MediaGalleryItem`.
 
     .. versionadded:: 2.7
+    .. versionchanged:: 3.0
 
     Attributes
     ----------
@@ -734,7 +776,7 @@ class MediaGalleryItem:
         r.media = media
         return r
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> MediaGalleryItemPayload:
         payload = {"media": self.media.to_dict()}
         if self.description:
             payload["description"] = self.description
