@@ -43,7 +43,6 @@ from typing import (
     Union,
 )
 
-from .utils.private import parse_time, sane_wait_for
 from . import utils
 from .utils.private import get_as_snowflake
 from .activity import BaseActivity
