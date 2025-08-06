@@ -857,7 +857,7 @@ class GuildStickerConverter(IDConverter[discord.GuildSticker]):
         if match is None:
             # Try to get the sticker by name. Try local guild first.
             if guild:
-                result = discord.utils.find(lambda s: s.name == argument, guild.stickers, name=argument)
+                result = discord.utils.find(lambda s: s.name == argument, guild.stickers)
 
             if result is None:
                 result = discord.utils.find(lambda s: s.name == argument, bot.stickers)
