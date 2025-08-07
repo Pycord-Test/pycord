@@ -43,15 +43,15 @@ from typing import (
     Union,
 )
 
-import discord
 from .utils.private import parse_time, sane_wait_for
 from . import utils
-from .utils.private import get_as_snowflake
+from .utils.private import get_as_snowflake, parse_time, sane_wait_for
 from .activity import BaseActivity
 from .audit_logs import AuditLogEntry
 from .automod import AutoModRule
 from .channel import *
 from .channel import _channel_factory
+from .components import Component
 from .emoji import AppEmoji, GuildEmoji
 from .enums import ChannelType, InteractionType, ScheduledEventStatus, Status, try_enum
 from .flags import ApplicationFlags, Intents, MemberCacheFlags
@@ -385,8 +385,7 @@ class ConnectionState:
     def store_view(self, view: View, message_id: int | None = None) -> None:
         self._view_store.add_view(view, message_id)
 
-    def store_component(self, component: discord.Component) -> None:
-        ...
+    def store_component(self, component: Component) -> None: ...
 
     def store_modal(self, modal: Modal, message_id: int) -> None:
         self._modal_store.add_modal(modal, message_id)

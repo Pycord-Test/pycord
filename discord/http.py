@@ -34,7 +34,7 @@ from urllib.parse import quote as _uriquote
 
 import aiohttp
 
-from .utils.private import get_mime_type_for_image, _to_json, _from_json
+from .utils.private import get_mime_type_for_image, to_json, from_json
 from . import __version__, utils
 from .errors import (
     DiscordServerError,
@@ -98,7 +98,7 @@ async def json_or_text(response: aiohttp.ClientResponse) -> dict[str, Any] | str
     text = await response.text(encoding="utf-8")
     try:
         if response.headers["content-type"] == "application/json":
-            return _from_json(text)
+            return from_json(text)
     except KeyError:
         # Thanks Cloudflare
         pass
@@ -261,7 +261,7 @@ class HTTPClient:
         # some checking if it's a JSON request
         if "json" in kwargs:
             headers["Content-Type"] = "application/json"
-            kwargs["data"] = _to_json(kwargs.pop("json"))
+            kwargs["data"] = to_json(kwargs.pop("json"))
 
         try:
             reason = kwargs.pop("reason")
@@ -569,7 +569,7 @@ class HTTPClient:
                 }
             )
         payload["attachments"] = attachments
-        form[0]["value"] = _to_json(payload)
+        form[0]["value"] = to_json(payload)
         return self.request(route, form=form, files=files)
 
     def send_files(
@@ -642,7 +642,7 @@ class HTTPClient:
             payload["attachments"] = attachments
         else:
             payload["attachments"].extend(attachments)
-        form[0]["value"] = _to_json(payload)
+        form[0]["value"] = to_json(payload)
 
         return self.request(route, form=form, files=files)
 
@@ -1246,7 +1246,7 @@ class HTTPClient:
                 )
 
             payload["attachments"] = attachments
-            form[0]["value"] = _to_json(payload)
+            form[0]["value"] = to_json(payload)
             return self.request(route, form=form, reason=reason)
         return self.request(route, json=payload, reason=reason)
 
@@ -2593,7 +2593,7 @@ class HTTPClient:
         form: list[dict[str, Any]] = [
             {
                 "name": "payload_json",
-                "value": _to_json(payload),
+                "value": to_json(payload),
             }
         ]
 
