@@ -25,7 +25,7 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, ClassVar, Iterator, TypeVar, Generic, Sequence, Final
+from typing import TYPE_CHECKING, Any, ClassVar, Iterator, TypeVar, Generic, Sequence, Final, TypeAlias, Literal
 from abc import ABC, abstractmethod, abstractclassmethod
 
 from .asset import AssetMixin
@@ -56,7 +56,11 @@ if TYPE_CHECKING:
     from .types.components import MediaGalleryComponent as MediaGalleryComponentPayload
     from .types.components import MediaGalleryItem as MediaGalleryItemPayload
     from .types.components import SectionComponent as SectionComponentPayload
-    from .types.components import SelectMenu as SelectMenuPayload
+    from .types.components import StringSelect as StringSelectPayload
+    from .types.components import ChannelSelect as ChannelSelectPayload
+    from .types.components import RoleSelect as RoleSelectPayload
+    from .types.components import MentionableSelect as MentionableSelectPayload
+    from .types.components import UserSelect as UserSelectPayload
     from .types.components import SelectOption as SelectOptionPayload
     from .types.components import SeparatorComponent as SeparatorComponentPayload
     from .types.components import TextDisplayComponent as TextDisplayComponentPayload
@@ -302,93 +306,6 @@ class Button(Component):
         return payload  # type: ignore
 
 
-class SelectMenu(Component):
-    """Represents a select menu from the Discord Bot UI Kit.
-
-    A select menu is functionally the same as a dropdown, however
-    on mobile it renders a bit differently.
-
-    .. note::
-
-        This class is not useable by end-users; see :class:`discord.ui.Select` instead.
-
-    .. versionadded:: 2.0
-
-    .. versionchanged:: 2.3
-
-        Added support for :attr:`ComponentType.user_select`, :attr:`ComponentType.role_select`,
-        :attr:`ComponentType.mentionable_select`, and :attr:`ComponentType.channel_select`.
-
-    Attributes
-    ----------
-    type: :class:`ComponentType`
-        The select menu's type.
-    custom_id: Optional[:class:`str`]
-        The ID of the select menu that gets received during an interaction.
-    placeholder: Optional[:class:`str`]
-        The placeholder text that is shown if nothing is selected, if any.
-    min_values: :class:`int`
-        The minimum number of items that must be chosen for this select menu.
-        Defaults to 1 and must be between 0 and 25.
-    max_values: :class:`int`
-        The maximum number of items that must be chosen for this select menu.
-        Defaults to 1 and must be between 1 and 25.
-    options: List[:class:`SelectOption`]
-        A list of options that can be selected in this menu.
-        Will be an empty list for all component types
-        except for :attr:`ComponentType.string_select`.
-    channel_types: List[:class:`ChannelType`]
-        A list of channel types that can be selected.
-        Will be an empty list for all component types
-        except for :attr:`ComponentType.channel_select`.
-    disabled: :class:`bool`
-        Whether the select is disabled or not.
-    """
-
-    __slots__: tuple[str, ...] = (
-        "custom_id",
-        "placeholder",
-        "min_values",
-        "max_values",
-        "options",
-        "channel_types",
-        "disabled",
-    )
-
-    __repr_info__: ClassVar[tuple[str, ...]] = __slots__
-    versions: tuple[int, ...] = (1, 2)
-
-    def __init__(self, data: SelectMenuPayload):
-        self.type = try_enum(ComponentType, data["type"])
-        self.id: int = data.get("id")
-        self.custom_id: str = data["custom_id"]
-        self.placeholder: str | None = data.get("placeholder")
-        self.min_values: int = data.get("min_values", 1)
-        self.max_values: int = data.get("max_values", 1)
-        self.disabled: bool = data.get("disabled", False)
-        self.options: list[SelectOption] = [SelectOption.from_dict(option) for option in data.get("options", [])]
-        self.channel_types: list[ChannelType] = [try_enum(ChannelType, ct) for ct in data.get("channel_types", [])]
-
-    def to_dict(self) -> SelectMenuPayload:
-        payload: SelectMenuPayload = {
-            "type": self.type.value,
-            "id": self.id,
-            "custom_id": self.custom_id,
-            "min_values": self.min_values,
-            "max_values": self.max_values,
-            "disabled": self.disabled,
-        }
-
-        if self.type is ComponentType.string_select:
-            payload["options"] = [op.to_dict() for op in self.options]
-        if self.type is ComponentType.channel_select and self.channel_types:
-            payload["channel_types"] = [ct.value for ct in self.channel_types]
-        if self.placeholder:
-            payload["placeholder"] = self.placeholder
-
-        return payload
-
-
 class SelectOption:
     """Represents a :class:`discord.SelectMenu`'s option.
 
@@ -507,55 +424,55 @@ class SelectOption:
         return payload
 
 
-class Section(Component):
-    """Represents a Section from Components V2.
+T = TypeVar(
+    "T",
+    bound="StringSelectPayload | ChannelSelectPayload | RoleSelectPayload | MentionableSelectPayload | UserSelectPayload",
+)
 
-    This is a component that groups other components together with an additional component to the right as the accessory.
+
+class SelectMenu(Component[T], ABC, Generic[T]):
+    """Represents a select menu from the Discord Bot UI Kit.
 
     This inherits from :class:`Component`.
 
-    .. note::
+    This is an abstract class and cannot be instantiated directly.
 
-        This class is not useable by end-users; see :class:`discord.ui.Section` instead.
+    .. versionadded:: 3.0
 
-    .. versionadded:: 2.7
-
-    Attributes
-    ----------
-    components: List[:class:`Component`]
-        The components contained in this section. Currently supports :class:`TextDisplay`.
-    accessory: Optional[:class:`Component`]
-        The accessory attached to this Section. Currently supports :class:`Button` and :class:`Thumbnail`.
     """
 
-    __slots__: tuple[str, ...] = ("components", "accessory")
+    __slots__: tuple[str, ...] = (
+        "custom_id",
+        "placeholder",
+        "min_values",
+        "max_values",
+        "disabled",
+    )
 
     __repr_info__: ClassVar[tuple[str, ...]] = __slots__
-    versions: tuple[int, ...] = (2,)
+    versions: tuple[int, ...] = (1, 2)
+    type: Literal[
+        ComponentType.string_select,
+        ComponentType.channel_select,
+        ComponentType.role_select,
+        ComponentType.mentionable_select,
+        ComponentType.user_select,
+    ]
 
-    def __init__(self, data: SectionComponentPayload, state=None):
-        self.type: ComponentType = try_enum(ComponentType, data["type"])
-        self.id: int = data.get("id")
-        self.components: list[Component] = [_component_factory(d, state=state) for d in data.get("components", [])]
-        self.accessory: Component | None = None
-        if _accessory := data.get("accessory"):
-            self.accessory = _component_factory(_accessory, state=state)
-
-    def to_dict(self) -> SectionComponentPayload:
-        payload = {
-            "type": int(self.type),
-            "id": self.id,
-            "components": [c.to_dict() for c in self.components],
-        }
-        if self.accessory:
-            payload["accessory"] = self.accessory.to_dict()
-        return payload
-
-    def walk_components(self) -> Iterator[Component]:
-        r = self.components
-        if self.accessory:
-            yield from r + [self.accessory]
-        yield from r
+    def __init__(
+        self,
+        custom_id: str,
+        *,
+        placeholder: str | None = None,
+        min_values: int = 1,
+        max_values: int = 1,
+        disabled: bool = False,
+    ):
+        self.custom_id: str = custom_id
+        self.placeholder: str | None = placeholder
+        self.min_values: int = min_values
+        self.max_values: int = max_values
+        self.disabled: bool = disabled
 
 
 class TextDisplay(Component):
@@ -727,6 +644,89 @@ class Thumbnail(Component):
         if self.spoiler is not None:
             payload["spoiler"] = self.spoiler
         return payload
+
+
+AllowedSectionComponents: TypeAlias = TextDisplay
+AllowedSectionAccessoryComponents = Button | Thumbnail
+
+
+class Section(Component):
+    """Represents a Section from Components V2.
+
+    This is a component that groups other components together with an additional component to the right as the accessory.
+
+    This inherits from :class:`Component`.
+
+    .. note::
+
+        This class is not useable by end-users; see :class:`discord.ui.Section` instead.
+
+    .. versionadded:: 2.7
+
+    Attributes
+    ----------
+    components: List[:class:`Component`]
+        The components contained in this section. Currently supports :class:`TextDisplay`.
+    accessory: Optional[:class:`Component`]
+        The accessory attached to this Section. Currently supports :class:`Button` and :class:`Thumbnail`.
+
+    Parameters
+    ----------
+    components: Sequence[:class:`AllowedSectionComponents`]
+        The components contained in this section. Currently supports :class:`TextDisplay`.
+    accessory: Optional[:class:`AllowedSectionAccessoryComponents`]
+        The accessory attached to this Section. Currently supports :class:`Button` and :class:`Thumbnail`.
+    id: Optional[:class:`int`]
+        The section's ID. If not provided, it is set sequentially by Discord.
+        The ID `0` is treated as if no ID was provided.
+    """
+
+    __slots__: tuple[str, ...] = ("components", "accessory")
+
+    __repr_info__: ClassVar[tuple[str, ...]] = __slots__
+    versions: tuple[int, ...] = (2,)
+    type = ComponentType.section
+
+    def __init__(
+        self,
+        components: Sequence[AllowedSectionComponents],
+        accessory: AllowedSectionAccessoryComponents | None = None,
+        id: int | None = None,
+    ):
+        self.id: int | None = id
+        self.components: list[AllowedSectionComponents] = list(components)
+        self.accessory: AllowedSectionAccessoryComponents | None = accessory
+
+    @classmethod
+    def from_payload(cls, data: SectionComponentPayload, state=None) -> Self:
+        # self.id: int = data.get("id")
+        components: list[AllowedSectionComponents] = [
+            _component_factory(d, state=state) for d in data.get("components", [])
+        ]
+        accessory: AllowedSectionAccessoryComponents | None = None
+        if _accessory := data.get("accessory"):
+            accessory = _component_factory(_accessory, state=state)
+        return cls(
+            components=components,
+            accessory=accessory,
+            id=data.get("id"),
+        )
+
+    def to_dict(self) -> SectionComponentPayload:
+        payload = {
+            "type": int(self.type),
+            "id": self.id,
+            "components": [c.to_dict() for c in self.components],
+        }
+        if self.accessory:
+            payload["accessory"] = self.accessory.to_dict()
+        return payload
+
+    def walk_components(self) -> Iterator[AllowedSectionComponents | AllowedSectionAccessoryComponents]:
+        r = self.components
+        if self.accessory:
+            yield from r + [self.accessory]
+        yield from r
 
 
 class MediaGalleryItem:

@@ -25,7 +25,7 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import Literal, Union
+from typing import Literal, Union, Generic, TypeVar, cast
 
 from typing_extensions import NotRequired, TypedDict
 
@@ -75,26 +75,74 @@ class SelectOption(TypedDict):
     default: bool
 
 
-class SelectMenu(BaseComponent):
+T = TypeVar("T", bound=Literal["user", "role", "channel"])
+
+
+class SelectDefaultValue(TypedDict, Generic[T]):
+    id: int
+    type: T
+
+
+class StringSelect(BaseComponent):
+    type: Literal[3]
+    custom_id: str
+    options: list[SelectOption]
     placeholder: NotRequired[str]
     min_values: NotRequired[int]
     max_values: NotRequired[int]
     disabled: NotRequired[bool]
-    channel_types: NotRequired[list[ChannelType]]
-    options: NotRequired[list[SelectOption]]
-    type: Literal[3, 5, 6, 7, 8]
+
+
+class UserSelect(BaseComponent):
+    type: Literal[5]
     custom_id: str
+    placeholder: NotRequired[str]
+    default_values: NotRequired[list[SelectDefaultValue[Literal["user"]]]]
+    min_values: NotRequired[int]
+    max_values: NotRequired[int]
+    disabled: NotRequired[bool]
 
 
-class TextDisplayComponent(BaseComponent):
-    type: Literal[10]
-    content: str
+class RoleSelect(BaseComponent):
+    type: Literal[6]
+    custom_id: str
+    placeholder: NotRequired[str]
+    default_values: NotRequired[list[SelectDefaultValue[Literal["role"]]]]
+    min_values: NotRequired[int]
+    max_values: NotRequired[int]
+    disabled: NotRequired[bool]
+
+
+class MentionableSelect(BaseComponent):
+    type: Literal[7]
+    custom_id: str
+    placeholder: NotRequired[str]
+    default_values: NotRequired[list[SelectDefaultValue[Literal["role", "user", "channel"]]]]
+    min_values: NotRequired[int]
+    max_values: NotRequired[int]
+    disabled: NotRequired[bool]
+
+
+class ChannelSelect(BaseComponent):
+    type: Literal[8]
+    custom_id: str
+    channel_types: NotRequired[list[ChannelType]]
+    placeholder: NotRequired[str]
+    default_values: NotRequired[list[SelectDefaultValue[Literal["channel"]]]]
+    min_values: NotRequired[int]
+    max_values: NotRequired[int]
+    disabled: NotRequired[bool]
 
 
 class SectionComponent(BaseComponent):
     type: Literal[9]
     components: list[TextDisplayComponent]
-    accessory: NotRequired[ThumbnailComponent, ButtonComponent]
+    accessory: NotRequired[ThumbnailComponent | ButtonComponent]
+
+
+class TextDisplayComponent(BaseComponent):
+    type: Literal[10]
+    content: str
 
 
 class UnfurledMediaItem(TypedDict):
