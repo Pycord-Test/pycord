@@ -98,7 +98,7 @@ class Button(Item[V]):
         "custom_id",
         "id",
         "timeout",
-        "disable_on_timeout"
+        "disable_on_timeout",
     )
 
     def __init__(

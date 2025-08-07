@@ -25,8 +25,23 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, ClassVar, Iterator, TypeVar, Generic, Sequence, Final, TypeAlias, Literal
+from gc import disable
+from typing import (
+    TYPE_CHECKING,
+    cast,
+    ClassVar,
+    Iterator,
+    TypeVar,
+    Generic,
+    Sequence,
+    TypeAlias,
+    Literal,
+    overload,
+)
+from typing_extensions import override
 from abc import ABC, abstractmethod, abstractclassmethod
+
+from discord.types import snowflake
 
 from .asset import AssetMixin
 from .colour import Colour
@@ -41,7 +56,7 @@ from .enums import (
 from .flags import AttachmentFlags
 from .partial_emoji import PartialEmoji, _EmojiTag
 from .utils import MISSING, Undefined
-from .utils.private import get_slots
+from .state import ConnectionState
 
 if TYPE_CHECKING:
     from typing_extensions import Self
@@ -87,8 +102,10 @@ __all__ = (
     "Container",
 )
 
+
+AnyEmoji = GuildEmoji | AppEmoji | PartialEmoji
+P = TypeVar("P", bound="ComponentPayload", covariant=True)
 C = TypeVar("C", bound="Component")
-P = TypeVar("P", bound="ComponentPayload")
 
 
 class Component(ABC, Generic[P]):
@@ -127,6 +144,9 @@ class Component(ABC, Generic[P]):
     versions: tuple[int, ...]
     id: int | None
 
+    def __init__(self, id: int | None = None) -> None:
+        self.id: int | None = id
+
     def __repr__(self) -> str:
         attrs = " ".join(f"{key}={getattr(self, key)!r}" for key in self.__repr_info__)
         return f"<{self.__class__.__name__} {attrs}>"
@@ -134,7 +154,8 @@ class Component(ABC, Generic[P]):
     @abstractmethod
     def to_dict(self) -> P: ...
 
-    @abstractclassmethod
+    @abstractmethod
+    @classmethod
     def from_payload(cls, payload: P) -> Self: ...
 
     def is_v2(self) -> bool:
@@ -142,7 +163,7 @@ class Component(ABC, Generic[P]):
         return self.versions and 1 not in self.versions
 
 
-class InputText(Component):
+class InputText(Component[InputTextComponentPayload]):
     """Represents an Input Text field from the Discord Bot UI Kit.
     This inherits from :class:`Component`.
 
@@ -170,7 +191,6 @@ class InputText(Component):
     """
 
     __slots__: tuple[str, ...] = (
-        "type",
         "style",
         "custom_id",
         "label",
@@ -179,27 +199,38 @@ class InputText(Component):
         "max_length",
         "required",
         "value",
-        "id",
     )
 
     __repr_info__: ClassVar[tuple[str, ...]] = __slots__
     versions: tuple[int, ...] = (1, 2)
+    type: Literal[ComponentType.input_text] = ComponentType.input_text  # pyright: ignore[reportIncompatibleVariableOverride]
 
-    def __init__(self, data: InputTextComponentPayload):
-        self.type = ComponentType.input_text
-        self.id: int | None = data.get("id")
-        self.style: InputTextStyle = try_enum(InputTextStyle, data["style"])
-        self.custom_id = data["custom_id"]
-        self.label: str = data.get("label", None)
-        self.placeholder: str | None = data.get("placeholder", None)
-        self.min_length: int | None = data.get("min_length", None)
-        self.max_length: int | None = data.get("max_length", None)
-        self.required: bool = data.get("required", True)
-        self.value: str | None = data.get("value", None)
+    def __init__(
+        self,
+        style: int | InputTextStyle,
+        custom_id: str,
+        label: str,
+        min_lenght: int | None = None,
+        max_length: int | None = None,
+        placeholder: str | None = None,
+        required: bool = True,
+        value: str | None = None,
+        id: int | None = None,
+    ) -> None:
+        self.style: InputTextStyle = style  # pyright: ignore[reportAttributeAccessIssue]
+        self.custom_id: str = custom_id
+        self.label: str = label
+        self.min_length: int | None = min_lenght
+        self.max_length: int | None = max_length
+        self.placeholder: str | None = placeholder
+        self.required: bool = required
+        self.value: str | None = value
+        super().__init__(id=id)
 
+    @override
     def to_dict(self) -> InputTextComponentPayload:
-        payload = {
-            "type": 4,
+        payload: InputTextComponentPayload = {  # pyright: ignore[reportAssignmentType]
+            "type": int(self.type),
             "id": self.id,
             "style": self.style.value,
             "label": self.label,
@@ -225,14 +256,10 @@ class InputText(Component):
         return payload  # type: ignore
 
 
-class Button(Component):
+class Button(Component[ButtonComponentPayload]):
     """Represents a button from the Discord Bot UI Kit.
 
     This inherits from :class:`Component`.
-
-    .. note::
-
-        This class is not useable by end-users; see :class:`discord.ui.Button` instead.
 
     .. versionadded:: 2.0
 
@@ -253,6 +280,34 @@ class Button(Component):
         The emoji of the button, if available.
     sku_id: Optional[:class:`int`]
         The ID of the SKU this button refers to.
+    id: Optional[:class:`int`]
+        The button's ID. If not provided, it is set sequentially by Discord.
+        The ID `0` is treated as if no ID was provided.
+
+    Parameters
+    ----------
+    style: :class:`.ButtonStyle`
+        The style of the button.
+    custom_id: Optional[:class:`str`]
+        The ID of the button that gets received during an interaction.
+        Cannot be used with :class:`ButtonStyle.url` or :class:`ButtonStyle.premium`.
+    label: Optional[:class:`str`]
+        The label of the button, if any.
+        Cannot be used with :class:`ButtonStyle.premium`.
+    emoji: Optional[:class:`str` | :class:`PartialEmoji`]
+        The emoji of the button, if available.
+        Cannot be used with :class:`ButtonStyle.premium`.
+    disabled: :class:`bool`
+        Whether the button is disabled or not.
+    url: Optional[:class:`str`]
+        The URL this button sends you to.
+        Can only be used with :class:`ButtonStyle.url`.
+    id: Optional[:class:`int`]
+        The button's ID. If not provided, it is set sequentially by Discord.
+        The ID `0` is treated as if no ID was provided.
+    sku_id: Optional[:class:`int`]
+        The ID of the SKU this button refers to.
+        Can only be used with :class:`ButtonStyle.premium`.
     """
 
     __slots__: tuple[str, ...] = (
@@ -267,24 +322,126 @@ class Button(Component):
 
     __repr_info__: ClassVar[tuple[str, ...]] = __slots__
     versions: tuple[int, ...] = (1, 2)
+    type: Literal[ComponentType.button] = ComponentType.button  # pyright: ignore[reportIncompatibleVariableOverride]
+    width: Literal[1] = 1
 
-    def __init__(self, data: ButtonComponentPayload):
-        self.type: ComponentType = try_enum(ComponentType, data["type"])
-        self.id: int = data.get("id")
-        self.style: ButtonStyle = try_enum(ButtonStyle, data["style"])
-        self.custom_id: str | None = data.get("custom_id")
-        self.url: str | None = data.get("url")
-        self.disabled: bool = data.get("disabled", False)
-        self.label: str | None = data.get("label")
+    # Premium button
+    @overload
+    def __init__(
+        self,
+        style: Literal[ButtonStyle.premium],
+        *,
+        sku_id: int,
+        disabled: bool = False,
+        id: int | None = None,
+    ) -> None: ...
+
+    # URL button with label
+    @overload
+    def __init__(
+        self,
+        style: Literal[ButtonStyle.url],
+        *,
+        label: str,
+        emoji: str | AnyEmoji | None = None,
+        disabled: bool = False,
+        url: str,
+        id: int | None = None,
+    ) -> None: ...
+
+    # URL button with emoji
+    @overload
+    def __init__(
+        self,
+        style: Literal[ButtonStyle.url],
+        *,
+        emoji: str | AnyEmoji,
+        label: str | None = None,
+        disabled: bool = False,
+        url: str,
+        id: int | None = None,
+    ) -> None: ...
+
+    # Interactive button with label
+    @overload
+    def __init__(
+        self,
+        style: Literal[ButtonStyle.primary, ButtonStyle.secondary, ButtonStyle.success, ButtonStyle.danger],
+        *,
+        custom_id: str,
+        label: str,
+        emoji: str | AnyEmoji | None = None,
+        disabled: bool = False,
+        id: int | None = None,
+    ) -> None: ...
+
+    # Interactive button with emoji
+    @overload
+    def __init__(
+        self,
+        style: Literal[ButtonStyle.primary, ButtonStyle.secondary, ButtonStyle.success, ButtonStyle.danger],
+        *,
+        custom_id: str,
+        emoji: str | AnyEmoji,
+        label: str | None = None,
+        disabled: bool = False,
+        id: int | None = None,
+    ) -> None: ...
+
+    def __init__(
+        self,
+        style: int | ButtonStyle,
+        custom_id: str | None = None,
+        label: str | None = None,
+        emoji: str | AnyEmoji | None = None,
+        disabled: bool = False,
+        url: str | None = None,
+        id: int | None = None,
+        sku_id: int | None = None,
+    ) -> None:
+        self.style: ButtonStyle = try_enum(ButtonStyle, style)
+        self.custom_id: str | None = custom_id
+        self.url: str | None = url
+        self.disabled: bool = disabled
+        self.label: str | None = label
         self.emoji: PartialEmoji | None
-        if e := data.get("emoji"):
-            self.emoji = PartialEmoji.from_dict(e)
+        if isinstance(emoji, _EmojiTag):
+            self.emoji = emoji._to_partial()  # pyright: ignore[reportPrivateUsage]
+        elif isinstance(emoji, str):
+            self.emoji = PartialEmoji.from_str(emoji)
         else:
-            self.emoji = None
-        self.sku_id: str | None = data.get("sku_id")
+            self.emoji = emoji
+        self.sku_id: int | None = sku_id
+        super().__init__(id=id)
 
+    @classmethod
+    @override
+    def from_payload(cls, payload: ButtonComponentPayload) -> Self:
+        style = try_enum(ButtonStyle, payload["style"])
+        custom_id = payload.get("custom_id")
+        label = payload.get("label")
+        emoji = payload.get("emoji")
+        disabled = payload.get("disabled", False)
+        url = payload.get("url")
+        sku_id = payload.get("sku_id")
+
+        if emoji is not None:
+            emoji = PartialEmoji.from_dict(emoji)
+
+        return cls(  # pyright: ignore[reportCallIssue]
+            style=style,
+            custom_id=custom_id,
+            label=label,
+            emoji=emoji,
+            disabled=disabled,
+            url=url,
+            id=payload.get("id"),
+            sku_id=int(sku_id) if sku_id is not None else None,
+        )
+
+    @override
     def to_dict(self) -> ButtonComponentPayload:
-        payload = {
+        payload: ButtonComponentPayload = {  # pyright: ignore[reportAssignmentType]
             "type": 2,
             "id": self.id,
             "style": int(self.style),
@@ -298,7 +455,7 @@ class Button(Component):
             payload["url"] = self.url
 
         if self.emoji:
-            payload["emoji"] = self.emoji.to_dict()
+            payload["emoji"] = self.emoji.to_dict()  # pyright: ignore[reportGeneralTypeIssues]
 
         if self.sku_id:
             payload["sku_id"] = self.sku_id
@@ -343,7 +500,7 @@ class SelectOption:
         label: str,
         value: str | Undefined = MISSING,
         description: str | None = None,
-        emoji: str | GuildEmoji | AppEmoji | PartialEmoji | None = None,
+        emoji: str | AnyEmoji | None = None,
         default: bool = False,
     ) -> None:
         if len(label) > 100:
@@ -355,12 +512,13 @@ class SelectOption:
         if description is not None and len(description) > 100:
             raise ValueError("description must be 100 characters or fewer")
 
-        self.label = label
-        self.value = label if value is MISSING else value
-        self.description = description
+        self.label: str = label
+        self.value: str = label if value is MISSING else value
+        self.description: str | None = description
         self.emoji = emoji
-        self.default = default
+        self.default: bool = default
 
+    @override
     def __repr__(self) -> str:
         return (
             "<SelectOption"
@@ -368,6 +526,7 @@ class SelectOption:
             f"emoji={self.emoji!r} default={self.default!r}>"
         )
 
+    @override
     def __str__(self) -> str:
         base = f"{self.emoji} {self.label}" if self.emoji else self.label
         if self.description:
@@ -375,23 +534,23 @@ class SelectOption:
         return base
 
     @property
-    def emoji(self) -> str | GuildEmoji | AppEmoji | PartialEmoji | None:
+    def emoji(self) -> PartialEmoji | None:
         """The emoji of the option, if available."""
         return self._emoji
 
     @emoji.setter
-    def emoji(self, value) -> None:
+    def emoji(self, value: str | AnyEmoji | None) -> None:  # pyright: ignore[reportPropertyTypeMismatch]
         if value is not None:
             if isinstance(value, str):
                 value = PartialEmoji.from_str(value)
-            elif isinstance(value, _EmojiTag):
-                value = value._to_partial()
+            elif isinstance(value, _EmojiTag):  # pyright: ignore[reportUnnecessaryIsInstance]
+                value = value._to_partial()  # pyright: ignore[reportPrivateUsage]
             else:
-                raise TypeError(
-                    f"expected emoji to be str, GuildEmoji, AppEmoji, or PartialEmoji, not {value.__class__}"
+                raise TypeError(  # pyright: ignore[reportUnreachable]
+                    f"expected emoji to be None, str, GuildEmoji, AppEmoji, or PartialEmoji, not {value.__class__}"
                 )
 
-        self._emoji = value
+        self._emoji: PartialEmoji | None = value
 
     @classmethod
     def from_dict(cls, data: SelectOptionPayload) -> SelectOption:
@@ -416,7 +575,7 @@ class SelectOption:
         }
 
         if self.emoji:
-            payload["emoji"] = self.emoji.to_dict()  # type: ignore
+            payload["emoji"] = self.emoji.to_dict()  # type: ignore  # pyright: ignore[reportGeneralTypeIssues]
 
         if self.description:
             payload["description"] = self.description
@@ -424,9 +583,13 @@ class SelectOption:
         return payload
 
 
+SelectMenuTypes = (
+    StringSelectPayload | ChannelSelectPayload | RoleSelectPayload | MentionableSelectPayload | UserSelectPayload
+)
+
 T = TypeVar(
     "T",
-    bound="StringSelectPayload | ChannelSelectPayload | RoleSelectPayload | MentionableSelectPayload | UserSelectPayload",
+    bound=SelectMenuTypes,
 )
 
 
@@ -441,7 +604,7 @@ class SelectMenu(Component[T], ABC, Generic[T]):
 
     """
 
-    __slots__: tuple[str, ...] = (
+    __slots__: tuple[str, ...] = (  # pyright: ignore[reportIncompatibleUnannotatedOverride]
         "custom_id",
         "placeholder",
         "min_values",
@@ -451,13 +614,14 @@ class SelectMenu(Component[T], ABC, Generic[T]):
 
     __repr_info__: ClassVar[tuple[str, ...]] = __slots__
     versions: tuple[int, ...] = (1, 2)
-    type: Literal[
+    type: Literal[  # pyright: ignore[reportIncompatibleVariableOverride]
         ComponentType.string_select,
         ComponentType.channel_select,
         ComponentType.role_select,
         ComponentType.mentionable_select,
         ComponentType.user_select,
     ]
+    width: Literal[5] = 5
 
     def __init__(
         self,
@@ -467,15 +631,17 @@ class SelectMenu(Component[T], ABC, Generic[T]):
         min_values: int = 1,
         max_values: int = 1,
         disabled: bool = False,
+        id: int | None = None,
     ):
         self.custom_id: str = custom_id
         self.placeholder: str | None = placeholder
         self.min_values: int = min_values
         self.max_values: int = max_values
         self.disabled: bool = disabled
+        super().__init__(id=id)
 
 
-class TextDisplay(Component):
+class TextDisplay(Component[TextDisplayComponentPayload]):
     """Represents a Text Display from Components V2.
 
     This is a component that displays text.
@@ -506,21 +672,23 @@ class TextDisplay(Component):
 
     __repr_info__: ClassVar[tuple[str, ...]] = __slots__
     versions: tuple[int, ...] = (2,)
-    type = ComponentType.text_display
+    type: Literal[ComponentType.text_display] = ComponentType.text_display  # pyright: ignore[reportIncompatibleVariableOverride]
 
     def __init__(self, content: str, id: int | None = None):
-        self.id: int | None = id
         self.content: str = content
+        super().__init__(id=id)
 
     @classmethod
-    def from_payload(cls, data: TextDisplayComponentPayload) -> Self:
+    @override
+    def from_payload(cls, payload: TextDisplayComponentPayload) -> Self:
         return cls(
-            content=data["content"],
-            id=data["id"],
+            content=payload["content"],
+            id=payload.get("id"),
         )
 
+    @override
     def to_dict(self) -> TextDisplayComponentPayload:
-        return {"type": int(self.type), "id": self.id, "content": self.content}
+        return {"type": int(self.type), "id": self.id, "content": self.content}  # pyright: ignore[reportReturnType]
 
 
 class UnfurledMediaItem(AssetMixin):
@@ -537,7 +705,7 @@ class UnfurledMediaItem(AssetMixin):
     """
 
     def __init__(self, url: str):
-        self._state = None
+        self._state: ConnectionState | None = None
         self._url: str = url
         self.proxy_url: str | None = None
         self.height: int | None = None
@@ -547,27 +715,28 @@ class UnfurledMediaItem(AssetMixin):
         self.attachment_id: int | None = None
 
     @property
-    def url(self) -> str:
+    @override
+    def url(self) -> str:  # pyright: ignore[reportIncompatibleVariableOverride]
         """Returns this media item's url."""
         return self._url
 
     @classmethod
-    def from_dict(cls, data: UnfurledMediaItemPayload, state=None) -> UnfurledMediaItem:
+    def from_dict(cls, data: UnfurledMediaItemPayload, state: ConnectionState | None = None) -> UnfurledMediaItem:
         r = cls(data.get("url"))
         r.proxy_url = data.get("proxy_url")
         r.height = data.get("height")
         r.width = data.get("width")
         r.content_type = data.get("content_type")
-        r.flags = AttachmentFlags._from_value(data.get("flags", 0))
-        r.attachment_id = data.get("attachment_id")
+        r.flags = AttachmentFlags._from_value(data.get("flags", 0))  # pyright: ignore[reportPrivateUsage]
+        r.attachment_id = data.get("attachment_id")  # pyright: ignore[reportAttributeAccessIssue]
         r._state = state
         return r
 
-    def to_dict(self) -> dict[str, str]:
-        return {"url": self.url}
+    def to_dict(self) -> UnfurledMediaItemPayload:
+        return {"url": self.url}  # pyright: ignore[reportReturnType]
 
 
-class Thumbnail(Component):
+class Thumbnail(Component[ThumbnailComponentPayload]):
     """Represents a Thumbnail from Components V2.
 
     This is a component that displays media, such as images and videos.
@@ -607,7 +776,7 @@ class Thumbnail(Component):
 
     __repr_info__: ClassVar[tuple[str, ...]] = __slots__
     versions: tuple[int, ...] = (2,)
-    type = ComponentType.thumbnail
+    type: Literal[ComponentType.thumbnail] = ComponentType.thumbnail  # pyright: ignore[reportIncompatibleVariableOverride]
 
     def __init__(
         self,
@@ -617,10 +786,10 @@ class Thumbnail(Component):
         description: str | None = None,
         spoiler: bool | None = False,
     ):
-        self.id: int | None = id
         self.file: UnfurledMediaItem = url if isinstance(url, UnfurledMediaItem) else UnfurledMediaItem(url)
         self.description: str | None = description
         self.spoiler: bool | None = spoiler
+        super().__init__(id=id)
 
     @property
     def url(self) -> str:
@@ -628,17 +797,19 @@ class Thumbnail(Component):
         return self.file.url
 
     @classmethod
-    def from_payload(cls, payload: ThumbnailComponentPayload, state=None) -> Self:
+    @override
+    def from_payload(cls, payload: ThumbnailComponentPayload, state: ConnectionState | None = None) -> Self:
         file = UnfurledMediaItem.from_dict(payload.get("file", {}), state=state)
         return cls(
             url=file,
-            id=payload["id"],
+            id=payload.get("id"),
             description=payload.get("description"),
             spoiler=payload.get("spoiler", False),
         )
 
+    @override
     def to_dict(self) -> ThumbnailComponentPayload:
-        payload = {"type": int(self.type), "id": self.id, "media": self.media.to_dict()}
+        payload: ThumbnailComponentPayload = {"type": self.type, "id": self.id, "media": self.file.to_dict()}  # pyright: ignore[reportAssignmentType]
         if self.description:
             payload["description"] = self.description
         if self.spoiler is not None:
@@ -650,16 +821,12 @@ AllowedSectionComponents: TypeAlias = TextDisplay
 AllowedSectionAccessoryComponents = Button | Thumbnail
 
 
-class Section(Component):
+class Section(Component[SectionComponentPayload]):
     """Represents a Section from Components V2.
 
     This is a component that groups other components together with an additional component to the right as the accessory.
 
     This inherits from :class:`Component`.
-
-    .. note::
-
-        This class is not useable by end-users; see :class:`discord.ui.Section` instead.
 
     .. versionadded:: 2.7
 
@@ -685,7 +852,7 @@ class Section(Component):
 
     __repr_info__: ClassVar[tuple[str, ...]] = __slots__
     versions: tuple[int, ...] = (2,)
-    type = ComponentType.section
+    type: Literal[ComponentType.section] = ComponentType.section  # pyright: ignore[reportIncompatibleVariableOverride]
 
     def __init__(
         self,
@@ -693,27 +860,30 @@ class Section(Component):
         accessory: AllowedSectionAccessoryComponents | None = None,
         id: int | None = None,
     ):
-        self.id: int | None = id
         self.components: list[AllowedSectionComponents] = list(components)
         self.accessory: AllowedSectionAccessoryComponents | None = accessory
+        super().__init__(id=id)
 
     @classmethod
-    def from_payload(cls, data: SectionComponentPayload, state=None) -> Self:
+    @override
+    def from_payload(cls, payload: SectionComponentPayload, state: ConnectionState | None = None) -> Self:
         # self.id: int = data.get("id")
-        components: list[AllowedSectionComponents] = [
-            _component_factory(d, state=state) for d in data.get("components", [])
-        ]
+        components: list[AllowedSectionComponents] = cast(
+            "list[AllowedSectionComponents]",
+            [_component_factory(d, state=state) for d in payload.get("components", [])],
+        )
         accessory: AllowedSectionAccessoryComponents | None = None
-        if _accessory := data.get("accessory"):
-            accessory = _component_factory(_accessory, state=state)
+        if _accessory := payload.get("accessory"):
+            accessory = cast("AllowedSectionAccessoryComponents", _component_factory(_accessory, state=state))
         return cls(
             components=components,
             accessory=accessory,
-            id=data.get("id"),
+            id=payload.get("id"),
         )
 
+    @override
     def to_dict(self) -> SectionComponentPayload:
-        payload = {
+        payload: SectionComponentPayload = {  # pyright: ignore[reportAssignmentType]
             "type": int(self.type),
             "id": self.id,
             "components": [c.to_dict() for c in self.components],
@@ -747,8 +917,8 @@ class MediaGalleryItem:
         Whether the gallery item is a spoiler.
     """
 
-    def __init__(self, url, *, description=None, spoiler=False):
-        self._state = None
+    def __init__(self, url: str, *, description: str | None = None, spoiler: bool = False):
+        self._state: ConnectionState | None = None
         self.media: UnfurledMediaItem = UnfurledMediaItem(url)
         self.description: str | None = description
         self.spoiler: bool = spoiler
@@ -762,7 +932,7 @@ class MediaGalleryItem:
         return False
 
     @classmethod
-    def from_payload(cls, data: MediaGalleryItemPayload, state=None) -> MediaGalleryItem:
+    def from_payload(cls, data: MediaGalleryItemPayload, state: ConnectionState | None = None) -> MediaGalleryItem:
         media = (umi := data.get("media")) and UnfurledMediaItem.from_dict(umi, state=state)
         description = data.get("description")
         spoiler = data.get("spoiler", False)
@@ -777,11 +947,10 @@ class MediaGalleryItem:
         return r
 
     def to_dict(self) -> MediaGalleryItemPayload:
-        payload = {"media": self.media.to_dict()}
+        payload: MediaGalleryItemPayload = {"media": self.media.to_dict()}
         if self.description:
             payload["description"] = self.description
-        if self.spoiler is not None:
-            payload["spoiler"] = self.spoiler
+        payload["spoiler"] = self.spoiler
         return payload
 
 
@@ -805,19 +974,21 @@ class MediaGallery(Component[MediaGalleryComponentPayload]):
 
     __repr_info__: ClassVar[tuple[str, ...]] = __slots__
     versions: tuple[int, ...] = (2,)
-    type = ComponentType.media_gallery
+    type: Literal[ComponentType.media_gallery] = ComponentType.media_gallery  # pyright: ignore[reportIncompatibleVariableOverride]
 
     def __init__(self, items: Sequence[MediaGalleryItem], id: int | None = None):
-        self.id = id
         self.items: list[MediaGalleryItem] = list(items)
+        super().__init__(id=id)
 
     @classmethod
-    def from_payload(cls, payload: MediaGalleryComponentPayload, state=None) -> Self:
+    @override
+    def from_payload(cls, payload: MediaGalleryComponentPayload, state: ConnectionState | None = None) -> Self:
         items = [MediaGalleryItem.from_payload(d, state=state) for d in payload.get("items", [])]
-        return cls(items, id=payload["id"])
+        return cls(items, id=payload.get("id"))
 
+    @override
     def to_dict(self) -> MediaGalleryComponentPayload:
-        return {
+        return {  # pyright: ignore[reportReturnType]
             "type": int(self.type),
             "id": self.id,
             "items": [i.to_dict() for i in self.items],
@@ -855,7 +1026,7 @@ class FileComponent(Component[FileComponentPayload]):
 
     __repr_info__: ClassVar[tuple[str, ...]] = __slots__
     versions: tuple[int, ...] = (2,)
-    type = ComponentType.file
+    type: Literal[ComponentType.file] = ComponentType.file  # pyright: ignore[reportIncompatibleVariableOverride]
 
     def __init__(
         self,
@@ -864,24 +1035,28 @@ class FileComponent(Component[FileComponentPayload]):
         spoiler: bool | None = False,
         id: int | None = None,
         size: int | None = None,
-        name: int | None = None,
+        name: str | None = None,
     ) -> None:
         self.file: UnfurledMediaItem = url if isinstance(url, UnfurledMediaItem) else UnfurledMediaItem(url)
         self.spoiler: bool | None = bool(spoiler) if spoiler is not None else None
-        self.id = id
-        self.size: int = size
-        self.name: str = name
+        self.size: int | None = size
+        self.name: str | None = name
+        super().__init__(id=id)
 
     @classmethod
-    def from_payload(cls, payload: FileComponentPayload, state=None) -> Self:
+    @override
+    def from_payload(cls, payload: FileComponentPayload, state: ConnectionState | None = None) -> Self:
         file = UnfurledMediaItem.from_dict(payload.get("file", {}), state=state)
-        return cls(file, spoiler=payload.get("spoiler"), id=payload["id"], size=payload["size"], name=payload["name"])
+        return cls(
+            file, spoiler=payload.get("spoiler"), id=payload.get("id"), size=payload["size"], name=payload["name"]
+        )
 
+    @override
     def to_dict(self) -> FileComponentPayload:
         payload = {"type": int(self.type), "id": self.id, "file": self.file.to_dict()}
         if self.spoiler is not None:
             payload["spoiler"] = self.spoiler
-        return payload  # type: ignore
+        return payload  # type: ignore  # pyright: ignore[reportReturnType]
 
     @property
     def url(self) -> str:
@@ -917,23 +1092,27 @@ class Separator(Component[SeparatorComponentPayload]):
 
     __repr_info__: ClassVar[tuple[str, ...]] = __slots__
     versions: tuple[int, ...] = (2,)
-    type = ComponentType.separator
+    type: Literal[ComponentType.separator] = ComponentType.separator  # pyright: ignore[reportIncompatibleVariableOverride]
 
-    def __init__(self, divider: bool = True, spacing: SeparatorSpacingSize = SeparatorSpacingSize.small) -> None:
+    def __init__(
+        self, divider: bool = True, spacing: SeparatorSpacingSize = SeparatorSpacingSize.small, id: int | None = None
+    ) -> None:
         self.divider: bool = divider
         self.spacing: SeparatorSpacingSize = spacing
-        self.id = None
+        super().__init__(id=id)
 
     @classmethod
+    @override
     def from_payload(cls, payload: SeparatorComponentPayload) -> Self:
         self = cls(
             divider=payload.get("divider", False), spacing=try_enum(SeparatorSpacingSize, payload.get("spacing", 1))
         )
-        self.id = payload["id"]
+        self.id = payload.get("id")
         return self
 
+    @override
     def to_dict(self) -> SeparatorComponentPayload:
-        return {
+        return {  # pyright: ignore[reportReturnType]
             "type": int(self.type),
             "id": self.id,
             "divider": self.divider,
@@ -941,7 +1120,7 @@ class Separator(Component[SeparatorComponentPayload]):
         }  # type: ignore
 
 
-AllowedActionRowComponents = Button | InputText | SelectMenu
+AllowedActionRowComponents = Button | InputText | SelectMenu[SelectMenuTypes]
 
 
 class ActionRow(Component[ActionRowPayload]):
@@ -958,38 +1137,47 @@ class ActionRow(Component[ActionRowPayload]):
     ----------
     type: :class:`ComponentType`
         The type of component.
-    children: List[:class:`AllowedActionRowComponents`]
-        The children components that this holds, if any.
+    components: List[:class:`AllowedActionRowComponents`]
+        The components that this ActionRow holds, if any.
+    id: Optional[:class:`int`]
+        The action row's ID. If not provided, it is set sequentially by Discord.
+        The ID `0` is treated as if no ID was provided.
+
+    Parameters
+    ----------
+    components: Sequence[:class:`AllowedActionRowComponents`]
+
     """
 
-    __slots__: tuple[str, ...] = ("children",)
+    __slots__: tuple[str, ...] = ("components",)
 
     __repr_info__: ClassVar[tuple[str, ...]] = __slots__
     versions: tuple[int, ...] = (1, 2)
-    type = ComponentType.action_row
+    type: Literal[ComponentType.action_row] = ComponentType.action_row  # pyright: ignore[reportIncompatibleVariableOverride]
 
-    def __init__(self, children: Sequence[AllowedActionRowComponents]) -> None:
-        self.children: list[AllowedActionRowComponents] = list(children)
-        self.id = None
+    def __init__(self, components: Sequence[AllowedActionRowComponents], id: int | None = None) -> None:
+        self.components: list[AllowedActionRowComponents] = list(components)
+        super().__init__(id=id)
 
     @classmethod
+    @override
     def from_payload(cls, payload: ActionRowPayload) -> Self:
-        self = cls([_component_factory(d) for d in payload.get("components", [])])
-        self.id = payload["id"]
+        components: list[AllowedActionRowComponents] = cast(
+            "list[AllowedActionRowComponents]", [_component_factory(d) for d in payload.get("components", [])]
+        )
+        return cls(components, id=payload.get("id"))
 
     @property
     def width(self):
-        """Return the sum of the children's widths."""
-        t = 0
-        for item in self.children:
-            t += 1 if item.type is ComponentType.button else 5
-        return t
+        """Return the sum of the components' widths."""
+        return sum(getattr(c, "width", 0) for c in self.components)
 
+    @override
     def to_dict(self) -> ActionRowPayload:
-        return {
+        return {  # pyright: ignore[reportReturnType]
             "type": int(self.type),
             "id": self.id,
-            "components": [child.to_dict() for child in self.children],
+            "components": [component.to_dict() for component in self.components],
         }  # type: ignore
 
 

@@ -45,14 +45,14 @@ class BaseComponent(TypedDict):
 
 
 class ButtonComponent(BaseComponent):
+    type: Literal[2]
+    style: ButtonStyle
+    label: NotRequired[str]
+    emoji: NotRequired[PartialEmoji]
     custom_id: NotRequired[str]
     url: NotRequired[str]
     disabled: NotRequired[bool]
-    emoji: NotRequired[PartialEmoji]
-    label: NotRequired[str]
-    type: Literal[2]
-    style: ButtonStyle
-    sku_id: Snowflake
+    sku_id: NotRequired[Snowflake]
 
 
 class InputText(BaseComponent):
@@ -187,7 +187,9 @@ class SeparatorComponent(BaseComponent):
     spacing: NotRequired[SeparatorSpacingSize]
 
 
-AllowedActionRowComponents = Union[ButtonComponent, InputText, SelectMenu]
+AllowedActionRowComponents = Union[
+    ButtonComponent, InputText, StringSelect, UserSelect, RoleSelect, MentionableSelect, ChannelSelect
+]
 
 
 class ActionRow(BaseComponent):
@@ -215,7 +217,11 @@ class ContainerComponent(BaseComponent):
 Component = Union[
     ActionRow,
     ButtonComponent,
-    SelectMenu,
+    StringSelect,
+    UserSelect,
+    RoleSelect,
+    MentionableSelect,
+    ChannelSelect,
     InputText,
     TextDisplayComponent,
     SectionComponent,
