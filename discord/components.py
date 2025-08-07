@@ -226,7 +226,29 @@ class InputText(Component[InputTextComponentPayload]):
         self.required: bool = required
         self.value: str | None = value
         super().__init__(id=id)
+    @classmethod
+    @override
+    def from_payload(cls, payload: InputTextComponentPayload) -> Self:
+        style = try_enum(InputTextStyle, payload["style"])
+        custom_id = payload["custom_id"]
+        label = payload["label"]
+        min_length = payload.get("min_length")
+        max_length = payload.get("max_length")
+        placeholder = payload.get("placeholder")
+        required = payload.get("required", True)
+        value = payload.get("value")
 
+        return cls(
+            style=style,
+            custom_id=custom_id,
+            label=label,
+            min_lenght=min_length,
+            max_length=max_length,
+            placeholder=placeholder,
+            required=required,
+            value=value,
+            id=payload.get("id"),
+        )
     @override
     def to_dict(self) -> InputTextComponentPayload:
         payload: InputTextComponentPayload = {  # pyright: ignore[reportAssignmentType]
