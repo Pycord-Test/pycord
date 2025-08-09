@@ -25,10 +25,10 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from gc import disable
 from typing import (
     TYPE_CHECKING,
     cast,
+    Any,
     ClassVar,
     Iterator,
     TypeVar,
@@ -38,10 +38,8 @@ from typing import (
     Literal,
     overload,
 )
-from typing_extensions import override
-from abc import ABC, abstractmethod, abstractclassmethod
-
-from discord.types import snowflake
+from typing_extensions import override, reveal_type
+from abc import ABC, abstractmethod
 
 from .asset import AssetMixin
 from .colour import Colour
@@ -54,7 +52,7 @@ from .enums import (
     try_enum,
 )
 from .flags import AttachmentFlags
-from .partial_emoji import PartialEmoji, _EmojiTag
+from .partial_emoji import PartialEmoji, _EmojiTag  # pyright: ignore[reportPrivateUsage]
 from .utils import MISSING, Undefined
 from .state import ConnectionState
 
@@ -62,7 +60,6 @@ if TYPE_CHECKING:
     from typing_extensions import Self
     from .emoji import AppEmoji, GuildEmoji
     from .types.components import ActionRow as ActionRowPayload
-    from .types.components import BaseComponent as BaseComponentPayload
     from .types.components import ButtonComponent as ButtonComponentPayload
     from .types.components import Component as ComponentPayload
     from .types.components import ContainerComponent as ContainerComponentPayload
@@ -82,7 +79,6 @@ if TYPE_CHECKING:
     from .types.components import ThumbnailComponent as ThumbnailComponentPayload
     from .types.components import UnfurledMediaItem as UnfurledMediaItemPayload
     from .types.components import AllowedContainerComponents as AllowedContainerComponentsPayloads
-    from .types.components import AllowedActionRowComponents as AllowedActionRowComponentsPayloads
 
 __all__ = (
     "Component",
@@ -105,7 +101,7 @@ __all__ = (
 
 AnyEmoji = GuildEmoji | AppEmoji | PartialEmoji
 P = TypeVar("P", bound="ComponentPayload", covariant=True)
-C = TypeVar("C", bound="Component")
+C = TypeVar("C", bound="Component[ComponentPayload]", covariant=True)
 
 
 class Component(ABC, Generic[P]):
@@ -137,16 +133,16 @@ class Component(ABC, Generic[P]):
         The ID `0` is treated as if no ID was provided.
     """
 
-    __slots__: tuple[str, ...] = ("type", "id")
+    __slots__: tuple[str, ...] = ("type", "id")  # pyright: ignore[reportIncompatibleUnannotatedOverride]
 
     __repr_info__: ClassVar[tuple[str, ...]]
     type: ComponentType
     versions: tuple[int, ...]
-    id: int | None
 
     def __init__(self, id: int | None = None) -> None:
         self.id: int | None = id
 
+    @override
     def __repr__(self) -> str:
         attrs = " ".join(f"{key}={getattr(self, key)!r}" for key in self.__repr_info__)
         return f"<{self.__class__.__name__} {attrs}>"
@@ -156,11 +152,38 @@ class Component(ABC, Generic[P]):
 
     @abstractmethod
     @classmethod
-    def from_payload(cls, payload: P) -> Self: ...
+    def from_payload(cls, payload: P) -> Self: ...  # pyright: ignore[reportGeneralTypeIssues]
 
     def is_v2(self) -> bool:
         """Whether this component was introduced in Components V2."""
-        return self.versions and 1 not in self.versions
+        return bool(self.versions and 1 not in self.versions)
+
+
+class StateComponent(Component[P], ABC):
+    @abstractmethod
+    @classmethod
+    @override
+    def from_payload(cls, payload: P, state: ConnectionState | None = None) -> Self:  # pyright: ignore[reportGeneralTypeIssues]
+        ...
+
+
+class WalkableComponent(ABC, Generic[C]):
+    """A component that can be walked through.
+
+    This is an abstract class and cannot be instantiated directly.
+    It is used to represent components that can be walked through, such as :class:`ActionRow`, :class:`Container` and :class:`Section`.
+    """
+
+    __slots__: tuple[str, ...] = ("components",)  # pyright: ignore[reportIncompatibleUnannotatedOverride]
+    components: list[C]
+
+    def walk_components(self) -> Iterator[C]:
+        """Walks through the components in this component."""
+        for component in self.components:
+            if isinstance(component, WalkableComponent):
+                yield from component.walk_components()  # pyright: ignore[reportReturnType]
+            else:
+                yield component
 
 
 class InputText(Component[InputTextComponentPayload]):
@@ -226,6 +249,7 @@ class InputText(Component[InputTextComponentPayload]):
         self.required: bool = required
         self.value: str | None = value
         super().__init__(id=id)
+
     @classmethod
     @override
     def from_payload(cls, payload: InputTextComponentPayload) -> Self:
@@ -249,6 +273,7 @@ class InputText(Component[InputTextComponentPayload]):
             value=value,
             id=payload.get("id"),
         )
+
     @override
     def to_dict(self) -> InputTextComponentPayload:
         payload: InputTextComponentPayload = {  # pyright: ignore[reportAssignmentType]
@@ -663,6 +688,57 @@ class SelectMenu(Component[T], ABC, Generic[T]):
         super().__init__(id=id)
 
 
+class StringSelectMenu(SelectMenu[StringSelectPayload]):
+    """Represents a string select menu from the Discord Bot UI Kit.
+
+    This inherits from :class:`SelectMenu`.
+
+    .. versionadded:: 3.0
+
+    Attributes
+    ----------
+    options: List[:class:`SelectOption`]
+        The options available in this select menu.
+    custom_id: :class:`str`
+        The custom ID of the select menu that gets received during an interaction.
+    placeholder: Optional[:class:`str`]
+        The placeholder text that is shown if nothing is selected, if any.
+    min_values: :class:`int`
+        The minimum number of values that must be selected.
+        Defaults to 1.
+    max_values: :class:`int`
+        The maximum number of values that can be selected.
+        Defaults to 1.
+    disabled: :class:`bool`
+        Whether the select menu is disabled or not.
+        Defaults to ``False``.
+    id: Optional[:class:`int`]
+        The select menu's ID. If not provided, it is set sequentially by Discord.
+        The ID `0` is treated as if no ID was provided.
+
+    Parameters
+    ----------
+    custom_id: :class:`str`
+        The custom ID of the select menu that gets received during an interaction.
+    options: Sequence[:class:`SelectOption`]
+        The options available in this select menu.
+    placeholder: Optional[:class:`str`]
+        The placeholder text that is shown if nothing is selected, if any.
+    min_values: :class:`int`
+        The minimum number of values that must be selected.
+        Defaults to 1.
+    max_values: :class:`int`
+        The maximum number of values that can be selected.
+        Defaults to 1.
+    disabled: :class:`bool`
+        Whether the select menu is disabled or not. Defaults to ``False``.
+    id: Optional[:class:`int`]
+        The select menu's ID. If not provided, it is set sequentially by Discord.
+        The ID `0` is treated as if no ID was provided.
+    """
+
+
+
 class TextDisplay(Component[TextDisplayComponentPayload]):
     """Represents a Text Display from Components V2.
 
@@ -758,7 +834,7 @@ class UnfurledMediaItem(AssetMixin):
         return {"url": self.url}  # pyright: ignore[reportReturnType]
 
 
-class Thumbnail(Component[ThumbnailComponentPayload]):
+class Thumbnail(StateComponent[ThumbnailComponentPayload]):
     """Represents a Thumbnail from Components V2.
 
     This is a component that displays media, such as images and videos.
@@ -843,7 +919,10 @@ AllowedSectionComponents: TypeAlias = TextDisplay
 AllowedSectionAccessoryComponents = Button | Thumbnail
 
 
-class Section(Component[SectionComponentPayload]):
+class Section(
+    StateComponent[SectionComponentPayload],
+    WalkableComponent[AllowedSectionComponents | AllowedSectionAccessoryComponents],
+):
     """Represents a Section from Components V2.
 
     This is a component that groups other components together with an additional component to the right as the accessory.
@@ -882,7 +961,7 @@ class Section(Component[SectionComponentPayload]):
         accessory: AllowedSectionAccessoryComponents | None = None,
         id: int | None = None,
     ):
-        self.components: list[AllowedSectionComponents] = list(components)
+        self.components: list[AllowedSectionComponents] = list(components)  # pyright: ignore[reportIncompatibleVariableOverride]
         self.accessory: AllowedSectionAccessoryComponents | None = accessory
         super().__init__(id=id)
 
@@ -913,12 +992,6 @@ class Section(Component[SectionComponentPayload]):
         if self.accessory:
             payload["accessory"] = self.accessory.to_dict()
         return payload
-
-    def walk_components(self) -> Iterator[AllowedSectionComponents | AllowedSectionAccessoryComponents]:
-        r = self.components
-        if self.accessory:
-            yield from r + [self.accessory]
-        yield from r
 
 
 class MediaGalleryItem:
@@ -976,7 +1049,7 @@ class MediaGalleryItem:
         return payload
 
 
-class MediaGallery(Component[MediaGalleryComponentPayload]):
+class MediaGallery(StateComponent[MediaGalleryComponentPayload]):
     """Represents a Media Gallery from Components V2.
 
     This is a component that displays up to 10 different :class:`MediaGalleryItem` objects.
@@ -1017,7 +1090,7 @@ class MediaGallery(Component[MediaGalleryComponentPayload]):
         }
 
 
-class FileComponent(Component[FileComponentPayload]):
+class FileComponent(StateComponent[FileComponentPayload]):
     """Represents a File from Components V2.
 
     This component displays a downloadable file in a message.
@@ -1145,7 +1218,7 @@ class Separator(Component[SeparatorComponentPayload]):
 AllowedActionRowComponents = Button | InputText | SelectMenu[SelectMenuTypes]
 
 
-class ActionRow(Component[ActionRowPayload]):
+class ActionRow(Component[ActionRowPayload], WalkableComponent[AllowedActionRowComponents]):
     """Represents a Discord Bot UI Kit Action Row.
 
     This is a component that holds up to 5 children components in a row.
@@ -1203,7 +1276,10 @@ class ActionRow(Component[ActionRowPayload]):
         }  # type: ignore
 
 
-class Container(Component):
+AllowedContainerComponents = ActionRow | TextDisplay | Section | MediaGallery | Separator | FileComponent
+
+
+class Container(Component[ContainerComponentPayload], WalkableComponent[AllowedContainerComponents]):
     """Represents a Container from Components V2.
 
     This is a component that contains different :class:`Component` objects.
@@ -1218,11 +1294,8 @@ class Container(Component):
 
     This inherits from :class:`Component`.
 
-    .. note::
-
-        This class is not useable by end-users; see :class:`discord.ui.Container` instead.
-
     .. versionadded:: 2.7
+    .. versionchanged:: 3.0
 
     Attributes
     ----------
@@ -1242,19 +1315,25 @@ class Container(Component):
 
     __repr_info__: ClassVar[tuple[str, ...]] = __slots__
     versions: tuple[int, ...] = (2,)
+    type: Literal[ComponentType.container] = ComponentType.container  # pyright: ignore[reportIncompatibleVariableOverride]
 
-    def __init__(self, data: ContainerComponentPayload, state=None):
-        self.type: ComponentType = try_enum(ComponentType, data["type"])
-        self.id: int = data.get("id")
-        self.accent_color: Colour | None = (c := data.get("accent_color")) and Colour(
-            c
-        )  # at this point, not adding alternative spelling
-        self.spoiler: bool | None = data.get("spoiler")
-        self.components: list[Component] = [_component_factory(d, state=state) for d in data.get("components", [])]
+    def __init__(
+        self,
+        accent_color: Colour | None = None,
+        spoiler: bool | None = False,
+        id: int | None = None,
+        *,
+        components: Sequence[AllowedContainerComponents] = (),
+    ) -> None:
+        self.accent_color: Colour | None = accent_color
+        self.spoiler: bool | None = spoiler
+        self.components: list[AllowedContainerComponents] = list(components)
+        super().__init__(id=id)
 
+    @override
     def to_dict(self) -> ContainerComponentPayload:
-        payload = {
-            "type": int(self.type),
+        payload: ContainerComponentPayload = {
+            "type": int(self.type),  # pyright: ignore[reportAssignmentType]
             "id": self.id,
             "components": [c.to_dict() for c in self.components],
         }
@@ -1264,12 +1343,55 @@ class Container(Component):
             payload["spoiler"] = self.spoiler
         return payload
 
-    def walk_components(self) -> Iterator[Component]:
-        for c in self.components:
-            if hasattr(c, "walk_components"):
-                yield from c.walk_components()
-            else:
-                yield c
+    @classmethod
+    @override
+    def from_payload(cls, payload: ContainerComponentPayload, state: ConnectionState | None = None) -> Self:
+        components: list[AllowedContainerComponents] = cast(
+            "list[AllowedContainerComponents]",
+            [_component_factory(d, state=state) for d in payload.get("components", [])],
+        )
+        accent_color = Colour(c) if (c := payload.get("accent_color") is not None) else None
+        return cls(
+            accent_color=accent_color,
+            spoiler=payload.get("spoiler"),
+            id=payload.get("id"),
+            components=components,
+        )
+
+
+class UnknownComponent(Component[ComponentPayload]):
+    """Represents an unknown component.
+
+    This is used when the component type is not recognized by the library,
+    for example if a new component is introduced by Discord.
+
+    .. versionadded:: 3.0
+
+    Attributes
+    ----------
+    type: :class:`ComponentType`
+        The type of the unknown component.
+
+    """
+
+    __slots__: tuple[str, ...] = ("type",)
+
+    def __init__(self, type: ComponentType, id: int | None = None) -> None:
+        self.type: ComponentType = type
+        super().__init__(id=id)
+
+    @override
+    def to_dict(self) -> ComponentPayload:
+        return {"type": int(self.type)}  # pyright: ignore[reportReturnType]
+
+    @classmethod
+    @override
+    def from_payload(cls, payload: ComponentPayload) -> Self:
+        type_ = try_enum(ComponentType, payload.pop("type", 0))
+        self = cls(type_, id=payload.pop("id", None))
+        for key, value in payload.items():
+            setattr(self, key, value)
+        return self
 
 
 COMPONENT_MAPPINGS = {
@@ -1293,13 +1415,12 @@ COMPONENT_MAPPINGS = {
 STATE_COMPONENTS = (Section, Container, Thumbnail, MediaGallery, FileComponent)
 
 
-def _component_factory(data: ComponentPayload, state=None) -> Component:
+def _component_factory(data: P, state: ConnectionState | None = None) -> Component[P]:
     component_type = data["type"]
     if cls := COMPONENT_MAPPINGS.get(component_type):
-        if issubclass(cls, STATE_COMPONENTS):
-            return cls(data, state=state)
+        if issubclass(cls, StateComponent):
+            return cls(data, state=state)  # pyright: ignore[reportCallIssue, reportReturnType]
         else:
-            return cls(data)
+            return cls(data)  # pyright: ignore[reportArgumentType, reportCallIssue, reportReturnType, reportUnknownVariableType]
     else:
-        as_enum = try_enum(ComponentType, component_type)
-        return Component._raw_construct(type=as_enum)  # TODO: implement something else here for Unknown Components
+        return UnknownComponent.from_payload(data)  # pyright: ignore[reportReturnType]
