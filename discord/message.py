@@ -34,17 +34,17 @@ from typing import (
     Any,
     Callable,
     ClassVar,
-    Sequence,
     TypeVar,
     Union,
     overload,
 )
 from urllib.parse import parse_qs, urlparse
+from collections.abc import Sequence
 
 from .utils.private import get_as_snowflake, parse_time, warn_deprecated, delay_task, cached_slot_property
 from . import utils
 from .channel import PartialMessageable
-from .components import _component_factory
+from .components import _component_factory, AnyComponent
 from .embeds import Embed
 from .emoji import AppEmoji, GuildEmoji
 from .enums import ChannelType, MessageReferenceType, MessageType, try_enum
@@ -92,8 +92,8 @@ if TYPE_CHECKING:
     from .types.snowflake import SnowflakeList
     from .types.threads import ThreadArchiveDuration
     from .types.user import User as UserPayload
-    from .ui.view import View
     from .user import User
+    from .components import Component
 
     MR = TypeVar("MR", bound="MessageReference")
     EmojiInputType = Union[GuildEmoji, AppEmoji, PartialEmoji, str]
@@ -1556,7 +1556,7 @@ class Message(Hashable):
         suppress: bool = ...,
         delete_after: float | None = ...,
         allowed_mentions: AllowedMentions | None = ...,
-        view: View | None = ...,
+        components: Sequence[AnyComponent] | None | utils.Undefined = MISSING,
     ) -> Message: ...
 
     async def edit(
@@ -1570,7 +1570,7 @@ class Message(Hashable):
         suppress: bool | utils.Undefined = MISSING,
         delete_after: float | None = None,
         allowed_mentions: AllowedMentions | None | utils.Undefined = MISSING,
-        view: View | None | utils.Undefined = MISSING,
+        components: Sequence[AnyComponent] | None | utils.Undefined = MISSING,
     ) -> Message:
         """|coro|
 
@@ -1619,9 +1619,8 @@ class Message(Hashable):
             are used instead.
 
             .. versionadded:: 1.4
-        view: Optional[:class:`~discord.ui.View`]
-            The updated view to update this message with. If ``None`` is passed then
-            the view is removed.
+        components: Optional[Sequence[:class:`AnyComponent`]]
+            The new components to replace the originals with. If ``None`` is passed then the components are removed.
 
         Raises
         ------
@@ -1666,11 +1665,14 @@ class Message(Hashable):
         if attachments is not MISSING:
             payload["attachments"] = [a.to_dict() for a in attachments]
 
-        if view is not MISSING:
-            self._state.prevent_view_updates_for(self.id)
-            payload["components"] = view.to_components() if view else []
-            if view and view.is_components_v2():
-                flags.is_components_v2 = True
+        if components is not MISSING:
+            payload["components"] = []
+            if components:
+                for c in components:
+                    if c.any_is_v2()():
+                        flags.is_components_v2 = True
+                    payload["components"].append(c.to_dict())
+
         if file is not MISSING and files is not MISSING:
             raise InvalidArgument("cannot pass both file and files parameter to edit()")
 
@@ -1704,12 +1706,6 @@ class Message(Hashable):
         else:
             data = await self._state.http.edit_message(self.channel.id, self.id, **payload)
         message = Message(state=self._state, channel=self.channel, data=data)
-
-        if view and not view.is_finished():
-            view.message = message
-            view.refresh(message.components)
-            if view.is_dispatchable():
-                self._state.store_view(view, self.id)
 
         if delete_after is not None:
             await self.delete(delay=delete_after)
@@ -2256,11 +2252,12 @@ class PartialMessage(Hashable):
             to the object, otherwise it uses the attributes set in :attr:`~discord.Client.allowed_mentions`.
             If no object is passed at all then the defaults given by :attr:`~discord.Client.allowed_mentions`
             are used instead.
-        view: Optional[:class:`~discord.ui.View`]
-            The updated view to update this message with. If ``None`` is passed then
-            the view is removed.
+        components: Optional[Sequence[AnyComponent]]
+            The new components to replace the originals with. If ``None`` is passed then the components
+            are removed.
 
-            .. versionadded:: 2.0
+            ..versionchanged:: 3.0
+                Changed from view to components.
 
         Returns
         -------
@@ -2313,10 +2310,14 @@ class PartialMessage(Hashable):
                 self._state.allowed_mentions.to_dict() if self._state.allowed_mentions else None
             )
 
-        view = fields.pop("view", MISSING)
-        if view is not MISSING:
-            self._state.prevent_view_updates_for(self.id)
-            fields["components"] = view.to_components() if view else []
+        components = fields.pop("components", MISSING)
+        if components is not MISSING:
+            fields["components"] = []
+            if components:
+                for c in components:
+                    if c.any_is_v2():
+                        flags.is_components_v2 = True
+                    fields["components"].append(c.to_dict())
 
         if fields:
             data = await self._state.http.edit_message(self.channel.id, self.id, **fields)
@@ -2327,11 +2328,6 @@ class PartialMessage(Hashable):
         if fields:
             # data isn't unbound
             msg = self._state.create_message(channel=self.channel, data=data)  # type: ignore
-            if view and not view.is_finished():
-                view.message = msg
-                view.refresh(msg.components)
-                if view.is_dispatchable():
-                    self._state.store_view(view, self.id)
             return msg
 
     async def end_poll(self) -> Message:

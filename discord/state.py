@@ -51,7 +51,6 @@ from .audit_logs import AuditLogEntry
 from .automod import AutoModRule
 from .channel import *
 from .channel import _channel_factory
-from .components import Component
 from .emoji import AppEmoji, GuildEmoji
 from .enums import ChannelType, InteractionType, ScheduledEventStatus, Status, try_enum
 from .flags import ApplicationFlags, Intents, MemberCacheFlags
@@ -72,8 +71,6 @@ from .scheduled_events import ScheduledEvent
 from .stage_instance import StageInstance
 from .sticker import GuildSticker
 from .threads import Thread, ThreadMember
-from .ui.modal import Modal, ModalStore
-from .ui.view import View, ViewStore
 from .user import ClientUser, User
 
 if TYPE_CHECKING:
@@ -249,7 +246,7 @@ class ConnectionState:
 
         self.clear()
 
-    def clear(self, *, views: bool = True) -> None:
+    def clear(self) -> None:
         self.user: ClientUser | None = None
         # Originally, this code used WeakValueDictionary to maintain references to the
         # global user mapping.
@@ -268,9 +265,6 @@ class ConnectionState:
         self._stickers: dict[int, GuildSticker] = {}
         self._guilds: dict[int, Guild] = {}
         self._polls: dict[int, Poll] = {}
-        if views:
-            self._view_store: ViewStore = ViewStore(self)
-        self._modal_store: ModalStore = ModalStore(self)
         self._voice_clients: dict[int, VoiceClient] = {}
 
         # LRU of max size 128
@@ -381,21 +375,6 @@ class ConnectionState:
         sticker_id = int(data["id"])
         self._stickers[sticker_id] = sticker = GuildSticker(state=self, data=data)
         return sticker
-
-    def store_view(self, view: View, message_id: int | None = None) -> None:
-        self._view_store.add_view(view, message_id)
-
-    def store_component(self, component: Component) -> None: ...
-
-    def store_modal(self, modal: Modal, message_id: int) -> None:
-        self._modal_store.add_modal(modal, message_id)
-
-    def prevent_view_updates_for(self, message_id: int) -> View | None:
-        return self._view_store.remove_message_tracking(message_id)
-
-    @property
-    def persistent_views(self) -> Sequence[View]:
-        return self._view_store.persistent_views
 
     @property
     def guilds(self) -> list[Guild]:
@@ -631,7 +610,7 @@ class ConnectionState:
             self._ready_task.cancel()
 
         self._ready_state = asyncio.Queue()
-        self.clear(views=False)
+        self.clear()
         self.user = ClientUser(state=self, data=data["user"])
         self.store_user(data["user"])
 
@@ -754,9 +733,6 @@ class ConnectionState:
             if poll_data := data.get("poll"):
                 self.store_raw_poll(poll_data, raw)
             self.dispatch("raw_message_edit", raw)
-
-        if "components" in data and self._view_store.is_message_tracked(raw.message_id):
-            self._view_store.update_from_message(raw.message_id, data["components"])
 
     def parse_message_reaction_add(self, data) -> None:
         emoji = data["emoji"]
@@ -895,13 +871,13 @@ class ConnectionState:
         if data["type"] == 3:  # interaction component
             custom_id = interaction.data["custom_id"]  # type: ignore
             component_type = interaction.data["component_type"]  # type: ignore
-            self._view_store.dispatch(component_type, custom_id, interaction)
+            # TODO: components interactions
         if interaction.type == InteractionType.modal_submit:
             user_id, custom_id = (
                 interaction.user.id,
                 interaction.data["custom_id"],
             )
-            asyncio.create_task(self._modal_store.dispatch(user_id, custom_id, interaction))
+            # TODO: modal interactions
 
         self.dispatch("interaction", interaction)
 

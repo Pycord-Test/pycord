@@ -26,8 +26,11 @@ DEALINGS IN THE SOFTWARE.
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Sequence
 import datetime
 from typing import TYPE_CHECKING, Any, Coroutine, Union
+
+from .components import AnyComponent
 
 from .utils.private import get_as_snowflake, deprecated, delay_task, cached_slot_property
 from . import utils
@@ -87,8 +90,6 @@ if TYPE_CHECKING:
     from .types.interactions import InteractionData
     from .types.interactions import InteractionMetadata as InteractionMetadataPayload
     from .types.interactions import MessageInteraction as MessageInteractionPayload
-    from .ui.modal import Modal
-    from .ui.view import View
 
     InteractionChannel = Union[
         VoiceChannel,
@@ -187,8 +188,6 @@ class Interaction:
         "context",
         "authorizing_integration_owners",
         "command",
-        "view",
-        "modal",
         "_channel_data",
         "_message_data",
         "_guild_data",
@@ -236,8 +235,6 @@ class Interaction:
         )
 
         self.command: ApplicationCommand | None = None
-        self.view: View | None = None
-        self.modal: Modal | None = None
 
         self.message: Message | None = None
         self.channel = None
@@ -480,7 +477,7 @@ class Interaction:
         file: File | utils.Undefined = MISSING,
         files: list[File] | utils.Undefined = MISSING,
         attachments: list[Attachment] | utils.Undefined = MISSING,
-        view: View | None | utils.Undefined = MISSING,
+        components: Sequence[AnyComponent] | None | utils.Undefined = MISSING,
         allowed_mentions: AllowedMentions | None = None,
         delete_after: float | None = None,
         suppress: bool = False,
@@ -515,9 +512,11 @@ class Interaction:
         allowed_mentions: :class:`AllowedMentions`
             Controls the mentions being processed in this message.
             See :meth:`.abc.Messageable.send` for more information.
-        view: Optional[:class:`~discord.ui.View`]
-            The updated view to update this message with. If ``None`` is passed then
-            the view is removed.
+        components: Optional[Sequence[AnyComponent]]
+            The updated components to update this message with. If ``None`` is passed then
+            the components are removed.
+
+            ..versionadded:: 3.0
         delete_after: Optional[:class:`float`]
             If provided, the number of seconds to wait in the background
             before deleting the message we just edited. If the deletion fails,

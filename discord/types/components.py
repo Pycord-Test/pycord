@@ -25,7 +25,7 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import Literal, Union, Generic, TypeVar, cast
+from typing import Literal, Union, Generic, TypeVar
 
 from typing_extensions import NotRequired, TypedDict
 
@@ -45,7 +45,7 @@ class BaseComponent(TypedDict):
 
 
 class ButtonComponent(BaseComponent):
-    type: Literal[2]
+    type: Literal[2]  # pyright: ignore[reportIncompatibleVariableOverride]
     style: ButtonStyle
     label: NotRequired[str]
     emoji: NotRequired[PartialEmoji]
@@ -56,12 +56,12 @@ class ButtonComponent(BaseComponent):
 
 
 class InputText(BaseComponent):
+    type: Literal[4]  # pyright: ignore[reportIncompatibleVariableOverride]
     min_length: NotRequired[int]
     max_length: NotRequired[int]
     required: NotRequired[bool]
     placeholder: NotRequired[str]
     value: NotRequired[str]
-    type: Literal[4]
     style: InputTextStyle
     custom_id: str
     label: str
@@ -84,7 +84,7 @@ class SelectDefaultValue(TypedDict, Generic[T]):
 
 
 class StringSelect(BaseComponent):
-    type: Literal[3]
+    type: Literal[3]  # pyright: ignore[reportIncompatibleVariableOverride]
     custom_id: str
     options: list[SelectOption]
     placeholder: NotRequired[str]
@@ -94,7 +94,7 @@ class StringSelect(BaseComponent):
 
 
 class UserSelect(BaseComponent):
-    type: Literal[5]
+    type: Literal[5]  # pyright: ignore[reportIncompatibleVariableOverride]
     custom_id: str
     placeholder: NotRequired[str]
     default_values: NotRequired[list[SelectDefaultValue[Literal["user"]]]]
@@ -104,7 +104,7 @@ class UserSelect(BaseComponent):
 
 
 class RoleSelect(BaseComponent):
-    type: Literal[6]
+    type: Literal[6]  # pyright: ignore[reportIncompatibleVariableOverride]
     custom_id: str
     placeholder: NotRequired[str]
     default_values: NotRequired[list[SelectDefaultValue[Literal["role"]]]]
@@ -114,17 +114,17 @@ class RoleSelect(BaseComponent):
 
 
 class MentionableSelect(BaseComponent):
-    type: Literal[7]
+    type: Literal[7]  # pyright: ignore[reportIncompatibleVariableOverride]
     custom_id: str
     placeholder: NotRequired[str]
-    default_values: NotRequired[list[SelectDefaultValue[Literal["role", "user", "channel"]]]]
+    default_values: NotRequired[list[SelectDefaultValue[Literal["role", "user"]]]]
     min_values: NotRequired[int]
     max_values: NotRequired[int]
     disabled: NotRequired[bool]
 
 
 class ChannelSelect(BaseComponent):
-    type: Literal[8]
+    type: Literal[8]  # pyright: ignore[reportIncompatibleVariableOverride]
     custom_id: str
     channel_types: NotRequired[list[ChannelType]]
     placeholder: NotRequired[str]
@@ -135,13 +135,13 @@ class ChannelSelect(BaseComponent):
 
 
 class SectionComponent(BaseComponent):
-    type: Literal[9]
+    type: Literal[9]  # pyright: ignore[reportIncompatibleVariableOverride]
     components: list[TextDisplayComponent]
     accessory: NotRequired[ThumbnailComponent | ButtonComponent]
 
 
 class TextDisplayComponent(BaseComponent):
-    type: Literal[10]
+    type: Literal[10]  # pyright: ignore[reportIncompatibleVariableOverride]
     content: str
 
 
@@ -156,7 +156,7 @@ class UnfurledMediaItem(TypedDict):
 
 
 class ThumbnailComponent(BaseComponent):
-    type: Literal[11]
+    type: Literal[11]  # pyright: ignore[reportIncompatibleVariableOverride]
     media: UnfurledMediaItem
     description: NotRequired[str]
     spoiler: NotRequired[bool]
@@ -169,12 +169,12 @@ class MediaGalleryItem(TypedDict):
 
 
 class MediaGalleryComponent(BaseComponent):
-    type: Literal[12]
+    type: Literal[12]  # pyright: ignore[reportIncompatibleVariableOverride]
     items: list[MediaGalleryItem]
 
 
 class FileComponent(BaseComponent):
-    type: Literal[13]
+    type: Literal[13]  # pyright: ignore[reportIncompatibleVariableOverride]
     file: UnfurledMediaItem
     spoiler: NotRequired[bool]
     name: str
@@ -182,7 +182,7 @@ class FileComponent(BaseComponent):
 
 
 class SeparatorComponent(BaseComponent):
-    type: Literal[14]
+    type: Literal[14]  # pyright: ignore[reportIncompatibleVariableOverride]
     divider: NotRequired[bool]
     spacing: NotRequired[SeparatorSpacingSize]
 
@@ -193,7 +193,7 @@ AllowedActionRowComponents = Union[
 
 
 class ActionRow(BaseComponent):
-    type: Literal[1]
+    type: Literal[1]  # pyright: ignore[reportIncompatibleVariableOverride]
     components: list[AllowedActionRowComponents]
 
 
@@ -208,7 +208,7 @@ AllowedContainerComponents = Union[
 
 
 class ContainerComponent(BaseComponent):
-    type: Literal[17]
+    type: Literal[17]  # pyright: ignore[reportIncompatibleVariableOverride]
     accent_color: NotRequired[int]
     spoiler: NotRequired[bool]
     components: list[AllowedContainerComponents]

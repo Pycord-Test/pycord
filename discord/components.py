@@ -28,24 +28,22 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     cast,
-    Any,
     ClassVar,
-    Iterator,
     TypeVar,
     Generic,
-    Sequence,
     TypeAlias,
     Literal,
     overload,
 )
-from typing_extensions import override, reveal_type
+from collections.abc import Iterator, Sequence
+from typing_extensions import override
 from abc import ABC, abstractmethod
+
 
 from .asset import AssetMixin
 from .colour import Colour
 from .enums import (
     ButtonStyle,
-    ChannelType,
     ComponentType,
     InputTextStyle,
     SeparatorSpacingSize,
@@ -78,7 +76,7 @@ if TYPE_CHECKING:
     from .types.components import TextDisplayComponent as TextDisplayComponentPayload
     from .types.components import ThumbnailComponent as ThumbnailComponentPayload
     from .types.components import UnfurledMediaItem as UnfurledMediaItemPayload
-    from .types.components import AllowedContainerComponents as AllowedContainerComponentsPayloads
+    from .types.components import SelectDefaultValue
 
 __all__ = (
     "Component",
@@ -158,6 +156,17 @@ class Component(ABC, Generic[P]):
         """Whether this component was introduced in Components V2."""
         return bool(self.versions and 1 not in self.versions)
 
+    def any_is_v2(self) -> bool:
+        """Whether this component or any of its children were introduced in Components V2."""
+        return self.is_v2()
+
+    def is_dispatchable(self) -> bool:
+        """Wether this component can be interacted with and lead to a :class:`Interaction`"""
+        return False
+
+    def any_is_dispatchable(self) -> bool:
+        """Whether this component or any of its children can be interacted with and lead to a :class:`Interaction`"""
+        return self.is_dispatchable()
 
 class StateComponent(Component[P], ABC):
     @abstractmethod
@@ -167,7 +176,7 @@ class StateComponent(Component[P], ABC):
         ...
 
 
-class WalkableComponent(ABC, Generic[C]):
+class WalkableComponent(Component[P], ABC, Generic[P, C]):
     """A component that can be walked through.
 
     This is an abstract class and cannot be instantiated directly.
@@ -181,9 +190,19 @@ class WalkableComponent(ABC, Generic[C]):
         """Walks through the components in this component."""
         for component in self.components:
             if isinstance(component, WalkableComponent):
-                yield from component.walk_components()  # pyright: ignore[reportReturnType]
+                yield from component.walk_components()
             else:
                 yield component
+
+    @override
+    def any_is_v2(self) -> bool:
+        """Whether this component or any of its children were introduced in Components V2."""
+        return self.is_v2() or any(c.any_is_v2() for c in self.walk_components())
+
+    @override
+    def any_is_dispatchable(self) -> bool:
+        """Whether this component or any of its children can be interacted with and lead to a :class:`Interaction`"""
+        return self.is_dispatchable() or any(c.any_is_dispatchable() for c in self.walk_components())
 
 
 class InputText(Component[InputTextComponentPayload]):
@@ -630,6 +649,55 @@ class SelectOption:
         return payload
 
 
+DT = TypeVar("DT", bound='Literal["user", "role", "channel"]')
+
+
+class DefaultSelectOption(Generic[DT]):
+    """
+    Represents a default select menu option.
+    Can only be used :class:`UserSelectMenu`, :class:`RoleSelectMenu`, and :class:`MentionableSelectMenu`.
+
+    .. versionadded:: 3.0
+
+    Attributes
+    ----------
+    id: :class:`int`
+        The ID of the default option.
+    type: :class:`str`
+        The type of the default option. This can be either "user", "role", or "channel".
+        This is used to determine which type of select menu this option belongs to.
+    """
+
+    __slots__: tuple[str, ...] = ("id", "type")
+
+    def __init__(
+        self,
+        id: int,
+        type: DT,
+    ) -> None:
+        self.id: int = id
+        self.type: DT = type
+
+    @override
+    def __repr__(self) -> str:
+        return f"<DefaultSelectOption id={self.id!r} type={self.type!r}>"
+
+    @classmethod
+    def from_payload(cls, payload: SelectDefaultValue[DT]) -> DefaultSelectOption[DT]:
+        """Creates a DefaultSelectOption from a dictionary."""
+        return cls(
+            id=payload["id"],
+            type=payload["type"],
+        )
+
+    def to_dict(self) -> SelectDefaultValue[DT]:
+        """Converts the DefaultSelectOption to a dictionary."""
+        return {
+            "id": self.id,
+            "type": self.type,
+        }
+
+
 SelectMenuTypes = (
     StringSelectPayload | ChannelSelectPayload | RoleSelectPayload | MentionableSelectPayload | UserSelectPayload
 )
@@ -737,6 +805,511 @@ class StringSelectMenu(SelectMenu[StringSelectPayload]):
         The ID `0` is treated as if no ID was provided.
     """
 
+    __slots__: tuple[str, ...] = ("options",)
+    type: Literal[ComponentType.string_select] = ComponentType.string_select  # pyright: ignore[reportIncompatibleVariableOverride]
+
+    def __init__(
+        self,
+        custom_id: str,
+        options: Sequence[SelectOption],
+        *,
+        placeholder: str | None = None,
+        min_values: int = 1,
+        max_values: int = 1,
+        disabled: bool = False,
+        id: int | None = None,
+    ):
+        super().__init__(
+            custom_id=custom_id,
+            placeholder=placeholder,
+            min_values=min_values,
+            max_values=max_values,
+            disabled=disabled,
+            id=id,
+        )
+        self.options: list[SelectOption] = list(options)
+
+    @classmethod
+    @override
+    def from_payload(cls, payload: StringSelectPayload) -> Self:
+        options = [SelectOption.from_dict(option) for option in payload["options"]]
+        return cls(
+            custom_id=payload["custom_id"],
+            options=options,
+            placeholder=payload.get("placeholder"),
+            min_values=payload.get("min_values", 1),
+            max_values=payload.get("max_values", 1),
+            disabled=payload.get("disabled", False),
+            id=payload.get("id"),
+        )
+
+    @override
+    def to_dict(self) -> StringSelectPayload:
+        payload: StringSelectPayload = {  # pyright: ignore[reportAssignmentType]
+            "type": int(self.type),
+            "id": self.id,
+            "custom_id": self.custom_id,
+            "options": [option.to_dict() for option in self.options],
+            "min_values": self.min_values,
+            "max_values": self.max_values,
+        }
+        if self.placeholder:
+            payload["placeholder"] = self.placeholder
+
+        if self.disabled:
+            payload["disabled"] = self.disabled
+
+        return payload
+
+
+class UserSelectMenu(SelectMenu[UserSelectPayload]):
+    """Represents a user select menu from the Discord Bot UI Kit.
+
+    This inherits from :class:`SelectMenu`.
+
+    .. versionadded:: 3.0
+
+    Attributes
+    ----------
+    default_values: List[:class:`DefaultSelectOption[Literal["user"]]`]
+        The default selected values of the select menu.
+    custom_id: :class:`str`
+        The custom ID of the select menu that gets received during an interaction.
+    placeholder: Optional[:class:`str`]
+        The placeholder text that is shown if nothing is selected, if any.
+    min_values: :class:`int`
+        The minimum number of values that must be selected.
+        Defaults to 1.
+    max_values: :class:`int`
+        The maximum number of values that can be selected.
+        Defaults to 1.
+    disabled: :class:`bool`
+        Whether the select menu is disabled or not.
+        Defaults to ``False``.
+    id: Optional[:class:`int`]
+        The select menu's ID. If not provided, it is set sequentially by Discord.
+        The ID `0` is treated as if no ID was provided.
+
+    Parameters
+    ----------
+    default_values: Sequence[:class:`DefaultSelectOption[Literal["user"]]`]
+        The default selected values of the select menu.
+    custom_id: :class:`str`
+        The custom ID of the select menu that gets received during an interaction.
+    options: Sequence[:class:`SelectOption`]
+        The options available in this select menu.
+    placeholder: Optional[:class:`str`]
+        The placeholder text that is shown if nothing is selected, if any.
+    min_values: :class:`int`
+        The minimum number of values that must be selected.
+        Defaults to 1.
+    max_values: :class:`int`
+        The maximum number of values that can be selected.
+        Defaults to 1.
+    disabled: :class:`bool`
+        Whether the select menu is disabled or not. Defaults to ``False``.
+    id: Optional[:class:`int`]
+        The select menu's ID. If not provided, it is set sequentially by Discord.
+        The ID `0` is treated as if no ID was provided.
+    """
+
+    __slots__: tuple[str, ...] = ("default_values",)
+    type: Literal[ComponentType.user_select] = ComponentType.user_select  # pyright: ignore[reportIncompatibleVariableOverride]
+
+    def __init__(
+        self,
+        *,
+        default_values: Sequence[DefaultSelectOption[Literal["user"]]] | None = None,
+        custom_id: str,
+        placeholder: str | None = None,
+        min_values: int = 1,
+        max_values: int = 1,
+        disabled: bool = False,
+        id: int | None = None,
+    ):
+        super().__init__(
+            custom_id=custom_id,
+            placeholder=placeholder,
+            min_values=min_values,
+            max_values=max_values,
+            disabled=disabled,
+            id=id,
+        )
+        self.default_values: list[DefaultSelectOption[Literal["user"]]] = (
+            list(default_values) if default_values is not None else []
+        )
+
+    @classmethod
+    @override
+    def from_payload(cls, payload: UserSelectPayload) -> Self:
+        default_values: list[DefaultSelectOption[Literal["user"]]] = [
+            DefaultSelectOption.from_payload(value) for value in payload.get("default_values", [])
+        ]
+        return cls(
+            custom_id=payload["custom_id"],
+            placeholder=payload.get("placeholder"),
+            min_values=payload.get("min_values", 1),
+            max_values=payload.get("max_values", 1),
+            disabled=payload.get("disabled", False),
+            id=payload.get("id"),
+            default_values=default_values,
+        )
+
+    @override
+    def to_dict(self) -> UserSelectPayload:
+        payload: UserSelectPayload = {  # pyright: ignore[reportAssignmentType]
+            "type": int(self.type),
+            "id": self.id,
+            "custom_id": self.custom_id,
+            "min_values": self.min_values,
+            "max_values": self.max_values,
+        }
+        if self.placeholder:
+            payload["placeholder"] = self.placeholder
+
+        if self.disabled:
+            payload["disabled"] = self.disabled
+
+        if self.default_values:
+            payload["default_values"] = [value.to_dict() for value in self.default_values]
+
+        return payload
+
+
+class RoleSelectMenu(SelectMenu[RoleSelectPayload]):
+    """Represents a role select menu from the Discord Bot UI Kit.
+
+    This inherits from :class:`SelectMenu`.
+
+    .. versionadded:: 3.0
+
+    Attributes
+    ----------
+    default_values: List[:class:`DefaultSelectOption[Literal["role"]]`]
+        The default selected values of the select menu.
+    custom_id: :class:`str`
+        The custom ID of the select menu that gets received during an interaction.
+    placeholder: Optional[:class:`str`]
+        The placeholder text that is shown if nothing is selected, if any.
+    min_values: :class:`int`
+        The minimum number of values that must be selected.
+        Defaults to 1.
+    max_values: :class:`int`
+        The maximum number of values that can be selected.
+        Defaults to 1.
+    disabled: :class:`bool`
+        Whether the select menu is disabled or not.
+        Defaults to ``False``.
+    id: Optional[:class:`int`]
+        The select menu's ID. If not provided, it is set sequentially by Discord.
+        The ID `0` is treated as if no ID was provided.
+
+    Parameters
+    ----------
+    default_values: Sequence[:class:`DefaultSelectOption[Literal["role"]]`]
+        The default selected values of the select menu.
+    custom_id: :class:`str`
+        The custom ID of the select menu that gets received during an interaction.
+    placeholder: Optional[:class:`str`]
+        The placeholder text that is shown if nothing is selected, if any.
+    min_values: :class:`int`
+        The minimum number of values that must be selected.
+        Defaults to 1.
+    max_values: :class:`int`
+        The maximum number of values that can be selected.
+        Defaults to 1.
+    disabled: :class:`bool`
+        Whether the select menu is disabled or not. Defaults to ``False``.
+    id: Optional[:class:`int`]
+        The select menu's ID. If not provided, it is set sequentially by Discord.
+        The ID `0` is treated as if no ID was provided.
+    """
+
+    __slots__: tuple[str, ...] = ("default_values",)
+    type: Literal[ComponentType.role_select] = ComponentType.role_select  # pyright: ignore[reportIncompatibleVariableOverride]
+
+    def __init__(
+        self,
+        *,
+        default_values: Sequence[DefaultSelectOption[Literal["role"]]] | None = None,
+        custom_id: str,
+        placeholder: str | None = None,
+        min_values: int = 1,
+        max_values: int = 1,
+        disabled: bool = False,
+        id: int | None = None,
+    ):
+        super().__init__(
+            custom_id=custom_id,
+            placeholder=placeholder,
+            min_values=min_values,
+            max_values=max_values,
+            disabled=disabled,
+            id=id,
+        )
+        self.default_values: list[DefaultSelectOption[Literal["role"]]] = (
+            list(default_values) if default_values is not None else []
+        )
+
+    @classmethod
+    @override
+    def from_payload(cls, payload: RoleSelectPayload) -> Self:
+        default_values: list[DefaultSelectOption[Literal["role"]]] = [
+            DefaultSelectOption.from_payload(value) for value in payload.get("default_values", [])
+        ]
+        return cls(
+            custom_id=payload["custom_id"],
+            placeholder=payload.get("placeholder"),
+            min_values=payload.get("min_values", 1),
+            max_values=payload.get("max_values", 1),
+            disabled=payload.get("disabled", False),
+            id=payload.get("id"),
+            default_values=default_values,
+        )
+
+    @override
+    def to_dict(self) -> RoleSelectPayload:
+        payload: RoleSelectPayload = {  # pyright: ignore[reportAssignmentType]
+            "type": int(self.type),
+            "id": self.id,
+            "custom_id": self.custom_id,
+            "min_values": self.min_values,
+            "max_values": self.max_values,
+        }
+        if self.placeholder:
+            payload["placeholder"] = self.placeholder
+
+        if self.disabled:
+            payload["disabled"] = self.disabled
+
+        if self.default_values:
+            payload["default_values"] = [value.to_dict() for value in self.default_values]
+
+        return payload
+
+
+class MentionableSelectMenu(SelectMenu[MentionableSelectPayload]):
+    """Represents a mentionable select menu from the Discord Bot UI Kit.
+
+    This inherits from :class:`SelectMenu`.
+
+    .. versionadded:: 3.0
+
+    Attributes
+    ----------
+    default_values: List[:class:`DefaultSelectOption[Literal["role", "user"]]`]
+        The default selected values of the select menu.
+    custom_id: :class:`str`
+        The custom ID of the select menu that gets received during an interaction.
+    placeholder: Optional[:class:`str`]
+        The placeholder text that is shown if nothing is selected, if any.
+    min_values: :class:`int`
+        The minimum number of values that must be selected.
+        Defaults to 1.
+    max_values: :class:`int`
+        The maximum number of values that can be selected.
+        Defaults to 1.
+    disabled: :class:`bool`
+        Whether the select menu is disabled or not.
+        Defaults to ``False``.
+    id: Optional[:class:`int`]
+        The select menu's ID. If not provided, it is set sequentially by Discord.
+        The ID `0` is treated as if no ID was provided.
+
+    Parameters
+    ----------
+    default_values: Sequence[:class:`DefaultSelectOption[Literal["role", "user"]]`]
+        The default selected values of the select menu.
+    custom_id: :class:`str`
+        The custom ID of the select menu that gets received during an interaction.
+    placeholder: Optional[:class:`str`]
+        The placeholder text that is shown if nothing is selected, if any.
+    min_values: :class:`int`
+        The minimum number of values that must be selected.
+        Defaults to 1.
+    max_values: :class:`int`
+        The maximum number of values that can be selected.
+        Defaults to 1.
+    disabled: :class:`bool`
+        Whether the select menu is disabled or not. Defaults to ``False``.
+    id: Optional[:class:`int`]
+        The select menu's ID. If not provided, it is set sequentially by Discord.
+        The ID `0` is treated as if no ID was provided.
+    """
+
+    __slots__: tuple[str, ...] = ("default_values",)
+    type: Literal[ComponentType.mentionable_select] = ComponentType.mentionable_select  # pyright: ignore[reportIncompatibleVariableOverride]
+
+    def __init__(
+        self,
+        *,
+        default_values: Sequence[DefaultSelectOption[Literal["role", "user"]]] | None = None,
+        custom_id: str,
+        placeholder: str | None = None,
+        min_values: int = 1,
+        max_values: int = 1,
+        disabled: bool = False,
+        id: int | None = None,
+    ):
+        super().__init__(
+            custom_id=custom_id,
+            placeholder=placeholder,
+            min_values=min_values,
+            max_values=max_values,
+            disabled=disabled,
+            id=id,
+        )
+        self.default_values: list[DefaultSelectOption[Literal["role", "user"]]] = (
+            list(default_values) if default_values is not None else []
+        )
+
+    @classmethod
+    @override
+    def from_payload(cls, payload: MentionableSelectPayload) -> Self:
+        default_values: list[DefaultSelectOption[Literal["role", "user"]]] = [
+            DefaultSelectOption.from_payload(value) for value in payload.get("default_values", [])
+        ]
+        return cls(
+            custom_id=payload["custom_id"],
+            placeholder=payload.get("placeholder"),
+            min_values=payload.get("min_values", 1),
+            max_values=payload.get("max_values", 1),
+            disabled=payload.get("disabled", False),
+            id=payload.get("id"),
+            default_values=default_values,
+        )
+
+    @override
+    def to_dict(self) -> MentionableSelectPayload:
+        payload: MentionableSelectPayload = {  # pyright: ignore[reportAssignmentType]
+            "type": int(self.type),
+            "id": self.id,
+            "custom_id": self.custom_id,
+            "min_values": self.min_values,
+            "max_values": self.max_values,
+        }
+        if self.placeholder:
+            payload["placeholder"] = self.placeholder
+
+        if self.disabled:
+            payload["disabled"] = self.disabled
+
+        if self.default_values:
+            payload["default_values"] = [value.to_dict() for value in self.default_values]
+
+        return payload
+
+
+class ChannelSelectMenu(SelectMenu[ChannelSelectPayload]):
+    """Represents a channel select menu from the Discord Bot UI Kit.
+
+    This inherits from :class:`SelectMenu`.
+
+    .. versionadded:: 3.0
+
+    Attributes
+    ----------
+    default_values: List[:class:`DefaultSelectOption[Literal["channel"]]`]
+        The default selected values of the select menu.
+    custom_id: :class:`str`
+        The custom ID of the select menu that gets received during an interaction.
+    placeholder: Optional[:class:`str`]
+        The placeholder text that is shown if nothing is selected, if any.
+    min_values: :class:`int`
+        The minimum number of values that must be selected.
+        Defaults to 1.
+    max_values: :class:`int`
+        The maximum number of values that can be selected.
+        Defaults to 1.
+    disabled: :class:`bool`
+        Whether the select menu is disabled or not.
+        Defaults to ``False``.
+    id: Optional[:class:`int`]
+        The select menu's ID. If not provided, it is set sequentially by Discord.
+        The ID `0` is treated as if no ID was provided.
+
+    Parameters
+    ----------
+    default_values: Sequence[:class:`DefaultSelectOption[Literal["channel"]]`]
+        The default selected values of the select menu.
+    custom_id: :class:`str`
+        The custom ID of the select menu that gets received during an interaction.
+    placeholder: Optional[:class:`str`]
+        The placeholder text that is shown if nothing is selected, if any.
+    min_values: :class:`int`
+        The minimum number of values that must be selected.
+        Defaults to 1.
+    max_values: :class:`int`
+        The maximum number of values that can be selected.
+        Defaults to 1.
+    disabled: :class:`bool`
+        Whether the select menu is disabled or not. Defaults to ``False``.
+    id: Optional[:class:`int`]
+        The select menu's ID. If not provided, it is set sequentially by Discord.
+        The ID `0` is treated as if no ID was provided.
+    """
+
+    __slots__: tuple[str, ...] = ("default_values",)
+    type: Literal[ComponentType.channel_select] = ComponentType.channel_select  # pyright: ignore[reportIncompatibleVariableOverride]
+
+    def __init__(
+        self,
+        *,
+        default_values: Sequence[DefaultSelectOption[Literal["channel"]]] | None = None,
+        custom_id: str,
+        placeholder: str | None = None,
+        min_values: int = 1,
+        max_values: int = 1,
+        disabled: bool = False,
+        id: int | None = None,
+    ):
+        super().__init__(
+            custom_id=custom_id,
+            placeholder=placeholder,
+            min_values=min_values,
+            max_values=max_values,
+            disabled=disabled,
+            id=id,
+        )
+        self.default_values: list[DefaultSelectOption[Literal["channel"]]] = (
+            list(default_values) if default_values is not None else []
+        )
+
+    @classmethod
+    @override
+    def from_payload(cls, payload: ChannelSelectPayload) -> Self:
+        default_values: list[DefaultSelectOption[Literal["channel"]]] = [
+            DefaultSelectOption.from_payload(value) for value in payload.get("default_values", [])
+        ]
+        return cls(
+            custom_id=payload["custom_id"],
+            placeholder=payload.get("placeholder"),
+            min_values=payload.get("min_values", 1),
+            max_values=payload.get("max_values", 1),
+            disabled=payload.get("disabled", False),
+            id=payload.get("id"),
+            default_values=default_values,
+        )
+
+    @override
+    def to_dict(self) -> ChannelSelectPayload:
+        payload: ChannelSelectPayload = {  # pyright: ignore[reportAssignmentType]
+            "type": int(self.type),
+            "id": self.id,
+            "custom_id": self.custom_id,
+            "min_values": self.min_values,
+            "max_values": self.max_values,
+        }
+        if self.placeholder:
+            payload["placeholder"] = self.placeholder
+
+        if self.disabled:
+            payload["disabled"] = self.disabled
+
+        if self.default_values:
+            payload["default_values"] = [value.to_dict() for value in self.default_values]
+
+        return payload
 
 
 class TextDisplay(Component[TextDisplayComponentPayload]):
@@ -920,8 +1493,7 @@ AllowedSectionAccessoryComponents = Button | Thumbnail
 
 
 class Section(
-    StateComponent[SectionComponentPayload],
-    WalkableComponent[AllowedSectionComponents | AllowedSectionAccessoryComponents],
+    WalkableComponent[SectionComponentPayload, AllowedSectionComponents | AllowedSectionAccessoryComponents],
 ):
     """Represents a Section from Components V2.
 
@@ -1218,7 +1790,7 @@ class Separator(Component[SeparatorComponentPayload]):
 AllowedActionRowComponents = Button | InputText | SelectMenu[SelectMenuTypes]
 
 
-class ActionRow(Component[ActionRowPayload], WalkableComponent[AllowedActionRowComponents]):
+class ActionRow(WalkableComponent[ActionRowPayload, AllowedActionRowComponents]):
     """Represents a Discord Bot UI Kit Action Row.
 
     This is a component that holds up to 5 children components in a row.
@@ -1279,7 +1851,7 @@ class ActionRow(Component[ActionRowPayload], WalkableComponent[AllowedActionRowC
 AllowedContainerComponents = ActionRow | TextDisplay | Section | MediaGallery | Separator | FileComponent
 
 
-class Container(Component[ContainerComponentPayload], WalkableComponent[AllowedContainerComponents]):
+class Container(WalkableComponent[ContainerComponentPayload, AllowedContainerComponents]):
     """Represents a Container from Components V2.
 
     This is a component that contains different :class:`Component` objects.
@@ -1397,12 +1969,12 @@ class UnknownComponent(Component[ComponentPayload]):
 COMPONENT_MAPPINGS = {
     1: ActionRow,
     2: Button,
-    3: SelectMenu,
+    3: StringSelectMenu,
     4: InputText,
-    5: SelectMenu,
-    6: SelectMenu,
-    7: SelectMenu,
-    8: SelectMenu,
+    5: UserSelectMenu,
+    6: RoleSelectMenu,
+    7: MentionableSelectMenu,
+    8: ChannelSelectMenu,
     9: Section,
     10: TextDisplay,
     11: Thumbnail,
@@ -1414,13 +1986,32 @@ COMPONENT_MAPPINGS = {
 
 STATE_COMPONENTS = (Section, Container, Thumbnail, MediaGallery, FileComponent)
 
-
 def _component_factory(data: P, state: ConnectionState | None = None) -> Component[P]:
     component_type = data["type"]
     if cls := COMPONENT_MAPPINGS.get(component_type):
         if issubclass(cls, StateComponent):
             return cls(data, state=state)  # pyright: ignore[reportCallIssue, reportReturnType]
         else:
-            return cls(data)  # pyright: ignore[reportArgumentType, reportCallIssue, reportReturnType, reportUnknownVariableType]
+            return cls(data)  # pyright: ignore[reportArgumentType, reportCallIssue, reportReturnType]
     else:
         return UnknownComponent.from_payload(data)  # pyright: ignore[reportReturnType]
+
+
+AnyComponent = (
+    ActionRow
+    | Button
+    | StringSelectMenu
+    | InputText
+    | UserSelectMenu
+    | RoleSelectMenu
+    | MentionableSelectMenu
+    | ChannelSelectMenu
+    | Section
+    | TextDisplay
+    | Thumbnail
+    | MediaGallery
+    | FileComponent
+    | Separator
+    | Container
+    | UnknownComponent
+)

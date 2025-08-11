@@ -26,6 +26,7 @@ DEALINGS IN THE SOFTWARE.
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Sequence
 import json
 import logging
 import re
@@ -35,6 +36,8 @@ from typing import TYPE_CHECKING, Any, Literal, NamedTuple, overload
 from urllib.parse import quote as urlquote
 
 import aiohttp
+
+from ..components import AnyComponent
 
 from ..utils.private import bytes_to_base64_data, get_as_snowflake, parse_ratelimit_header, to_json
 from .. import utils
@@ -81,7 +84,6 @@ if TYPE_CHECKING:
     from ..types.message import Message as MessagePayload
     from ..types.webhook import FollowerWebhook as FollowerWebhookPayload
     from ..types.webhook import Webhook as WebhookPayload
-    from ..ui.view import View
 
 MISSING = utils.MISSING
 
@@ -620,7 +622,7 @@ def handle_message_parameters(
     attachments: list[Attachment] | utils.Undefined = MISSING,
     embed: Embed | None | utils.Undefined = MISSING,
     embeds: list[Embed] | utils.Undefined = MISSING,
-    view: View | None | utils.Undefined = MISSING,
+    components: Sequence[AnyComponent] | None | utils.Undefined = MISSING,
     poll: Poll | None | utils.Undefined = MISSING,
     applied_tags: list[Snowflake] | utils.Undefined = MISSING,
     allowed_mentions: AllowedMentions | None | utils.Undefined = MISSING,
@@ -652,12 +654,13 @@ def handle_message_parameters(
         ephemeral=ephemeral,
     )
 
-    if view is not MISSING:
-        payload["components"] = view.to_components() if view is not None else []
-        if view and view.is_components_v2():
-            if payload.get("content") or payload.get("embeds"):
-                raise TypeError("cannot send embeds or content with a view using v2 component logic")
-            flags.is_components_v2 = True
+    if components is not MISSING:
+        payload["components"] = []
+        if components:
+            for c in components:
+                payload["components"].append(c.to_dict())
+                if c.any_is_v2()():
+                    flags.is_components_v2 = True
     if poll is not MISSING:
         payload["poll"] = poll.to_dict()
     payload["tts"] = tts
@@ -861,7 +864,7 @@ class WebhookMessage(Message):
         file: File | utils.Undefined = MISSING,
         files: list[File] | utils.Undefined = MISSING,
         attachments: list[Attachment] | utils.Undefined = MISSING,
-        view: View | None | utils.Undefined = MISSING,
+        components: Sequence[AnyComponent] | None | utils.Undefined = MISSING,
         allowed_mentions: AllowedMentions | None = None,
         suppress: bool | None | utils.Undefined = MISSING,
     ) -> WebhookMessage:
@@ -900,11 +903,12 @@ class WebhookMessage(Message):
         allowed_mentions: :class:`AllowedMentions`
             Controls the mentions being processed in this message.
             See :meth:`.abc.Messageable.send` for more information.
-        view: Optional[:class:`~discord.ui.View`]
-            The updated view to update this message with. If ``None`` is passed then
-            the view is removed.
+        components: Optional[Sequence[AnyComponent]]
+            A sequence of components to edit the message with.
+            If ``None`` is passed, then the components are cleared.
 
-            .. versionadded:: 2.0
+            .. versionadded:: 3.0
+
         suppress: Optional[:class:`bool`]
             Whether to suppress embeds for the message.
 
@@ -948,7 +952,7 @@ class WebhookMessage(Message):
             file=file,
             files=files,
             attachments=attachments,
-            view=view,
+            components=components,
             allowed_mentions=allowed_mentions,
             thread=thread,
             suppress=suppress,
@@ -1585,7 +1589,7 @@ class Webhook(BaseWebhook):
         embed: Embed | utils.Undefined = MISSING,
         embeds: list[Embed] | utils.Undefined = MISSING,
         allowed_mentions: AllowedMentions | utils.Undefined = MISSING,
-        view: View | utils.Undefined = MISSING,
+        components: Sequence[AnyComponent] | None | utils.Undefined = MISSING,
         poll: Poll | utils.Undefined = MISSING,
         thread: Snowflake | utils.Undefined = MISSING,
         thread_name: str | None = None,
@@ -1608,7 +1612,7 @@ class Webhook(BaseWebhook):
         embed: Embed | utils.Undefined = MISSING,
         embeds: list[Embed] | utils.Undefined = MISSING,
         allowed_mentions: AllowedMentions | utils.Undefined = MISSING,
-        view: View | utils.Undefined = MISSING,
+        components: Sequence[AnyComponent] | None | utils.Undefined = MISSING,
         poll: Poll | utils.Undefined = MISSING,
         thread: Snowflake | utils.Undefined = MISSING,
         thread_name: str | None | utils.Undefined = None,
@@ -1630,7 +1634,7 @@ class Webhook(BaseWebhook):
         embed: Embed | utils.Undefined = MISSING,
         embeds: list[Embed] | utils.Undefined = MISSING,
         allowed_mentions: AllowedMentions | utils.Undefined = MISSING,
-        view: View | utils.Undefined = MISSING,
+        components: Sequence[AnyComponent] | None | utils.Undefined = MISSING,
         poll: Poll | utils.Undefined = MISSING,
         thread: Snowflake | utils.Undefined = MISSING,
         thread_name: str | None = None,
@@ -1672,8 +1676,6 @@ class Webhook(BaseWebhook):
         ephemeral: :class:`bool`
             Indicates if the message should only be visible to the user.
             This is only available to :attr:`WebhookType.application` webhooks.
-            If a view is sent with an ephemeral message, and it has no timeout set
-            then the timeout is set to 15 minutes.
 
             .. versionadded:: 2.0
         file: :class:`File`
@@ -1691,13 +1693,10 @@ class Webhook(BaseWebhook):
             Controls the mentions being processed in this message.
 
             .. versionadded:: 1.4
-        view: :class:`discord.ui.View`
-            The view to send with the message. You can only send a view
-            if this webhook is not partial and has state attached. A
-            webhook has state attached if the webhook is managed by the
-            library.
+        components: Optional[Sequence[AnyComponent]]
+            A sequence of components to send with the message.
 
-            .. versionadded:: 2.0
+            .. versionadded:: 3.0
         thread: :class:`~discord.abc.Snowflake`
             The thread to send this webhook to.
 
@@ -1738,7 +1737,7 @@ class Webhook(BaseWebhook):
         InvalidArgument
             Either there was no token associated with this webhook, ``ephemeral`` was passed
             with the improper webhook type, there was no state attached with this webhook when
-            giving it a dispatchable view, you specified both ``thread_name`` and ``thread``,
+            giving it dispatchable components, you specified both ``thread_name`` and ``thread``,
             or ``applied_tags`` was passed with neither ``thread_name`` nor ``thread`` specified.
         """
 
@@ -1764,11 +1763,9 @@ class Webhook(BaseWebhook):
 
         with_components = False
 
-        if view is not MISSING:
-            if isinstance(self._state, _WebhookState) and view and view.is_dispatchable():
-                raise InvalidArgument("Dispatchable Webhook views require an associated state with the webhook")
-            if ephemeral is True and view.timeout is None:
-                view.timeout = 15 * 60.0
+        if components is not MISSING:
+            if isinstance(self._state, _WebhookState) and components and any(c.any_is_dispatchable() for c in components):
+                raise InvalidArgument("Dispatchable Webhook components require an associated state with the webhook")
             if not application_webhook:
                 with_components = True
 
@@ -1785,7 +1782,7 @@ class Webhook(BaseWebhook):
             embed=embed,
             embeds=embeds,
             ephemeral=ephemeral,
-            view=view,
+            components=components,
             poll=poll,
             applied_tags=applied_tags,
             allowed_mentions=allowed_mentions,
@@ -1815,13 +1812,6 @@ class Webhook(BaseWebhook):
         if wait:
             msg = self._create_message(data)
 
-        if view is not MISSING and not view.is_finished():
-            message_id = None if msg is None else msg.id
-            view.message = None if msg is None else msg
-            if msg:
-                view.refresh(msg.components)
-            if view.is_dispatchable():
-                self._state.store_view(view, message_id)
 
         if delete_after is not None:
 
@@ -1893,7 +1883,7 @@ class Webhook(BaseWebhook):
         file: File | utils.Undefined = MISSING,
         files: list[File] | utils.Undefined = MISSING,
         attachments: list[Attachment] | utils.Undefined = MISSING,
-        view: View | None | utils.Undefined = MISSING,
+        components: Sequence[AnyComponent] | None | utils.Undefined = MISSING,
         allowed_mentions: AllowedMentions | None = None,
         thread: Snowflake | None | utils.Undefined = MISSING,
         suppress: bool = False,
@@ -1936,12 +1926,9 @@ class Webhook(BaseWebhook):
         allowed_mentions: :class:`AllowedMentions`
             Controls the mentions being processed in this message.
             See :meth:`.abc.Messageable.send` for more information.
-        view: Optional[:class:`~discord.ui.View`]
-            The updated view to update this message with. If ``None`` is passed then
-            the view is removed. The webhook must have state attached, similar to
-            :meth:`send`.
-
-            .. versionadded:: 2.0
+        components: Optional[Sequence[AnyComponent]]
+            # TODO: docstring
+            .. versionadded:: 3.0
         thread: Optional[:class:`~discord.abc.Snowflake`]
             The thread that contains the message.
         suppress: :class:`bool`
@@ -1972,11 +1959,10 @@ class Webhook(BaseWebhook):
 
         with_components = False
 
-        if view is not MISSING:
-            if isinstance(self._state, _WebhookState) and view and view.is_dispatchable():
-                raise InvalidArgument("Dispatchable Webhook views require an associated state with the webhook")
+        if components is not MISSING:
+            if isinstance(self._state, _WebhookState) and components and any(c.any_is_dispatchable() for c in components):
+                raise InvalidArgument("Dispatchable Webhook components require an associated state with the webhook")
 
-            self._state.prevent_view_updates_for(message_id)
             if self.type is not WebhookType.application:
                 with_components = True
 
@@ -1988,7 +1974,7 @@ class Webhook(BaseWebhook):
             attachments=attachments,
             embed=embed,
             embeds=embeds,
-            view=view,
+            components=components,
             allowed_mentions=allowed_mentions,
             previous_allowed_mentions=previous_mentions,
             suppress=suppress,
@@ -2014,11 +2000,6 @@ class Webhook(BaseWebhook):
         )
 
         message = self._create_message(data)
-        if view and not view.is_finished():
-            view.message = message
-            view.refresh(message.components)
-            if view.is_dispatchable():
-                self._state.store_view(view, message_id)
         return message
 
     async def delete_message(self, message_id: int, *, thread_id: int | None = None) -> None:
