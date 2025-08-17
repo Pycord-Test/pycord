@@ -735,8 +735,8 @@ class ButtonStyle(Enum):
     red = 4
     url = 5
 
-    def __int__(self):
-        return self.value
+    def __int__(self) -> int:
+        return int(self.value)
 
 
 class InputTextStyle(Enum):
