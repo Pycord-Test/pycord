@@ -12,22 +12,24 @@ logging.basicConfig(level=logging.DEBUG)
 bot = discord.Bot(intents=discord.Intents.default())
 
 
+def build_container(secret_message: str) -> Container:
+    return Container(
+        ActionRow(
+            Button(
+                style=ButtonStyle.primary,
+                label="Click me! I'll tell you a secret",
+                custom_id=f"v1:hello_button_{secret_message}",
+                emoji=discord.PartialEmoji(name="🤫"),
+            )
+        ),
+        id=3,
+    )
+
+
 @bot.command()
 async def secret(ctx: discord.ApplicationContext, secret_message: str) -> None:
     await ctx.respond(
-        components=[
-            Container(
-                ActionRow(
-                    Button(
-                        style=ButtonStyle.primary,
-                        label="Click me! I'll tell you a secret",
-                        custom_id=f"v1:hello_button_{secret_message}",
-                        emoji=discord.PartialEmoji(name="🤫"),
-                    )
-                ),
-                id=3,
-            )
-        ],
+        components=[build_container(secret_message)],
     )
 
 

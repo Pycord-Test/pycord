@@ -1137,7 +1137,7 @@ class ComponentMixin(ABC):
         else:
             real_predicate = predicate
 
-        def wrapper(func: Callable[[Interaction], Coroutine[Any, Any, Any]]):
+        def wrapper(func: CI) -> CI:
             self.components[real_predicate] = func
             return func
 
