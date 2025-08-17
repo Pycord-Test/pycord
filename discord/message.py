@@ -44,7 +44,7 @@ from collections.abc import Sequence
 from .utils.private import get_as_snowflake, parse_time, warn_deprecated, delay_task, cached_slot_property
 from . import utils
 from .channel import PartialMessageable
-from .components import _component_factory, AnyComponent
+from .components import _component_factory, AnyComponent, ComponentsSequence
 from .embeds import Embed
 from .emoji import AppEmoji, GuildEmoji
 from .enums import ChannelType, MessageReferenceType, MessageType, try_enum
@@ -706,7 +706,9 @@ class ForwardedMessage:
         self.attachments: list[Attachment] = [Attachment(data=a, state=state) for a in data["attachments"]]
         self.flags: MessageFlags = MessageFlags._from_value(data.get("flags", 0))
         self.stickers: list[StickerItem] = [StickerItem(data=d, state=state) for d in data.get("sticker_items", [])]
-        self.components: list[Component] = [_component_factory(d) for d in data.get("components", [])]
+        self.components: ComponentsSequence = ComponentsSequence(
+            *(_component_factory(d) for d in data.get("components", []))
+        )
         self._edited_timestamp: datetime.datetime | None = parse_time(data["edited_timestamp"])
 
     @property
@@ -985,7 +987,9 @@ class Message(Hashable):
         self.content: str = data["content"]
         self.nonce: int | str | None = data.get("nonce")
         self.stickers: list[StickerItem] = [StickerItem(data=d, state=state) for d in data.get("sticker_items", [])]
-        self.components: list[Component] = [_component_factory(d, state=state) for d in data.get("components", [])]
+        self.components: ComponentsSequence = ComponentsSequence(
+            *(_component_factory(d, state=state) for d in data.get("components", []))
+        )
 
         try:
             # if the channel doesn't have a guild attribute, we handle that
@@ -1237,7 +1241,7 @@ class Message(Hashable):
                     self.role_mentions.append(role)
 
     def _handle_components(self, components: list[ComponentPayload]):
-        self.components = [_component_factory(d, state=self._state) for d in components]
+        self.components = ComponentsSequence(*(_component_factory(d, state=self._state) for d in components))
 
     def _rebind_cached_references(self, new_guild: Guild, new_channel: TextChannel | Thread) -> None:
         self.guild = new_guild

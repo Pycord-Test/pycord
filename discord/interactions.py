@@ -512,7 +512,7 @@ class Interaction:
             The updated components to update this message with. If ``None`` is passed then
             the components are removed.
 
-            ..versionadded:: 3.0
+            .. versionadded:: 3.0
         delete_after: Optional[:class:`float`]
             If provided, the number of seconds to wait in the background
             before deleting the message we just edited. If the deletion fails,
@@ -1087,7 +1087,6 @@ class InteractionResponse:
         parent = self._parent
         msg = parent.message
         state = parent._state
-        message_id = msg.id if msg else None
         if parent.type not in (InteractionType.component, InteractionType.modal_submit):
             return
 

@@ -3,35 +3,42 @@ import logging
 import os
 
 from dotenv import load_dotenv
-from discord import *
+from discord import Button, ButtonStyle, ActionRow, Container
 
 load_dotenv()
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
 bot = discord.Bot(intents=discord.Intents.default())
 
 
 @bot.command()
-async def ping(ctx: discord.ApplicationContext) -> None:
-    m = await ctx.respond(
+async def secret(ctx: discord.ApplicationContext, secret_message: str) -> None:
+    await ctx.respond(
         components=[
             Container(
-                components=[
-                    ActionRow(
-                        [Button(style=ButtonStyle.primary, label="Click me!", custom_id=f"hello_button_{ctx.user.id}")]
+                ActionRow(
+                    Button(
+                        style=ButtonStyle.primary,
+                        label="Click me! I'll tell you a secret",
+                        custom_id=f"v1:hello_button_{secret_message}",
+                        emoji=discord.PartialEmoji(name="🤫"),
                     )
-                ]
+                ),
+                id=3,
             )
         ],
     )
 
 
-@bot.listen()
-async def on_interaction(interaction: discord.Interaction) -> None:
-    if interaction.type == discord.InteractionType.component:
-        if interaction.custom_id.startswith("hello_button_"):
-            await interaction.response.send_message(f"Hello {interaction.user.name}!", ephemeral=True)
+@bot.component(lambda i: i.startswith("v1:hello_button_"))
+async def hello_button(interaction: discord.Interaction) -> None:
+    secret_message = interaction.custom_id.split("hello_button_")[1]
+    await interaction.respond(
+        f"Hello {interaction.user.name}! The secret message is: ||{secret_message}||", ephemeral=True
+    )
+    message = await interaction.channel.fetch_message(interaction.message.id)
+    print(message.components.get_by_id(3))
 
 
 bot.run(os.getenv("TOKEN_3"))

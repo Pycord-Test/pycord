@@ -1451,7 +1451,7 @@ class Messageable:
         components: :class:`Sequence[AnyComponent]`
             A sequence of components to add to the message.
 
-            ...versionadded:: 3.0
+            .. versionadded:: 3.0
         embeds: List[:class:`~discord.Embed`]
             A list of embeds to upload. Must be a maximum of 10.
 

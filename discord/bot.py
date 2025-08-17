@@ -63,7 +63,7 @@ from .interactions import Interaction
 from .shard import AutoShardedClient
 from .types import interactions
 from .user import User
-from .utils import MISSING, find
+from .utils import MISSING, find, Undefined
 from .utils.private import async_all
 
 if TYPE_CHECKING:
@@ -1079,7 +1079,72 @@ class ApplicationCommandMixin(ABC):
     def _bot(self) -> Bot | AutoShardedBot: ...
 
 
-class BotBase(ApplicationCommandMixin, CogMixin, ABC):
+CI = TypeVar("CI", bound="Callable[[Interaction], Coroutine[Any, Any, Any]]")
+Coro = TypeVar("Coro", bound=Callable[..., Coroutine[Any, Any, Any]])
+
+
+class ComponentMixin(ABC):
+    """A mixin that provides component handling for the bot.
+
+    This mixin is used to handle components such as buttons, select menus, and other interactive elements.
+    It is not intended to be used directly, but rather as a base class for bots that need component handling.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.components: dict[Callable[[str], bool], Callable[[Interaction], Coroutine[Any, Any, Any]]] = {}
+        self.add_listener(self.handle_component_interaction, "on_interaction")
+
+    @abstractmethod
+    def add_listener(self, func: Coro, name: str | Undefined = MISSING) -> None: ...
+    async def handle_component_interaction(self, interaction: Interaction):
+        if interaction.type != InteractionType.component:
+            return
+        c: list[Coroutine[Any, Any, Any]] = []
+        for check, callback in self.components.items():
+            if check(interaction.custom_id):
+                c.append(callback(interaction))
+        if c:
+            r = await asyncio.gather(*c, return_exceptions=True)
+            for res in r:
+                if isinstance(res, Exception):
+                    _log.error(f"Error while handling component interaction", exc_info=res)
+        else:
+            _log.debug(f"No component handler found for {interaction.custom_id}")
+
+    def component(self, predicate: Callable[[str], bool] | str) -> Callable[[CI], CI]:
+        """A shortcut decorator that registers a component interaction listener.
+
+        This decorator can be used to register a function that will be called
+        when a component interaction occurs that matches the provided predicate.
+
+        .. versionadded:: 3.0
+
+        Parameters
+        ----------
+        predicate: Callable[[str], bool] | str
+            A function that takes a string (the component's custom ID) and returns a boolean indicating whether the
+            function should be called for that component. Alternatively, a string can be provided, which will match
+            the component's custom ID exactly.
+
+        Returns
+        -------
+        Callable[[CI], CI]
+            A decorator that registers the function as a component interaction listener.
+        """
+        if isinstance(predicate, str):
+            real_predicate = lambda s: s == predicate
+        else:
+            real_predicate = predicate
+
+        def wrapper(func: Callable[[Interaction], Coroutine[Any, Any, Any]]):
+            self.components[real_predicate] = func
+            return func
+
+        return wrapper
+
+
+class BotBase(ApplicationCommandMixin, CogMixin, ComponentMixin, ABC):
     _supports_prefixed_commands = False
 
     def __init__(self, description=None, *args, **options):
