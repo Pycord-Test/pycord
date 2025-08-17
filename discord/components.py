@@ -52,31 +52,34 @@ from .enums import (
 from .flags import AttachmentFlags
 from .partial_emoji import PartialEmoji, _EmojiTag  # pyright: ignore[reportPrivateUsage]
 from .utils import MISSING, Undefined
-from .state import ConnectionState
+from .types.components import ActionRow as ActionRowPayload
+from .types.components import ButtonComponent as ButtonComponentPayload
+from .types.components import Component as ComponentPayload
+from .types.components import ContainerComponent as ContainerComponentPayload
+from .types.components import FileComponent as FileComponentPayload
+from .types.components import InputText as InputTextComponentPayload
+from .types.components import MediaGalleryComponent as MediaGalleryComponentPayload
+from .types.components import MediaGalleryItem as MediaGalleryItemPayload
+from .types.components import SectionComponent as SectionComponentPayload
+from .types.components import StringSelect as StringSelectPayload
+from .types.components import ChannelSelect as ChannelSelectPayload
+from .types.components import RoleSelect as RoleSelectPayload
+from .types.components import MentionableSelect as MentionableSelectPayload
+from .types.components import UserSelect as UserSelectPayload
+from .types.components import SelectOption as SelectOptionPayload
+from .types.components import SeparatorComponent as SeparatorComponentPayload
+from .types.components import TextDisplayComponent as TextDisplayComponentPayload
+from .types.components import ThumbnailComponent as ThumbnailComponentPayload
+from .types.components import UnfurledMediaItem as UnfurledMediaItemPayload
+from .types.components import SelectDefaultValue
 
 if TYPE_CHECKING:
+    from .state import ConnectionState
     from typing_extensions import Self
     from .emoji import AppEmoji, GuildEmoji
-    from .types.components import ActionRow as ActionRowPayload
-    from .types.components import ButtonComponent as ButtonComponentPayload
-    from .types.components import Component as ComponentPayload
-    from .types.components import ContainerComponent as ContainerComponentPayload
-    from .types.components import FileComponent as FileComponentPayload
-    from .types.components import InputText as InputTextComponentPayload
-    from .types.components import MediaGalleryComponent as MediaGalleryComponentPayload
-    from .types.components import MediaGalleryItem as MediaGalleryItemPayload
-    from .types.components import SectionComponent as SectionComponentPayload
-    from .types.components import StringSelect as StringSelectPayload
-    from .types.components import ChannelSelect as ChannelSelectPayload
-    from .types.components import RoleSelect as RoleSelectPayload
-    from .types.components import MentionableSelect as MentionableSelectPayload
-    from .types.components import UserSelect as UserSelectPayload
-    from .types.components import SelectOption as SelectOptionPayload
-    from .types.components import SeparatorComponent as SeparatorComponentPayload
-    from .types.components import TextDisplayComponent as TextDisplayComponentPayload
-    from .types.components import ThumbnailComponent as ThumbnailComponentPayload
-    from .types.components import UnfurledMediaItem as UnfurledMediaItemPayload
-    from .types.components import SelectDefaultValue
+
+    AnyEmoji: TypeAlias = GuildEmoji | AppEmoji | PartialEmoji
+
 
 __all__ = (
     "Component",
@@ -97,7 +100,6 @@ __all__ = (
 )
 
 
-AnyEmoji = GuildEmoji | AppEmoji | PartialEmoji
 P = TypeVar("P", bound="ComponentPayload", covariant=True)
 C = TypeVar("C", bound="Component[ComponentPayload]", covariant=True)
 
@@ -148,8 +150,8 @@ class Component(ABC, Generic[P]):
     @abstractmethod
     def to_dict(self) -> P: ...
 
-    @abstractmethod
     @classmethod
+    @abstractmethod
     def from_payload(cls, payload: P) -> Self: ...  # pyright: ignore[reportGeneralTypeIssues]
 
     def is_v2(self) -> bool:
@@ -168,9 +170,10 @@ class Component(ABC, Generic[P]):
         """Whether this component or any of its children can be interacted with and lead to a :class:`Interaction`"""
         return self.is_dispatchable()
 
+
 class StateComponent(Component[P], ABC):
-    @abstractmethod
     @classmethod
+    @abstractmethod
     @override
     def from_payload(cls, payload: P, state: ConnectionState | None = None) -> Self:  # pyright: ignore[reportGeneralTypeIssues]
         ...
@@ -1985,6 +1988,7 @@ COMPONENT_MAPPINGS = {
 }
 
 STATE_COMPONENTS = (Section, Container, Thumbnail, MediaGallery, FileComponent)
+
 
 def _component_factory(data: P, state: ConnectionState | None = None) -> Component[P]:
     component_type = data["type"]

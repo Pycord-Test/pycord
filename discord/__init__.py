@@ -24,7 +24,7 @@ from .__version import *
 # isort: on
 
 
-from . import abc, opus, sinks, ui, utils
+from . import abc, opus, sinks, utils
 from .activity import *
 from .appinfo import *
 from .application_role_connection import *

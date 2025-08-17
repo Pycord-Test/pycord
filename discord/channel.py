@@ -32,7 +32,6 @@ from typing import (
     Callable,
     Iterable,
     Mapping,
-    Sequence,
     TypeVar,
     overload,
 )
@@ -53,6 +52,8 @@ from .enums import (
     VoiceRegion,
     try_enum,
 )
+from collections.abc import Sequence
+from .components import AnyComponent
 from .errors import ClientException, InvalidArgument
 from .file import File
 from .flags import ChannelFlags, MessageFlags
@@ -100,7 +101,6 @@ if TYPE_CHECKING:
     from .types.channel import VoiceChannel as VoiceChannelPayload
     from .types.snowflake import SnowflakeList
     from .types.threads import ThreadArchiveDuration
-    from .ui.view import View
     from .user import BaseUser, ClientUser, User
     from .webhook import Webhook
 
@@ -1159,7 +1159,7 @@ class ForumChannel(_TextChannel):
         delete_message_after: float | None = None,
         nonce: int | str | None = None,
         allowed_mentions: AllowedMentions | None = None,
-        view: View | None = None,
+        components: Sequence[AnyComponent] | None = None,
         applied_tags: list[ForumTag] | None = None,
         suppress: bool = False,
         silent: bool = False,
@@ -1204,8 +1204,8 @@ class ForumChannel(_TextChannel):
             to the object, otherwise it uses the attributes set in :attr:`~discord.Client.allowed_mentions`.
             If no object is passed at all then the defaults given by :attr:`~discord.Client.allowed_mentions`
             are used instead.
-        view: :class:`discord.ui.View`
-            A Discord UI View to add to the message.
+        components: Sequence[AnyComponent]
+            A sequence of components to add to the message.
         applied_tags: List[:class:`discord.ForumTag`]
             A list of tags to apply to the new thread.
         auto_archive_duration: :class:`int`
@@ -1261,17 +1261,15 @@ class ForumChannel(_TextChannel):
             suppress_notifications=bool(silent),
         )
 
-        if view:
-            if not hasattr(view, "__discord_ui_view__"):
-                raise InvalidArgument(f"view parameter must be View not {view.__class__!r}")
-
-            components = view.to_components()
-            if view.is_components_v2():
-                if embeds or content:
-                    raise TypeError("cannot send embeds or content with a view using v2 component logic")
-                flags.is_components_v2 = True
+        if components is not None:
+            components_p = []
+            if components:
+                for c in components:
+                    components_p.append(c.to_dict())
+                    if c.any_is_v2():
+                        flags.is_components_v2 = True
         else:
-            components = None
+            components_p = None
 
         if applied_tags is not None:
             applied_tags = [str(tag.id) for tag in applied_tags]
@@ -1301,7 +1299,7 @@ class ForumChannel(_TextChannel):
                 nonce=nonce,
                 allowed_mentions=allowed_mentions,
                 stickers=stickers,
-                components=components,
+                components=components_p,
                 auto_archive_duration=auto_archive_duration or self.default_auto_archive_duration,
                 rate_limit_per_user=slowmode_delay or self.slowmode_delay,
                 applied_tags=applied_tags,
@@ -1315,8 +1313,6 @@ class ForumChannel(_TextChannel):
 
         ret = Thread(guild=self.guild, state=self._state, data=data)
         msg = ret.get_partial_message(int(data["last_message_id"]))
-        if view and view.is_dispatchable():
-            state.store_view(view, msg.id)
 
         if delete_message_after is not None:
             await msg.delete(delay=delete_message_after)

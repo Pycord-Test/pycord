@@ -659,7 +659,7 @@ def handle_message_parameters(
         if components:
             for c in components:
                 payload["components"].append(c.to_dict())
-                if c.any_is_v2()():
+                if c.any_is_v2():
                     flags.is_components_v2 = True
     if poll is not MISSING:
         payload["poll"] = poll.to_dict()
@@ -1764,7 +1764,11 @@ class Webhook(BaseWebhook):
         with_components = False
 
         if components is not MISSING:
-            if isinstance(self._state, _WebhookState) and components and any(c.any_is_dispatchable() for c in components):
+            if (
+                isinstance(self._state, _WebhookState)
+                and components
+                and any(c.any_is_dispatchable() for c in components)
+            ):
                 raise InvalidArgument("Dispatchable Webhook components require an associated state with the webhook")
             if not application_webhook:
                 with_components = True
@@ -1811,7 +1815,6 @@ class Webhook(BaseWebhook):
         msg = None
         if wait:
             msg = self._create_message(data)
-
 
         if delete_after is not None:
 
@@ -1960,7 +1963,11 @@ class Webhook(BaseWebhook):
         with_components = False
 
         if components is not MISSING:
-            if isinstance(self._state, _WebhookState) and components and any(c.any_is_dispatchable() for c in components):
+            if (
+                isinstance(self._state, _WebhookState)
+                and components
+                and any(c.any_is_dispatchable() for c in components)
+            ):
                 raise InvalidArgument("Dispatchable Webhook components require an associated state with the webhook")
 
             if self.type is not WebhookType.application:

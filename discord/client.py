@@ -61,7 +61,6 @@ from .state import ConnectionState
 from .sticker import GuildSticker, StandardSticker, StickerPack, _sticker_factory
 from .template import Template
 from .threads import Thread
-from .ui.view import View
 from .user import ClientUser, User
 from .utils import MISSING
 from .voice_client import VoiceClient
@@ -540,32 +539,6 @@ class Client:
         """
         print(f"Ignoring exception in {event_method}", file=sys.stderr)
         traceback.print_exc()
-
-    async def on_view_error(self, error: Exception, item: Item, interaction: Interaction) -> None:
-        """|coro|
-
-        The default view error handler provided by the client.
-
-        This only fires for a view if you did not define its :func:`~discord.ui.View.on_error`.
-        """
-
-        print(
-            f"Ignoring exception in view {interaction.view} for item {item}:",
-            file=sys.stderr,
-        )
-        traceback.print_exception(error.__class__, error, error.__traceback__, file=sys.stderr)
-
-    async def on_modal_error(self, error: Exception, interaction: Interaction) -> None:
-        """|coro|
-
-        The default modal error handler provided by the client.
-        The default implementation prints the traceback to stderr.
-
-        This only fires for a modal if you did not define its :func:`~discord.ui.Modal.on_error`.
-        """
-
-        print(f"Ignoring exception in modal {interaction.modal}:", file=sys.stderr)
-        traceback.print_exception(error.__class__, error, error.__traceback__, file=sys.stderr)
 
     # hooks
 
@@ -2000,48 +1973,6 @@ class Client:
 
         data = await state.http.start_private_message(user.id)
         return state.add_dm_channel(data)
-
-    def add_view(self, view: View, *, message_id: int | None = None) -> None:
-        """Registers a :class:`~discord.ui.View` for persistent listening.
-
-        This method should be used for when a view is comprised of components
-        that last longer than the lifecycle of the program.
-
-        .. versionadded:: 2.0
-
-        Parameters
-        ----------
-        view: :class:`discord.ui.View`
-            The view to register for dispatching.
-        message_id: Optional[:class:`int`]
-            The message ID that the view is attached to. This is currently used to
-            refresh the view's state during message update events. If not given
-            then message update events are not propagated for the view.
-
-        Raises
-        ------
-        TypeError
-            A view was not passed.
-        ValueError
-            The view is not persistent. A persistent view has no timeout
-            and all their components have an explicitly provided ``custom_id``.
-        """
-
-        if not isinstance(view, View):
-            raise TypeError(f"expected an instance of View not {view.__class__!r}")
-
-        if not view.is_persistent():
-            raise ValueError("View is not persistent. Items need to have a custom_id set and View must have no timeout")
-
-        self._connection.store_view(view, message_id)
-
-    @property
-    def persistent_views(self) -> Sequence[View]:
-        """A sequence of persistent views added to the client.
-
-        .. versionadded:: 2.0
-        """
-        return self._connection.persistent_views
 
     async def fetch_role_connection_metadata_records(
         self,

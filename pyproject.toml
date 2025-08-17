@@ -93,7 +93,7 @@ artifacts = ["discord/bin/*.dll"]
 
 [tool.hatch.build.targets.sdist]
 only-packages = true
-packages = ["discord"]
+packages = ["discord", "discord.interactions"]
 only-include = ["discord", "README.rst", "LICENSE", "pyproject.toml", "discord/bin/*.dll"]
 artifacts = ["discord/bin/*.dll"]
 
