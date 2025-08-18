@@ -27,7 +27,7 @@ from __future__ import annotations
 from typing import Generic
 from typing_extensions import override
 
-from discord.types.components import SelectDefaultValue
+from ..types.components import SelectDefaultValue
 from .types import DT
 
 

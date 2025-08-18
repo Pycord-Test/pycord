@@ -28,9 +28,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, ClassVar, Literal, overload
 from typing_extensions import override
 
-from discord.enums import ButtonStyle, ComponentType, try_enum
-from discord.partial_emoji import PartialEmoji, _EmojiTag  # pyright: ignore[reportPrivateUsage]
-from discord.types.components import ButtonComponent as ButtonComponentPayload
+from ..enums import ButtonStyle, ComponentType, try_enum
+from ..partial_emoji import PartialEmoji, _EmojiTag  # pyright: ignore[reportPrivateUsage]
+from ..types.components import ButtonComponent as ButtonComponentPayload
 from .component import Component
 from .types import AnyEmoji
 

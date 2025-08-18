@@ -27,14 +27,14 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, ClassVar, Literal
 from typing_extensions import override
 
-from discord.enums import ComponentType
-from discord.types.components import FileComponent as FileComponentPayload
+from ..enums import ComponentType
+from ..types.components import FileComponent as FileComponentPayload
 from .component import StateComponent
 from .unfurled_media_item import UnfurledMediaItem
 
 if TYPE_CHECKING:
     from typing_extensions import Self
-    from discord.state import ConnectionState
+    from ..state import ConnectionState
 
 
 class FileComponent(StateComponent[FileComponentPayload]):

@@ -27,8 +27,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, ClassVar, Literal
 from typing_extensions import override
 
-from discord.enums import ComponentType, SeparatorSpacingSize, try_enum
-from discord.types.components import SeparatorComponent as SeparatorComponentPayload
+from ..enums import ComponentType, SeparatorSpacingSize, try_enum
+from ..types.components import SeparatorComponent as SeparatorComponentPayload
 from .component import Component
 
 if TYPE_CHECKING:

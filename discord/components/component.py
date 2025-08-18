@@ -30,12 +30,12 @@ from typing_extensions import override
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
 
-from discord.enums import ComponentType
+from ..enums import ComponentType
 from .types import P, C
 
 if TYPE_CHECKING:
     from typing_extensions import Self
-    from discord.state import ConnectionState
+    from ..state import ConnectionState
 
 
 class Component(ABC, Generic[P]):

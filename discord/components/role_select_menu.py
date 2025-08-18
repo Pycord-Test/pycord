@@ -28,8 +28,8 @@ from typing import TYPE_CHECKING, Literal
 from typing_extensions import override
 from collections.abc import Sequence
 
-from discord.enums import ComponentType
-from discord.types.components import RoleSelect as RoleSelectPayload
+from ..enums import ComponentType
+from ..types.components import RoleSelect as RoleSelectPayload
 from .select_menu import SelectMenu
 from .default_select_option import DefaultSelectOption
 

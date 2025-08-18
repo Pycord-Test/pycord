@@ -27,8 +27,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, ClassVar, Literal
 from typing_extensions import override
 
-from discord.enums import ComponentType
-from discord.types.components import TextDisplayComponent as TextDisplayComponentPayload
+from ..enums import ComponentType
+from ..types.components import TextDisplayComponent as TextDisplayComponentPayload
 from .component import Component
 
 if TYPE_CHECKING:

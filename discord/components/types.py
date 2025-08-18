@@ -27,7 +27,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, TypeVar, TypeAlias, Literal
 
-from discord.types.components import (
+from ..types.components import (
     StringSelect as StringSelectPayload,
     ChannelSelect as ChannelSelectPayload,
     RoleSelect as RoleSelectPayload,
@@ -37,8 +37,8 @@ from discord.types.components import (
 )
 
 if TYPE_CHECKING:
-    from discord.emoji import AppEmoji, GuildEmoji
-    from discord.partial_emoji import PartialEmoji
+    from ..emoji import AppEmoji, GuildEmoji
+    from ..partial_emoji import PartialEmoji
     from .component import Component
     from .action_row import ActionRow
     from .button import Button

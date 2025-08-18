@@ -28,8 +28,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, ClassVar, Literal
 from typing_extensions import override
 
-from discord.enums import ComponentType, InputTextStyle, try_enum
-from discord.types.components import InputText as InputTextComponentPayload
+from ..enums import ComponentType, InputTextStyle, try_enum
+from ..types.components import InputText as InputTextComponentPayload
 from .component import Component
 
 if TYPE_CHECKING:

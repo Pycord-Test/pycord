@@ -28,14 +28,14 @@ from typing import TYPE_CHECKING, ClassVar, Literal
 from typing_extensions import override
 from collections.abc import Sequence
 
-from discord.enums import ComponentType
-from discord.types.components import MediaGalleryComponent as MediaGalleryComponentPayload
+from ..enums import ComponentType
+from ..types.components import MediaGalleryComponent as MediaGalleryComponentPayload
 from .component import StateComponent
 from .media_gallery_item import MediaGalleryItem
 
 if TYPE_CHECKING:
     from typing_extensions import Self
-    from discord.state import ConnectionState
+    from ..state import ConnectionState
 
 
 class MediaGallery(StateComponent[MediaGalleryComponentPayload]):

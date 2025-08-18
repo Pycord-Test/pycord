@@ -26,11 +26,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from discord.types.components import MediaGalleryItem as MediaGalleryItemPayload
+from ..types.components import MediaGalleryItem as MediaGalleryItemPayload
 from .unfurled_media_item import UnfurledMediaItem
 
 if TYPE_CHECKING:
-    from discord.state import ConnectionState
+    from ..state import ConnectionState
 
 
 class MediaGalleryItem:

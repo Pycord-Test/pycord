@@ -27,12 +27,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 from typing_extensions import override
 
-from discord.asset import AssetMixin
-from discord.flags import AttachmentFlags
-from discord.types.components import UnfurledMediaItem as UnfurledMediaItemPayload
+from ..asset import AssetMixin
+from ..flags import AttachmentFlags
+from ..types.components import UnfurledMediaItem as UnfurledMediaItemPayload
 
 if TYPE_CHECKING:
-    from discord.state import ConnectionState
+    from ..state import ConnectionState
 
 
 class UnfurledMediaItem(AssetMixin):

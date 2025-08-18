@@ -28,8 +28,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, ClassVar, Literal, TypeAlias, cast
 from typing_extensions import override
 
-from discord.enums import ComponentType
-from discord.types.components import ActionRow as ActionRowPayload
+from ..enums import ComponentType
+from ..types.components import ActionRow as ActionRowPayload
 from .component import WalkableComponent
 
 if TYPE_CHECKING:

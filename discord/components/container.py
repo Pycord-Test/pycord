@@ -27,14 +27,14 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, ClassVar, Literal, TypeAlias, cast
 from typing_extensions import override
 
-from discord.colour import Colour
-from discord.enums import ComponentType
-from discord.types.components import ContainerComponent as ContainerComponentPayload
+from ..colour import Colour
+from ..enums import ComponentType
+from ..types.components import ContainerComponent as ContainerComponentPayload
 from .component import WalkableComponent
 
 if TYPE_CHECKING:
     from typing_extensions import Self
-    from discord.state import ConnectionState
+    from ..state import ConnectionState
     from .action_row import ActionRow
     from .text_display import TextDisplay
     from .section import Section

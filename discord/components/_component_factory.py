@@ -47,7 +47,7 @@ from .component import StateComponent, Component
 from .types import P
 
 if TYPE_CHECKING:
-    from discord.state import ConnectionState
+    from ..state import ConnectionState
 
 
 COMPONENT_MAPPINGS = {

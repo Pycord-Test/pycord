@@ -27,8 +27,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 from typing_extensions import override
 
-from discord.enums import ComponentType, try_enum
-from discord.types.components import Component as ComponentPayload
+from ..enums import ComponentType, try_enum
+from ..types.components import Component as ComponentPayload
 from .component import Component
 
 if TYPE_CHECKING:
