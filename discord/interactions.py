@@ -1211,7 +1211,7 @@ class InteractionResponse:
 
         self._responded = True
 
-    async def send_modal(self, modal: Modal) -> Interaction:
+    async def send_modal(self, modal: Modal) -> Interaction:  # TODO: this broken # noqa: F821
         """|coro|
         Responds to this interaction by sending a modal dialog.
         This cannot be used to respond to another modal dialog submission.

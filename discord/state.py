@@ -869,7 +869,7 @@ class ConnectionState:
     def parse_interaction_create(self, data) -> None:
         interaction = Interaction(data=data, state=self)
         if interaction.type == InteractionType.modal_submit:
-            user_id, custom_id = (
+            user_id, custom_id = (  # noqa:F841
                 interaction.user.id,
                 interaction.data["custom_id"],
             )
