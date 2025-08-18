@@ -43,7 +43,7 @@ from .file_component import FileComponent
 from .separator import Separator
 from .container import Container
 from .unknown_component import UnknownComponent
-from .component import StateComponent
+from .component import StateComponent, Component
 from .types import P
 
 if TYPE_CHECKING:
@@ -71,12 +71,15 @@ COMPONENT_MAPPINGS = {
 STATE_COMPONENTS = (Section, Container, Thumbnail, MediaGallery, FileComponent)
 
 
-def _component_factory(data: P, state: ConnectionState | None = None):
+def _component_factory(data: P, state: ConnectionState | None = None) -> Component[P]:
     component_type = data["type"]
     if cls := COMPONENT_MAPPINGS.get(component_type):
         if issubclass(cls, StateComponent):
-            return cls.from_payload(data, state=state)  # pyright: ignore[reportCallIssue, reportReturnType]
+            return cls.from_payload(data, state=state)  # pyright: ignore[ reportReturnType, reportArgumentType]
         else:
-            return cls.from_payload(data)  # pyright: ignore[reportArgumentType, reportCallIssue, reportReturnType]
+            return cls.from_payload(data)  # pyright: ignore[reportArgumentType,  reportReturnType]
     else:
         return UnknownComponent.from_payload(data)  # pyright: ignore[reportReturnType]
+
+
+__all__ = ("_component_factory",)

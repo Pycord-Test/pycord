@@ -25,7 +25,8 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar, Generic, override
+from typing import TYPE_CHECKING, Callable, ClassVar, Generic
+from typing_extensions import override
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
 
@@ -130,7 +131,7 @@ class WalkableComponent(Component[P], ABC, Generic[P, C]):
             else:
                 yield component
 
-    __iter__ = walk_components
+    __iter__: Callable[[Self], Iterator[C]] = walk_components
 
     @override
     def any_is_v2(self) -> bool:

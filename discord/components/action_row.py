@@ -25,8 +25,8 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar, Literal, cast, override
-from collections.abc import Sequence
+from typing import TYPE_CHECKING, ClassVar, Literal, cast
+from typing_extensions import override
 
 from discord.enums import ComponentType
 from discord.types.components import ActionRow as ActionRowPayload
@@ -69,14 +69,14 @@ class ActionRow(WalkableComponent["ActionRowPayload", "AllowedActionRowComponent
     versions: tuple[int, ...] = (1, 2)
     type: Literal[ComponentType.action_row] = ComponentType.action_row  # pyright: ignore[reportIncompatibleVariableOverride]
 
-    def __init__(self, *components: Sequence[AllowedActionRowComponents], id: int | None = None) -> None:
-        self.components: list[AllowedActionRowComponents] = list(components)
+    def __init__(self, *components: AllowedActionRowComponents, id: int | None = None) -> None:
+        self.components: list[AllowedActionRowComponents] = list(*components)
         super().__init__(id=id)
 
     @classmethod
     @override
     def from_payload(cls, payload: ActionRowPayload) -> Self:
-        from ._component_factory import _component_factory  # noqa: PLC0415
+        from ._component_factory import _component_factory  # noqa: PLC0415  # pyright: ignore[reportPrivateUsage]
 
         components: list[AllowedActionRowComponents] = cast(
             "list[AllowedActionRowComponents]", [_component_factory(d) for d in payload.get("", [])]

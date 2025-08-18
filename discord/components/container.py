@@ -1,7 +1,6 @@
 """
 The MIT License (MIT)
 
-Copyright (c) 2015-2021 Rapptz
 Copyright (c) 2021-present Pycord Development
 
 Permission is hereby granted, free of charge, to any person obtaining a
@@ -25,8 +24,8 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar, Literal, cast, override
-from collections.abc import Sequence
+from typing import TYPE_CHECKING, ClassVar, Literal, cast
+from typing_extensions import override
 
 from discord.colour import Colour
 from discord.enums import ComponentType
@@ -79,7 +78,7 @@ class Container(WalkableComponent["ContainerComponentPayload", "AllowedContainer
 
     def __init__(
         self,
-        *components: Sequence[AllowedContainerComponents],
+        *components: AllowedContainerComponents,
         accent_color: Colour | None = None,
         spoiler: bool | None = False,
         id: int | None = None,
@@ -105,7 +104,7 @@ class Container(WalkableComponent["ContainerComponentPayload", "AllowedContainer
     @classmethod
     @override
     def from_payload(cls, payload: ContainerComponentPayload, state: ConnectionState | None = None) -> Self:
-        from ._component_factory import _component_factory  # noqa: PLC0415
+        from ._component_factory import _component_factory  # noqa: PLC0415  # pyright: ignore[reportPrivateUsage]
 
         components: list[AllowedContainerComponents] = cast(
             "list[AllowedContainerComponents]",

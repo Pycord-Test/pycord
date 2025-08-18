@@ -25,13 +25,13 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar, Literal, cast, override
+from typing import TYPE_CHECKING, ClassVar, Literal, cast
+from typing_extensions import override
 from collections.abc import Sequence
-from functools import lru_cache
 from discord.enums import ComponentType
 from discord.types.components import SectionComponent as SectionComponentPayload
 from .component import WalkableComponent
-from .allowed_types import AllowedSectionComponents, AllowedSectionAccessoryComponents, AllowedSectionAnyComponents
+from .allowed_types import AllowedSectionComponents, AllowedSectionAccessoryComponents
 
 if TYPE_CHECKING:
     from typing_extensions import Self
@@ -86,7 +86,7 @@ class Section(
     @classmethod
     @override
     def from_payload(cls, payload: SectionComponentPayload, state: ConnectionState | None = None) -> Self:
-        from ._component_factory import _component_factory  # noqa: PLC0415
+        from ._component_factory import _component_factory  # noqa: PLC0415  # pyright: ignore[reportPrivateUsage]
 
         # self.id: int = data.get("id")
         components: list[AllowedSectionComponents] = cast(

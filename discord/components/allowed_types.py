@@ -51,6 +51,5 @@ AllowedSectionComponents: TypeAlias = "TextDisplay"
 AllowedSectionAccessoryComponents: TypeAlias = "Button | Thumbnail"
 AllowedActionRowComponents: TypeAlias = "Button | InputText | SelectMenu[SelectMenuTypes]"
 AllowedContainerComponents: TypeAlias = "ActionRow | TextDisplay | Section | MediaGallery | Separator | FileComponent"
-AllowedSectionAnyComponents: TypeAlias = "TextDisplay | Button | Thumbnail"
 
 AnyComponent: TypeAlias = "ActionRow | Button | StringSelectMenu | InputText | UserSelectMenu | RoleSelectMenu | MentionableSelectMenu | ChannelSelectMenu | Section | TextDisplay | Thumbnail | MediaGallery | FileComponent | Separator | Container | UnknownComponent"

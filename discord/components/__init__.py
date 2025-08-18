@@ -1,7 +1,6 @@
 """
 The MIT License (MIT)
 
-Copyright (c) 2015-2021 Rapptz
 Copyright (c) 2021-present Pycord Development
 
 Permission is hereby granted, free of charge, to any person obtaining a
@@ -45,7 +44,7 @@ from .file_component import FileComponent
 from .separator import Separator
 from .container import Container
 from .unknown_component import UnknownComponent
-from ._component_factory import _component_factory
+from ._component_factory import _component_factory  # pyright: ignore[reportPrivateUsage]
 from .allowed_types import AnyComponent
 from .components_sequence import ComponentsSequence
 

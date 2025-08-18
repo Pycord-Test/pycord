@@ -25,7 +25,8 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import override
+
+from typing_extensions import override
 
 from discord.partial_emoji import PartialEmoji, _EmojiTag  # pyright: ignore[reportPrivateUsage]
 from discord.utils import MISSING, Undefined

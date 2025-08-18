@@ -24,7 +24,8 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Literal, override
+from typing import TYPE_CHECKING, Literal
+from typing_extensions import override
 from collections.abc import Sequence
 
 from discord.enums import ComponentType

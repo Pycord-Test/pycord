@@ -25,7 +25,8 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar, Literal, override
+from typing import TYPE_CHECKING, ClassVar, Literal
+from typing_extensions import override
 
 from discord.enums import ComponentType, InputTextStyle, try_enum
 from discord.types.components import InputText as InputTextComponentPayload

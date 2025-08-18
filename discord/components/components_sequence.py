@@ -23,11 +23,11 @@ DEALINGS IN THE SOFTWARE.
 """
 
 from __future__ import annotations
-
+from typing import overload
 from .allowed_types import AnyComponent
-from collections.abc import MutableSequence
+from collections.abc import MutableSequence, Iterator, Iterable
 from .component import WalkableComponent
-from typing import Iterator
+from typing_extensions import override
 
 
 class ComponentsSequence(MutableSequence[AnyComponent]):
@@ -40,21 +40,59 @@ class ComponentsSequence(MutableSequence[AnyComponent]):
     """
 
     def __init__(self, *components: AnyComponent):
-        self._components = list(components)
+        self._components: list[AnyComponent] = list(components)
 
-    def __getitem__(self, index: int) -> AnyComponent:
+    @overload
+    def __getitem__(self, index: int) -> AnyComponent: ...
+
+    @overload
+    def __getitem__(self, index: slice) -> list[AnyComponent]: ...
+
+    @override
+    def __getitem__(self, index: int | slice) -> AnyComponent | list[AnyComponent]:
         return self._components[index]
 
+    @override
     def __len__(self) -> int:
         return len(self._components)
 
-    def __setitem__(self, index: int, value: AnyComponent) -> None:
-        self._components[index] = value
+    @overload
+    def __setitem__(self, index: int, value: AnyComponent) -> None: ...
 
-    def __delitem__(self, index: int) -> None:
+    @overload
+    def __setitem__(self, index: slice, value: Iterable[AnyComponent]) -> None: ...
+
+    @override
+    def __setitem__(self, index: int | slice, value: AnyComponent | Iterable[AnyComponent]) -> None:
+        if isinstance(index, int):
+            if not isinstance(value, Iterable) or isinstance(value, AnyComponent):
+                self._components[index] = value
+            else:
+                raise TypeError("When index is int, value must be AnyComponent")
+        else:
+            raise NotImplementedError("Setting multiple items with a slice is not supported in this implementation")
+
+    @overload
+    def __delitem__(self, index: int) -> None: ...
+
+    @overload
+    def __delitem__(self, index: slice) -> None: ...
+
+    @override
+    def __delitem__(self, index: int | slice) -> None:
         del self._components[index]
 
+    @override
     def insert(self, index: int, value: AnyComponent) -> None:
+        """Insert a component at a specific index.
+
+        Parameters
+        ----------
+        index: :class:`int`
+            The index at which to insert the component.
+        value: :class:`AnyComponent`
+            The component to insert.
+        """
         self._components.insert(index, value)
 
     def get_by_id(self, component_id: str | int) -> AnyComponent | None:
@@ -78,8 +116,9 @@ class ComponentsSequence(MutableSequence[AnyComponent]):
 
             if isinstance(component, WalkableComponent):
                 if found := component.get_by_id(component_id):
-                    return found
+                    return found  # pyright: ignore[reportReturnType]
         return None
 
+    @override
     def __iter__(self) -> Iterator[AnyComponent]:
         yield from self._components
