@@ -13,6 +13,16 @@ release.
 
 ### Removed
 
+#### `discord.ui`
+
+Removed everything under `discord.ui`. Instead, use the new `discord.components` module
+which provides a more flexible and powerful way to create interactive components. You
+can read more in the migration guide.
+
+<!-- TODO: Add link to migration guide -->
+
+#### `discord.utils`
+
 - `utils.filter_params`
 - `utils.sleep_until` use `asyncio.sleep` combined with `datetime.datetime` instead
 - `utils.compute_timedelta` use the `datetime` module instead
