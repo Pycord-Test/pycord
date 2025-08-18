@@ -47,10 +47,26 @@ class Separator(Component[SeparatorComponentPayload]):
 
     Attributes
     ----------
+    type: Literal[:data:`ComponentType.separator`]
+        The type of component.
     divider: :class:`bool`
         Whether the separator will show a horizontal line in addition to vertical spacing.
-    spacing: Optional[:class:`SeparatorSpacingSize`]
+    spacing: :class:`SeparatorSpacingSize` | :data:`None`
         The separator's spacing size.
+    id: :class:`int` | :data:`None`
+        The separator's ID.
+
+    Parameters
+    ----------
+    divider:
+        Whether the separator will show a horizontal line in addition to vertical spacing.
+        Defaults to :data:`True`.
+    spacing:
+        The separator's spacing size.
+        Defaults to :attr:`SeparatorSpacingSize.small`.
+    id:
+        The separator's ID. If not provided by the user, it is set sequentially by
+        Discord. The ID `0` is treated as if no ID was provided.
     """
 
     __slots__: tuple[str, ...] = (

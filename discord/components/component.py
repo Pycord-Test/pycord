@@ -41,28 +41,21 @@ if TYPE_CHECKING:
 class Component(ABC, Generic[P]):
     """Represents a Discord Bot UI Kit Component.
 
-    The components supported by Discord in messages are as follows:
-
-    - :class:`ActionRow`
-    - :class:`Button`
-    - :class:`SelectMenu`
-    - :class:`Section`
-    - :class:`TextDisplay`
-    - :class:`Thumbnail`
-    - :class:`MediaGallery`
-    - :class:`FileComponent`
-    - :class:`Separator`
-    - :class:`Container`
-
     This class is abstract and cannot be instantiated.
 
     .. versionadded:: 2.0
+    .. versionchanged:: 3.0
 
     Attributes
     ----------
     type: :class:`ComponentType`
         The type of component.
     id: :class:`int`
+        The component's ID.
+
+    Parameters
+    ----------
+    id:
         The component's ID. If not provided by the user, it is set sequentially by Discord.
         The ID `0` is treated as if no ID was provided.
     """
@@ -72,9 +65,10 @@ class Component(ABC, Generic[P]):
     __repr_info__: ClassVar[tuple[str, ...]]
     type: ComponentType
     versions: tuple[int, ...]
+    id: int | None
 
     def __init__(self, id: int | None = None) -> None:
-        self.id: int | None = id
+        self.id = id
 
     @override
     def __repr__(self) -> str:

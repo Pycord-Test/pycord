@@ -25,16 +25,21 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar, Literal, cast
+from typing import TYPE_CHECKING, ClassVar, Literal, TypeAlias, cast
 from typing_extensions import override
 
 from discord.enums import ComponentType
 from discord.types.components import ActionRow as ActionRowPayload
 from .component import WalkableComponent
-from .allowed_types import AllowedActionRowComponents
 
 if TYPE_CHECKING:
     from typing_extensions import Self
+    from .button import Button
+    from .input_text import InputText
+    from .select_menu import SelectMenu
+    from .types import SelectMenuTypes
+
+AllowedActionRowComponents: TypeAlias = "Button | InputText | SelectMenu[SelectMenuTypes]"
 
 
 class ActionRow(WalkableComponent["ActionRowPayload", "AllowedActionRowComponents"]):
@@ -49,18 +54,23 @@ class ActionRow(WalkableComponent["ActionRowPayload", "AllowedActionRowComponent
 
     Attributes
     ----------
-    type: :class:`ComponentType`
+    type: Literal[:data:`ComponentType.action_row`]
         The type of component.
-    components: List[:class:`AllowedActionRowComponents`]
+    components: list[:class:`AllowedActionRowComponents`]
         The components that this ActionRow holds, if any.
-    id: Optional[:class:`int`]
+    id: :class:`int` | :class:`None`
         The action row's ID. If not provided, it is set sequentially by Discord.
         The ID `0` is treated as if no ID was provided.
 
     Parameters
     ----------
-    components: Sequence[:class:`AllowedActionRowComponents`]
-
+    components:
+        The components that this ActionRow holds, if any.
+        This can be a sequence of up to 5 components.
+        Has to be passed unpacked (e.g. ``*components``).
+    id:
+        The action row's ID. If not provided, it is set sequentially by Discord.
+        The ID `0` is treated as if no ID was provided.
     """
 
     __slots__: tuple[str, ...] = ("components",)

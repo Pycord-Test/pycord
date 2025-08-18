@@ -25,17 +25,22 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar, Literal, cast
+from typing import TYPE_CHECKING, ClassVar, Literal, TypeAlias, cast
 from typing_extensions import override
 from collections.abc import Sequence
-from discord.enums import ComponentType
-from discord.types.components import SectionComponent as SectionComponentPayload
+from ..enums import ComponentType
+from ..types.components import SectionComponent as SectionComponentPayload
 from .component import WalkableComponent
-from .allowed_types import AllowedSectionComponents, AllowedSectionAccessoryComponents
 
 if TYPE_CHECKING:
     from typing_extensions import Self
     from discord.state import ConnectionState
+    from .text_display import TextDisplay
+    from .button import Button
+    from .thumbnail import Thumbnail
+
+AllowedSectionComponents: TypeAlias = "TextDisplay"
+AllowedSectionAccessoryComponents: TypeAlias = "Button | Thumbnail"
 
 
 class Section(
@@ -51,18 +56,22 @@ class Section(
 
     Attributes
     ----------
+    type: Literal[:data:`ComponentType.section`]
+        The type of component.
     components: List[:class:`Component`]
         The components contained in this section. Currently supports :class:`TextDisplay`.
-    accessory: Optional[:class:`Component`]
+    accessory: :class:`Component` | :data:`None`
         The accessory attached to this Section. Currently supports :class:`Button` and :class:`Thumbnail`.
+    id: :class:`int` | :data:`None`
+        The section's ID.
 
     Parameters
     ----------
-    components: Sequence[:class:`AllowedSectionComponents`]
+    components:
         The components contained in this section. Currently supports :class:`TextDisplay`.
-    accessory: Optional[:class:`AllowedSectionAccessoryComponents`]
+    accessory:
         The accessory attached to this Section. Currently supports :class:`Button` and :class:`Thumbnail`.
-    id: Optional[:class:`int`]
+    id:
         The section's ID. If not provided, it is set sequentially by Discord.
         The ID `0` is treated as if no ID was provided.
     """

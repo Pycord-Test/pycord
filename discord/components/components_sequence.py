@@ -24,7 +24,7 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 from typing import overload
-from .allowed_types import AnyComponent
+from .types import AnyComponent
 from collections.abc import MutableSequence, Iterator, Iterable
 from .component import WalkableComponent
 from typing_extensions import override

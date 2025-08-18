@@ -24,18 +24,26 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar, Literal, cast
+from typing import TYPE_CHECKING, ClassVar, Literal, TypeAlias, cast
 from typing_extensions import override
 
 from discord.colour import Colour
 from discord.enums import ComponentType
 from discord.types.components import ContainerComponent as ContainerComponentPayload
 from .component import WalkableComponent
-from .allowed_types import AllowedContainerComponents
 
 if TYPE_CHECKING:
     from typing_extensions import Self
     from discord.state import ConnectionState
+    from .action_row import ActionRow
+    from .text_display import TextDisplay
+    from .section import Section
+    from .media_gallery import MediaGallery
+    from .separator import Separator
+    from .file_component import FileComponent
+
+
+AllowedContainerComponents: TypeAlias = "ActionRow | TextDisplay | Section | MediaGallery | Separator | FileComponent"
 
 
 class Container(WalkableComponent["ContainerComponentPayload", "AllowedContainerComponents"]):
@@ -58,12 +66,28 @@ class Container(WalkableComponent["ContainerComponentPayload", "AllowedContainer
 
     Attributes
     ----------
-    components: List[:class:`Component`]
+    type: Literal[:data:`ComponentType.container`]
+        The type of component.
+    components: List[:class:`AllowedContainerComponents`]
         The components contained in this container.
-    accent_color: Optional[:class:`Colour`]
+    accent_color: :class:`Colour` | :data:`None`
         The accent color of the container.
-    spoiler: Optional[:class:`bool`]
-        Whether the entire container has the spoiler overlay.
+    spoiler: :class:`bool` | :data:`None`
+        Whether the entire container has a spoiler overlay.
+    id: :class:`int` | :data:`None`
+        The container's ID.
+
+    Parameters
+    ----------
+    components:
+        The components to include in this container. Has to be passed unpacked (e.g. ``*components``).
+    accent_color:
+        The accent color of the container. If not provided, it defaults to :data:`None`.
+    spoiler:
+        Whether the entire container has the spoiler overlay. If not provided, it defaults to :data:`False`.
+    id:
+        The container's ID. If not provided, it is set sequentially by Discord.
+        The ID `0` is treated as if no ID was provided.
     """
 
     __slots__: tuple[str, ...] = (

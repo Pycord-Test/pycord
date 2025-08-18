@@ -40,12 +40,9 @@ class UnfurledMediaItem(AssetMixin):
 
     This is used as an underlying component for other media-based components such as :class:`Thumbnail`, :class:`FileComponent`, and :class:`MediaGalleryItem`.
 
-    .. versionadded:: 2.7
+    This should normally not be created directly.
 
-    Attributes
-    ----------
-    url: :class:`str`
-        The URL of this media item. This can either be an arbitrary URL or an ``attachment://`` URL to work with local files.
+    .. versionadded:: 2.7
     """
 
     def __init__(self, url: str):

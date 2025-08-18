@@ -38,29 +38,57 @@ if TYPE_CHECKING:
 
 class InputText(Component[InputTextComponentPayload]):
     """Represents an Input Text field from the Discord Bot UI Kit.
+
     This inherits from :class:`Component`.
+
+    .. versionchanged:: 3.0
 
     Attributes
     ----------
-    style: :class:`.InputTextStyle`
+    type: Literal[:data:`ComponentType.input_text`]
+        The type of component.
+    style: :class:`InputTextStyle`
         The style of the input text field.
-    custom_id: Optional[:class:`str`]
+    custom_id: :class:`str` | :data:`None`
         The custom ID of the input text field that gets received during an interaction.
     label: :class:`str`
         The label for the input text field.
-    placeholder: Optional[:class:`str`]
+    placeholder: class:`str` | :data:`None`
         The placeholder text that is shown if nothing is selected, if any.
-    min_length: Optional[:class:`int`]
+    min_length: :class:`int` | :data:`None`
         The minimum number of characters that must be entered
         Defaults to 0
-    max_length: Optional[:class:`int`]
+    max_length: :class:`int` | :data:`None`
         The maximum number of characters that can be entered
-    required: Optional[:class:`bool`]
+    required: :class:`bool` | :data:`None`
         Whether the input text field is required or not. Defaults to `True`.
-    value: Optional[:class:`str`]
+    value: :class:`str` | :data:`None`
         The value that has been entered in the input text field.
-    id: Optional[:class:`int`]
+    id: :class:`int` | :data:`None`
         The input text's ID.
+
+    Parameters
+    ----------
+    style: :class:`InputTextStyle`
+        The style of the input text field.
+    custom_id:
+        The custom ID of the input text field that gets received during an interaction.
+    label:
+        The label for the input text field.
+    min_length:
+        The minimum number of characters that must be entered.
+        Defaults to 0.
+    max_length:
+        The maximum number of characters that can be entered.
+    placeholder:
+        The placeholder text that is shown if nothing is selected, if any.
+    required:
+        Whether the input text field is required or not. Defaults to `True`.
+    value:
+        The value that has been entered in the input text field.
+    id:
+        The input text's ID. If not provided, it is set sequentially by Discord.
+        The ID `0` is treated as if no ID was provided.
     """
 
     __slots__: tuple[str, ...] = (

@@ -28,9 +28,9 @@ from __future__ import annotations
 
 from typing_extensions import override
 
-from discord.partial_emoji import PartialEmoji, _EmojiTag  # pyright: ignore[reportPrivateUsage]
-from discord.utils import MISSING, Undefined
-from discord.types.components import SelectOption as SelectOptionPayload
+from ..partial_emoji import PartialEmoji, _EmojiTag  # pyright: ignore[reportPrivateUsage]
+from ..utils import MISSING, Undefined
+from ..types.components import SelectOption as SelectOptionPayload
 from .types import AnyEmoji
 
 
@@ -45,16 +45,30 @@ class SelectOption:
     ----------
     label: :class:`str`
         The label of the option. This is displayed to users.
-        Can only be up to 100 characters.
     value: :class:`str`
         The value of the option. This is not displayed to users.
-        If not provided when constructed then it defaults to the
-        label. Can only be up to 100 characters.
     description: Optional[:class:`str`]
         An additional description of the option, if any.
         Can only be up to 100 characters.
     default: :class:`bool`
         Whether this option is selected by default.
+    emoji: :class:`str` | :class:`PartialEmoji` | :class:`GuildEmoji` | :class:`AppEmoji` | :data:`None`
+        The emoji of the option, if any.
+
+    Parameters
+    ----------
+    label:
+        The label of the option. This is displayed to users.
+        Can only be up to 100 characters.
+    value:
+        The value of the option. This is not displayed to users.
+        Can only be up to 100 characters. If not provided when constructed then it defaults to the
+        label.
+    description:
+        An additional description of the option, if any.
+        Can only be up to 100 characters.
+    emoji:
+        The emoji of the option, if any.
     """
 
     __slots__: tuple[str, ...] = (

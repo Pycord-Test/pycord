@@ -49,14 +49,30 @@ class FileComponent(StateComponent[FileComponentPayload]):
 
     Attributes
     ----------
+    type: Literal[:data:`ComponentType.file`]
+        The type of component.
     file: :class:`UnfurledMediaItem`
         The file's media item.
     name: :class:`str`
         The file's name.
     size: :class:`int`
         The file's size in bytes.
-    spoiler: Optional[:class:`bool`]
+    spoiler: :class:`bool` | :data:`None`
         Whether the file has the spoiler overlay.
+
+    Parameters
+    ----------
+    url: :class:`str`
+        The URL of this media gallery item. This HAS to be an ``attachment://`` URL to work with local files.
+    spoiler:
+        Whether the file has the spoiler overlay. Defaults to :data:`False`.
+    id:
+        The component's ID. If not provided by the user, it is set sequentially by Discord.
+        The ID `0` is treated as if no ID was provided.
+    size:
+        The file's size in bytes. If not provided, it is set to :data:`None`.
+    name:
+        The file's name. If not provided, it is set to :data:`None`.
     """
 
     __slots__: tuple[str, ...] = (

@@ -27,7 +27,7 @@ from __future__ import annotations
 from typing import ClassVar, Generic, Literal
 from abc import ABC
 
-from discord.enums import ComponentType
+from ..enums import ComponentType
 from .component import Component
 from .types import T
 
@@ -40,7 +40,6 @@ class SelectMenu(Component[T], ABC, Generic[T]):
     This is an abstract class and cannot be instantiated directly.
 
     .. versionadded:: 3.0
-
     """
 
     __slots__: tuple[str, ...] = (  # pyright: ignore[reportIncompatibleUnannotatedOverride]

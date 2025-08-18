@@ -64,12 +64,10 @@ These extensions help you during development when it comes to common tasks.
 
   ext/commands/index.rst
   ext/tasks/index.rst
-  ext/pages/index.rst
   ext/bridge/index.rst
 
 - :doc:`ext/commands/index` - Bot commands framework
 - :doc:`ext/tasks/index` - asyncio.Task helpers
-- :doc:`ext/pages/index` - A pagination extension module
 - :doc:`ext/bridge/index` - A module that bridges slash commands to prefixed commands
 
 Meta

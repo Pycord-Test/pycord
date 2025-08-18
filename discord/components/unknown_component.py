@@ -47,7 +47,8 @@ class UnknownComponent(Component[ComponentPayload]):
     ----------
     type: :class:`ComponentType`
         The type of the unknown component.
-
+    id: :class:`int` | :data:`None`
+        The component's ID.
     """
 
     __slots__: tuple[str, ...] = ("type",)

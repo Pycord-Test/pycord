@@ -45,6 +45,13 @@ class DefaultSelectOption(Generic[DT]):
     type: :class:`str`
         The type of the default option. This can be either "user", "role", or "channel".
         This is used to determine which type of select menu this option belongs to.
+
+    Parameters
+    ----------
+    id:
+        The ID of the default option.
+    type:
+        The type of the default option. This can be either "user", "role", or "channel".
     """
 
     __slots__: tuple[str, ...] = ("id", "type")

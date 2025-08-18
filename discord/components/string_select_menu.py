@@ -46,6 +46,8 @@ class StringSelectMenu(SelectMenu[StringSelectPayload]):
 
     Attributes
     ----------
+    type: Literal[:data:`ComponentType.string_select`]
+        The type of component.
     options: List[:class:`SelectOption`]
         The options available in this select menu.
     custom_id: :class:`str`
@@ -61,28 +63,27 @@ class StringSelectMenu(SelectMenu[StringSelectPayload]):
     disabled: :class:`bool`
         Whether the select menu is disabled or not.
         Defaults to ``False``.
-    id: Optional[:class:`int`]
-        The select menu's ID. If not provided, it is set sequentially by Discord.
-        The ID `0` is treated as if no ID was provided.
+    id: :class:`int` | :data:`None`
+        The string select menu's ID.
 
     Parameters
     ----------
-    custom_id: :class:`str`
+    custom_id:
         The custom ID of the select menu that gets received during an interaction.
-    options: Sequence[:class:`SelectOption`]
+    options:
         The options available in this select menu.
-    placeholder: Optional[:class:`str`]
+    placeholder:
         The placeholder text that is shown if nothing is selected, if any.
-    min_values: :class:`int`
+    min_values:
         The minimum number of values that must be selected.
         Defaults to 1.
-    max_values: :class:`int`
+    max_values:
         The maximum number of values that can be selected.
         Defaults to 1.
-    disabled: :class:`bool`
+    disabled:
         Whether the select menu is disabled or not. Defaults to ``False``.
-    id: Optional[:class:`int`]
-        The select menu's ID. If not provided, it is set sequentially by Discord.
+    id:
+        The string select menu's ID. If not provided, it is set sequentially by Discord.
         The ID `0` is treated as if no ID was provided.
     """
 

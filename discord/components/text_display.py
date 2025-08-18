@@ -47,18 +47,19 @@ class TextDisplay(Component[TextDisplayComponentPayload]):
 
     Attributes
     ----------
+    type: Literal[:data:`ComponentType.text_display`]
+        The type of component.
     content: :class:`str`
         The component's text content.
-    id: Optional[:class:`int`]
-        The component's ID. If not provided, it is set sequentially by Discord.
-        The ID `0` is treated as if no ID was provided.
+    id: :class:`int` | :data:`None`
+        The text display's ID.
 
     Parameters
     ----------
-    content: :class:`str`
-        The text content of the component.
-    id: Optional[:class:`int`]
-        The component's ID. If not provided, it is set sequentially by Discord.
+    content:
+        The text content of the component. Can be markdown formatted.
+    id:
+        The text display's ID. If not provided, it is set sequentially by Discord.
         The ID `0` is treated as if no ID was provided.
     """
 

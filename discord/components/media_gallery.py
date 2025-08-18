@@ -50,8 +50,20 @@ class MediaGallery(StateComponent[MediaGalleryComponentPayload]):
 
     Attributes
     ----------
+    type: Literal[:data:`ComponentType.media_gallery`]
+        The type of component.
     items: List[:class:`MediaGalleryItem`]
         The media this gallery contains.
+    id: :class:`int` | :data:`None`
+        The media gallery's ID.
+
+    Parameters
+    ----------
+    items:
+        The media this gallery contains.
+    id:
+        The component's ID. If not provided by the user, it is set sequentially by
+        Discord. The ID `0` is treated as if no ID was provided.
     """
 
     __slots__: tuple[str, ...] = ("items",)

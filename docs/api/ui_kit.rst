@@ -6,7 +6,7 @@ Bot UI Kit
 The library implements a UI Kit that allows you to create interactive components for your Discord applications.
 
 API Objects
--------
+-----------
 
 .. attributetable:: discord.ActionRow
 
@@ -119,6 +119,11 @@ Additional Objects
     :members:
     :inherited-members:
 
+.. attributetable:: discord.DefaultSelectOption
+.. autoclass:: discord.DefaultSelectOption
+    :members:
+    :inherited-members:
+
 ABCs
 ----
 .. attributetable:: discord.Component
@@ -134,3 +139,9 @@ ABCs
 .. autoclass:: discord.SelectMenu
     :members:
     :inherited-members:
+
+Types
+-----
+
+.. py:type:: AnyComponent
+    A type alias for an union of all component types.

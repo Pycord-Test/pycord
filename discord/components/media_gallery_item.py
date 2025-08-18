@@ -36,24 +36,31 @@ if TYPE_CHECKING:
 class MediaGalleryItem:
     """Represents an item used in the :class:`MediaGallery` component.
 
-    This is used as an underlying component for other media-based components such as :class:`Thumbnail`, :class:`FileComponent`, and :class:`MediaGalleryItem`.
-
     .. versionadded:: 2.7
     .. versionchanged:: 3.0
 
     Attributes
     ----------
-    url: :class:`str`
-        The URL of this gallery item. This can either be an arbitrary URL or an ``attachment://`` URL to work with local files.
-    description: Optional[:class:`str`]
+    media: :class:`UnfurledMediaItem`
+        The :class:`UnfurledMediaItem` associated with this media gallery item.
+    description: :class:`str` | :class:`None`
         The gallery item's description, up to 1024 characters.
-    spoiler: Optional[:class:`bool`]
+    spoiler: :class:`bool`
         Whether the gallery item is a spoiler.
+
+    Parameters
+    ----------
+    url: :class:`str`
+        The URL of this media gallery item. This can either be an arbitrary URL or an ``attachment://`` URL to work with local files.
+    description:
+        The description of this media gallery item, up to 1024 characters. Defaults to :data:`None`.
+    spoiler:
+        Whether this media gallery item has a spoiler overlay. Defaults to :data:`False`.
     """
 
-    def __init__(self, url: str, *, description: str | None = None, spoiler: bool = False):
+    def __init__(self, url: str | UnfurledMediaItem, *, description: str | None = None, spoiler: bool = False):
         self._state: ConnectionState | None = None
-        self.media: UnfurledMediaItem = UnfurledMediaItem(url)
+        self.media: UnfurledMediaItem = UnfurledMediaItem(url) if isinstance(url, str) else url
         self.description: str | None = description
         self.spoiler: bool = spoiler
 
@@ -72,12 +79,11 @@ class MediaGalleryItem:
         spoiler = data.get("spoiler", False)
 
         r = cls(
-            url=media.url,
+            url=media,
             description=description,
             spoiler=spoiler,
         )
         r._state = state
-        r.media = media
         return r
 
     def to_dict(self) -> MediaGalleryItemPayload:

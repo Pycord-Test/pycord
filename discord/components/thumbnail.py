@@ -49,23 +49,27 @@ class Thumbnail(StateComponent[ThumbnailComponentPayload]):
 
     Attributes
     ----------
+    type: Literal[:data:`ComponentType.thumbnail`]
+        The type of component.
     media: :class:`UnfurledMediaItem`
         The component's underlying media object.
-    description: Optional[:class:`str`]
+    description: :class:`str` | :data:`None`
         The thumbnail's description, up to 1024 characters.
-    spoiler: Optional[:class:`bool`]
+    spoiler: :class:`bool` | :data:`None`
         Whether the thumbnail has the spoiler overlay.
+    id: :class:`int` | :data:`None`
+        The thumbnail's ID.
 
     Parameters
     ----------
-    url: :class:`str` | :class:`UnfurledMediaItem`
+    url:
         The URL of the thumbnail. This can either be an arbitrary URL or an ``attachment://`` URL to work with local files.
-    id: Optional[:class:`int`]
+    id:
         The thumbnail's ID. If not provided, it is set sequentially by Discord.
         The ID `0` is treated as if no ID was provided.
-    description: Optional[:class:`str`]
+    description:
         The thumbnail's description, up to 1024 characters.
-    spoiler: Optional[:class:`bool`]
+    spoiler:
         Whether the thumbnail has the spoiler overlay. Defaults to ``False``.
     """
 

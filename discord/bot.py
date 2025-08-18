@@ -1094,12 +1094,10 @@ class ComponentMixin(ABC):
     def __init__(self, *args: Any, **kwargs: Any):  # pyright: ignore[reportExplicitAny]
         super().__init__(*args, **kwargs)
         self.components: dict[
-            Callable[[str], bool | Awaitable[bool]], Callable[[Interaction], Coroutine[Any, Any, Any]]
-        ] = {}  # pyright: ignore[reportExplicitAny]
-        self.add_listener(self.handle_component_interaction, "on_interaction")
+            Callable[[str], bool | Awaitable[bool]], Callable[[Interaction], Coroutine[Any, Any, Any]]  # pyright: ignore[reportExplicitAny]
+        ] = {}
+        self._bot.add_listener(self.handle_component_interaction, "on_interaction")
 
-    @abstractmethod
-    def add_listener(self, func: Callable[..., Coroutine[Any, Any, Any]], name: str | Undefined = MISSING) -> None: ...  # pyright: ignore[reportExplicitAny]
     async def handle_component_interaction(self, interaction: Interaction):
         if interaction.type != InteractionType.component or not interaction.custom_id:
             return
@@ -1145,6 +1143,10 @@ class ComponentMixin(ABC):
             return func
 
         return wrapper
+
+    @property
+    @abstractmethod
+    def _bot(self) -> Bot | AutoShardedBot: ...
 
 
 class BotBase(ApplicationCommandMixin, CogMixin, ComponentMixin, ABC):

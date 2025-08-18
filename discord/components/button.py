@@ -47,47 +47,49 @@ class Button(Component[ButtonComponentPayload]):
 
     Attributes
     ----------
-    style: :class:`.ButtonStyle`
+    type: Literal[:data:`ComponentType.button`]
+        The type of component.
+    style: :class:`ButtonStyle`
         The style of the button.
-    custom_id: Optional[:class:`str`]
+    custom_id: :class:`str` | :data:`None`
         The ID of the button that gets received during an interaction.
         If this button is for a URL, it does not have a custom ID.
-    url: Optional[:class:`str`]
+    url: :class:`str` | :data:`None`
         The URL this button sends you to.
     disabled: :class:`bool`
         Whether the button is disabled or not.
-    label: Optional[:class:`str`]
+    label: :class:`str` | :data:`None`
         The label of the button, if any.
-    emoji: Optional[:class:`PartialEmoji`]
+    emoji: :class:`PartialEmoji`] | :data:`None`
         The emoji of the button, if available.
-    sku_id: Optional[:class:`int`]
+    sku_id: :class:`int` | :data:`None`
         The ID of the SKU this button refers to.
-    id: Optional[:class:`int`]
+    id: :class:`int` | :data:`None`
         The button's ID. If not provided, it is set sequentially by Discord.
         The ID `0` is treated as if no ID was provided.
 
     Parameters
     ----------
-    style: :class:`.ButtonStyle`
+    style:
         The style of the button.
-    custom_id: Optional[:class:`str`]
+    custom_id:
         The ID of the button that gets received during an interaction.
         Cannot be used with :class:`ButtonStyle.url` or :class:`ButtonStyle.premium`.
-    label: Optional[:class:`str`]
+    label:
         The label of the button, if any.
         Cannot be used with :class:`ButtonStyle.premium`.
-    emoji: Optional[:class:`str` | :class:`PartialEmoji`]
+    emoji:
         The emoji of the button, if available.
         Cannot be used with :class:`ButtonStyle.premium`.
-    disabled: :class:`bool`
+    disabled:
         Whether the button is disabled or not.
-    url: Optional[:class:`str`]
+    url:
         The URL this button sends you to.
         Can only be used with :class:`ButtonStyle.url`.
-    id: Optional[:class:`int`]
+    id:
         The button's ID. If not provided, it is set sequentially by Discord.
         The ID `0` is treated as if no ID was provided.
-    sku_id: Optional[:class:`int`]
+    sku_id:
         The ID of the SKU this button refers to.
         Can only be used with :class:`ButtonStyle.premium`.
     """
