@@ -21,6 +21,11 @@ can read more in the migration guide.
 
 <!-- TODO: Add link to migration guide -->
 
+#### `discord.ext.pages`
+
+Removed the `discord.ext.pages` module. Instead, use the new `discord.components` module
+with your own pagination logic.
+
 #### `discord.utils`
 
 - `utils.filter_params`
