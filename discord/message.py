@@ -678,8 +678,11 @@ class ForwardedMessage:
         A list of :class:`Role` that were originally mentioned.
     stickers: List[:class:`StickerItem`]
         A list of sticker items given to the original message.
-    components: List[:class:`Component`]
+    components: :class:`ComponentsSequence`
         A list of components in the original message.
+
+        .. versionchanged:: 3.0
+            Now is of type :class:`ComponentsSequence` instead of :class:`list`.
     """
 
     def __init__(
@@ -878,10 +881,14 @@ class Message(Hashable):
         A list of sticker items given to the message.
 
         .. versionadded:: 1.6
-    components: List[:class:`Component`]
+    components: :class:`ComponentsSequence`
         A list of components in the message.
 
         .. versionadded:: 2.0
+
+        .. versionchanged:: 3.0
+            Now is of type :class:`ComponentsSequence` instead of :class:`list`.
+
     guild: Optional[:class:`Guild`]
         The guild that the message belongs to, if applicable.
     interaction: Optional[:class:`MessageInteraction`]

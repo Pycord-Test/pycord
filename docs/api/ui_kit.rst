@@ -3,108 +3,134 @@
 Bot UI Kit
 ==========
 
-The library has helpers to help create component-based UIs.
+The library implements a UI Kit that allows you to create interactive components for your Discord applications.
 
-
-Shortcut decorators
--------------------
-
-.. autofunction:: discord.ui.button
-    :decorator:
-
-.. autofunction:: discord.ui.select
-    :decorator:
-
-.. autofunction:: discord.ui.string_select
-    :decorator:
-
-.. autofunction:: discord.ui.user_select
-    :decorator:
-
-.. autofunction:: discord.ui.role_select
-    :decorator:
-
-.. autofunction:: discord.ui.mentionable_select
-    :decorator:
-
-.. autofunction:: discord.ui.channel_select
-    :decorator:
-
-Objects
+API Objects
 -------
 
-.. attributetable:: discord.ui.View
+.. attributetable:: discord.ActionRow
 
-.. autoclass:: discord.ui.View
-    :members:
-
-.. attributetable:: discord.ui.Item
-
-.. autoclass:: discord.ui.Item
-    :members:
-
-.. attributetable:: discord.ui.Button
-
-.. autoclass:: discord.ui.Button
+.. autoclass:: discord.ActionRow
     :members:
     :inherited-members:
 
-.. attributetable:: discord.ui.Select
+.. attributetable:: discord.Button
 
-.. autoclass:: discord.ui.Select
+.. autoclass:: discord.Button
     :members:
     :inherited-members:
 
-.. attributetable:: discord.ui.Section
+.. attributetable:: discord.StringSelectMenu
 
-.. autoclass:: discord.ui.Section
+.. autoclass:: discord.StringSelectMenu
     :members:
     :inherited-members:
 
-.. attributetable:: discord.ui.TextDisplay
+.. attributetable:: discord.InputText
 
-.. autoclass:: discord.ui.TextDisplay
+.. autoclass:: discord.InputText
     :members:
     :inherited-members:
 
-.. attributetable:: discord.ui.Thumbnail
+.. attributetable:: discord.UserSelectMenu
 
-.. autoclass:: discord.ui.Thumbnail
+.. autoclass:: discord.UserSelectMenu
     :members:
     :inherited-members:
 
-.. attributetable:: discord.ui.MediaGallery
+.. attributetable:: discord.RoleSelectMenu
 
-.. autoclass:: discord.ui.MediaGallery
+.. autoclass:: discord.RoleSelectMenu
     :members:
     :inherited-members:
 
-.. attributetable:: discord.ui.File
+.. attributetable:: discord.MentionableSelectMenu
 
-.. autoclass:: discord.ui.File
+.. autoclass:: discord.MentionableSelectMenu
     :members:
     :inherited-members:
 
-.. attributetable:: discord.ui.Separator
+.. attributetable:: discord.ChannelSelectMenu
 
-.. autoclass:: discord.ui.Separator
+.. autoclass:: discord.ChannelSelectMenu
     :members:
     :inherited-members:
 
-.. attributetable:: discord.ui.Container
+.. attributetable:: discord.Section
 
-.. autoclass:: discord.ui.Container
+.. autoclass:: discord.Section
     :members:
     :inherited-members:
 
-.. attributetable:: discord.ui.Modal
+.. attributetable:: discord.TextDisplay
 
-.. autoclass:: discord.ui.Modal
+.. autoclass:: discord.TextDisplay
     :members:
     :inherited-members:
 
-.. attributetable:: discord.ui.InputText
+.. attributetable:: discord.Thumbnail
 
-.. autoclass:: discord.ui.InputText
+.. autoclass:: discord.Thumbnail
+    :members:
+    :inherited-members:
+
+.. attributetable:: discord.MediaGallery
+
+.. autoclass:: discord.MediaGallery
+    :members:
+    :inherited-members:
+
+.. attributetable:: discord.FileComponent
+
+.. autoclass:: discord.FileComponent
+    :members:
+    :inherited-members:
+
+.. attributetable:: discord.Separator
+.. autoclass:: discord.Separator
+    :members:
+    :inherited-members:
+
+.. attributetable:: discord.Container
+.. autoclass:: discord.Container
+    :members:
+    :inherited-members:
+
+Additional Objects
+------------------
+
+.. attributetable:: discord.UnknownComponent
+.. autoclass:: discord.UnknownComponent
+    :members:
+    :inherited-members:
+
+.. attributetable:: discord.UnfurledMediaItem
+.. autoclass:: discord.UnfurledMediaItem
+    :members:
+    :inherited-members:
+
+.. attributetable:: discord.MediaGalleryItem
+.. autoclass:: discord.MediaGalleryItem
+    :members:
+    :inherited-members:
+
+.. attributetable:: discord.ComponentsSequence
+.. autoclass:: discord.ComponentsSequence
+    :members:
+    :inherited-members:
+
+ABCs
+----
+.. attributetable:: discord.Component
+.. autoclass:: discord.Component
+    :members:
+
+.. attributetable:: discord.WalkableComponent
+.. autoclass:: discord.WalkableComponent
+    :members:
+    :inherited-members:
+
+.. attributetable:: discord.SelectMenu
+.. autoclass:: discord.SelectMenu
     :members:
     :inherited-members:

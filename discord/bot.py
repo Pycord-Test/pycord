@@ -64,7 +64,8 @@ from .shard import AutoShardedClient
 from .types import interactions
 from .user import User
 from .utils import MISSING, find, Undefined
-from .utils.private import async_all
+from .utils.private import async_all, maybe_awaitable
+from collections.abc import Awaitable
 
 if TYPE_CHECKING:
     from .member import Member
@@ -1090,19 +1091,21 @@ class ComponentMixin(ABC):
     It is not intended to be used directly, but rather as a base class for bots that need component handling.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any):  # pyright: ignore[reportExplicitAny]
         super().__init__(*args, **kwargs)
-        self.components: dict[Callable[[str], bool], Callable[[Interaction], Coroutine[Any, Any, Any]]] = {}
+        self.components: dict[
+            Callable[[str], bool | Awaitable[bool]], Callable[[Interaction], Coroutine[Any, Any, Any]]
+        ] = {}  # pyright: ignore[reportExplicitAny]
         self.add_listener(self.handle_component_interaction, "on_interaction")
 
     @abstractmethod
-    def add_listener(self, func: Coro, name: str | Undefined = MISSING) -> None: ...
+    def add_listener(self, func: Callable[..., Coroutine[Any, Any, Any]], name: str | Undefined = MISSING) -> None: ...  # pyright: ignore[reportExplicitAny]
     async def handle_component_interaction(self, interaction: Interaction):
-        if interaction.type != InteractionType.component:
+        if interaction.type != InteractionType.component or not interaction.custom_id:
             return
-        c: list[Coroutine[Any, Any, Any]] = []
+        c: list[Coroutine[Any, Any, Any]] = []  # pyright: ignore[reportExplicitAny]
         for check, callback in self.components.items():
-            if check(interaction.custom_id):
+            if await maybe_awaitable(check, interaction.custom_id):
                 c.append(callback(interaction))
         if c:
             r = await asyncio.gather(*c, return_exceptions=True)
@@ -1112,7 +1115,7 @@ class ComponentMixin(ABC):
         else:
             _log.debug(f"No component handler found for {interaction.custom_id}")
 
-    def component(self, predicate: Callable[[str], bool] | str) -> Callable[[CI], CI]:
+    def component_listener(self, predicate: Callable[[str], bool | Awaitable[bool]] | str) -> Callable[[CI], CI]:
         """A shortcut decorator that registers a component interaction listener.
 
         This decorator can be used to register a function that will be called
@@ -1122,8 +1125,8 @@ class ComponentMixin(ABC):
 
         Parameters
         ----------
-        predicate: Callable[[str], bool] | str
-            A function that takes a string (the component's custom ID) and returns a boolean indicating whether the
+        predicate: Callable[[str], bool | Awaitable[bool]] | str
+            A (potentially async) function that takes a string (the component's custom ID) and returns a boolean indicating whether the
             function should be called for that component. Alternatively, a string can be provided, which will match
             the component's custom ID exactly.
 
@@ -1133,7 +1136,7 @@ class ComponentMixin(ABC):
             A decorator that registers the function as a component interaction listener.
         """
         if isinstance(predicate, str):
-            real_predicate = lambda s: s == predicate
+            real_predicate: Callable[[str], bool | Awaitable[bool]] = lambda s: s == predicate
         else:
             real_predicate = predicate
 
