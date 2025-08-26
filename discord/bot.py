@@ -42,6 +42,7 @@ from typing import (
     Generator,
     Literal,
     Mapping,
+    TypeAlias,
     TypeVar,
 )
 
@@ -1080,40 +1081,91 @@ class ApplicationCommandMixin(ABC):
     def _bot(self) -> Bot | AutoShardedBot: ...
 
 
-CI = TypeVar("CI", bound="Callable[[Interaction], Coroutine[Any, Any, Any]]")
-Coro = TypeVar("Coro", bound=Callable[..., Coroutine[Any, Any, Any]])
+CI: TypeAlias = Callable[[Interaction], Coroutine[Any, Any, Any]]  # pyright: ignore[reportExplicitAny]
+CI_t = TypeVar("CI_t", bound=CI)
+Coro = TypeVar("Coro", bound=Callable[..., Coroutine[Any, Any, Any]])  # pyright: ignore[reportExplicitAny]
 
 
 class ComponentMixin(ABC):
     """A mixin that provides component handling for the bot.
 
     This mixin is used to handle components such as buttons, select menus, and other interactive elements.
-    It is not intended to be used directly, but rather as a base class for bots that need component handling.
+    It is not intended to be used directly, but rather to implement component interactions to bots.
     """
 
     def __init__(self, *args: Any, **kwargs: Any):  # pyright: ignore[reportExplicitAny]
         super().__init__(*args, **kwargs)
-        self.components: dict[
-            Callable[[str], bool | Awaitable[bool]], Callable[[Interaction], Coroutine[Any, Any, Any]]  # pyright: ignore[reportExplicitAny]
-        ] = {}
+        # We map the listener to the predicate instead of the other way around
+        # so that removing a listener can be done directly and is more efficient
+        self.components: dict[CI, Callable[[str], bool | Awaitable[bool]]] = {}
         self._bot.add_listener(self.handle_component_interaction, "on_interaction")
 
     async def handle_component_interaction(self, interaction: Interaction):
         if interaction.type != InteractionType.component or not interaction.custom_id:
             return
-        c: list[Coroutine[Any, Any, Any]] = []  # pyright: ignore[reportExplicitAny]
-        for check, callback in self.components.items():
-            if await maybe_awaitable(check, interaction.custom_id):
-                c.append(callback(interaction))
-        if c:
-            r = await asyncio.gather(*c, return_exceptions=True)
-            for res in r:
-                if isinstance(res, Exception):
-                    _log.error(f"Error while handling component interaction", exc_info=res)
+
+        callbacks: list[Coroutine[Any, Any, Any]] = []  # pyright: ignore[reportExplicitAny]
+
+        for callback, predicate in self.components.items():
+            if await maybe_awaitable(predicate, interaction.custom_id):
+                callbacks.append(callback(interaction))
+
+        if callbacks:
+            results = await asyncio.gather(*callbacks, return_exceptions=True)
+            for result in results:
+                if isinstance(result, Exception):
+                    _log.error(f"Error while handling component interaction", exc_info=result)
         else:
             _log.debug(f"No component handler found for {interaction.custom_id}")
 
-    def component_listener(self, predicate: Callable[[str], bool | Awaitable[bool]] | str) -> Callable[[CI], CI]:
+    def add_component_listener(self, predicate: Callable[[str], bool | Awaitable[bool]] | str, listener: CI) -> None:
+        """Registers a component interaction listener.
+
+        This method can be used to register a function that will be called
+        when a component interaction occurs that matches the provided predicate.
+
+        .. versionadded:: 3.0
+
+        Parameters
+        ----------
+        predicate: Callable[[str], bool | Awaitable[bool]] | str
+            A (potentially async) function that takes a string (the component's custom ID) and returns a boolean indicating whether the
+            function should be called for that component. Alternatively, a string can be provided, which will match
+            the component's custom ID exactly.
+
+        listener: Callable[[Interaction], Coroutine[Any, Any, Any]]
+            The interaction callback to call when a component interaction occurs that matches the predicate.
+        """
+        if isinstance(predicate, str):
+            real_predicate: Callable[[str], bool | Awaitable[bool]] = lambda s: s == predicate
+        else:
+            real_predicate = predicate
+        self.components[listener] = real_predicate
+
+    def remove_component_listener(self, listener: CI) -> None:
+        """Unregisters a component interaction listener.
+
+        This method can be used to unregister a function that was previously
+        registered as a component interaction listener.
+
+        .. versionadded:: 3.0
+
+        Parameters
+        ----------
+        listener: Callable[[Interaction], Coroutine[Any, Any, Any]]
+            The interaction callback to unregister.
+
+        Raises
+        ------
+        ValueError
+            The listener was not found.
+        """
+        try:
+            del self.components[listener]
+        except KeyError as e:
+            raise ValueError("Listener not found") from e
+
+    def component_listener(self, predicate: Callable[[str], bool | Awaitable[bool]] | str) -> Callable[[CI_t], CI_t]:
         """A shortcut decorator that registers a component interaction listener.
 
         This decorator can be used to register a function that will be called
@@ -1133,13 +1185,9 @@ class ComponentMixin(ABC):
         Callable[[CI], CI]
             A decorator that registers the function as a component interaction listener.
         """
-        if isinstance(predicate, str):
-            real_predicate: Callable[[str], bool | Awaitable[bool]] = lambda s: s == predicate
-        else:
-            real_predicate = predicate
 
-        def wrapper(func: CI) -> CI:
-            self.components[real_predicate] = func
+        def wrapper(func: CI_t) -> CI_t:
+            self.add_component_listener(predicate, func)
             return func
 
         return wrapper
