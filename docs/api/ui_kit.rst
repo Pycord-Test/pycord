@@ -139,9 +139,3 @@ ABCs
 .. autoclass:: discord.SelectMenu
     :members:
     :inherited-members:
-
-Types
------
-
-.. py:type:: AnyComponent
-    A type alias for an union of all component types.
