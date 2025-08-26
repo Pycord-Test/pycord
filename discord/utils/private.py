@@ -405,7 +405,6 @@ async def async_all(gen: Iterable[Any]) -> bool:
 async def maybe_awaitable(f: Callable[P, T | Awaitable[T]], *args: P.args, **kwargs: P.kwargs) -> T:
     value = f(*args, **kwargs)
     if isawaitable(value):
-        reveal_type(f)
         return await value
     return value
 
