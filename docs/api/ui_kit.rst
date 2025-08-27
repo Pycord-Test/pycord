@@ -26,9 +26,9 @@ API Objects
     :members:
     :inherited-members:
 
-.. attributetable:: discord.InputText
+.. attributetable:: discord.TextInput
 
-.. autoclass:: discord.InputText
+.. autoclass:: discord.TextInput
     :members:
     :inherited-members:
 

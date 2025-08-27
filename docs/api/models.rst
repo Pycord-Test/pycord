@@ -353,11 +353,6 @@ Interactions
 .. autoclass:: InteractionMessage()
     :members:
 
-.. attributetable:: MessageInteraction
-
-.. autoclass:: MessageInteraction()
-    :members:
-
 .. attributetable:: InteractionMetadata
 
 .. autoclass:: InteractionMetadata()

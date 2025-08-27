@@ -36,7 +36,7 @@ from .snowflake import Snowflake
 
 ComponentType = Literal[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 17]
 ButtonStyle = Literal[1, 2, 3, 4, 5, 6]
-InputTextStyle = Literal[1, 2]
+TextInputStyle = Literal[1, 2]
 SeparatorSpacingSize = Literal[1, 2]
 
 
@@ -63,7 +63,7 @@ class TextInput(BaseComponent):
     required: NotRequired[bool]
     placeholder: NotRequired[str]
     value: NotRequired[str]
-    style: InputTextStyle
+    style: TextInputStyle
     custom_id: str
     label: str
 
