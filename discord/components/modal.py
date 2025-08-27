@@ -36,6 +36,31 @@ AllowedModalComponents: TypeAlias = "Label | TextDisplay"
 
 
 class Modal:
+    """
+    Represents a modal. Used when sending modals with :meth:`InteractionResponse.send_modal`
+
+    ..versionadded:: 3.0
+
+    Attributes
+    ----------
+    title: :class:`str`
+        The title of the modal. This is shown at the top of the modal.
+    custom_id: :class:`str`
+        The custom ID of the modal. This is received during an interaction.
+    components: List[:class:`Label` | :class:`TextDisplay`]
+        The components in the modal.
+
+    Parameters
+    ----------
+    components:
+        The components this modal holds.
+        Has to be passed unpacked (e.g. ``*components``).
+    title:
+        The title of the modal. This is shown at the top of the modal.
+    custom_id:
+        The custom ID of the modal. This is received during an interaction.
+    """
+
     def __init__(
         self,
         *components: AllowedModalComponents,

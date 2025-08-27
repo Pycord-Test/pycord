@@ -249,7 +249,7 @@ Component = Union[
     LabelComponent,
 ]
 
-AllowedModalComponents = LabelComponent
+AllowedModalComponents = LabelComponent | TextDisplayComponent
 
 
 class Modal(TypedDict):
