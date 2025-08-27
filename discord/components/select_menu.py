@@ -24,12 +24,24 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import ClassVar, Generic, Literal
+from typing import ClassVar, Generic, Literal, TypeAlias, TypeVar
 from abc import ABC
 
 from ..enums import ComponentType
 from .component import Component
-from .types import T
+from ..types.components import (
+    StringSelect as StringSelectPayload,
+    ChannelSelect as ChannelSelectPayload,
+    RoleSelect as RoleSelectPayload,
+    MentionableSelect as MentionableSelectPayload,
+    UserSelect as UserSelectPayload,
+)
+
+SelectMenuTypes: TypeAlias = (
+    StringSelectPayload | ChannelSelectPayload | RoleSelectPayload | MentionableSelectPayload | UserSelectPayload
+)
+
+T = TypeVar("T", bound="SelectMenuTypes")
 
 
 class SelectMenu(Component[T], ABC, Generic[T]):

@@ -25,17 +25,20 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar, Literal, overload
+from typing import TYPE_CHECKING, ClassVar, Literal, overload, TypeAlias
 from typing_extensions import override
 
 from ..enums import ButtonStyle, ComponentType, try_enum
 from ..partial_emoji import PartialEmoji, _EmojiTag  # pyright: ignore[reportPrivateUsage]
 from ..types.components import ButtonComponent as ButtonComponentPayload
 from .component import Component
-from .types import AnyEmoji
 
 if TYPE_CHECKING:
     from typing_extensions import Self
+    from ..emoji import GuildEmoji, AppEmoji
+    from ..partial_emoji import PartialEmoji
+
+AnyEmoji: TypeAlias = "GuildEmoji | AppEmoji | PartialEmoji"
 
 
 class Button(Component[ButtonComponentPayload]):

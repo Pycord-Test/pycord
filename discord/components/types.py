@@ -25,50 +25,16 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, TypeVar, TypeAlias, Literal
+from typing import TYPE_CHECKING, TypeVar, Literal
 
 from ..types.components import (
-    StringSelect as StringSelectPayload,
-    ChannelSelect as ChannelSelectPayload,
-    RoleSelect as RoleSelectPayload,
-    MentionableSelect as MentionableSelectPayload,
-    UserSelect as UserSelectPayload,
     Component as ComponentPayload,
 )
 
 if TYPE_CHECKING:
-    from ..emoji import AppEmoji, GuildEmoji
-    from ..partial_emoji import PartialEmoji
     from .component import Component
-    from .action_row import ActionRow
-    from .button import Button
-    from .string_select_menu import StringSelectMenu
-    from .input_text import InputText
-    from .user_select_menu import UserSelectMenu
-    from .role_select_menu import RoleSelectMenu
-    from .mentionable_select_menu import MentionableSelectMenu
-    from .channel_select_menu import ChannelSelectMenu
-    from .section import Section
-    from .text_display import TextDisplay
-    from .thumbnail import Thumbnail
-    from .media_gallery import MediaGallery
-    from .file_component import FileComponent
-    from .separator import Separator
-    from .container import Container
-    from .unknown_component import UnknownComponent
-
-
-AnyEmoji: TypeAlias = "GuildEmoji | AppEmoji | PartialEmoji"
 
 
 P = TypeVar("P", bound="ComponentPayload", covariant=True)
 C = TypeVar("C", bound="Component[ComponentPayload]", covariant=True)
 DT = TypeVar("DT", bound='Literal["user", "role", "channel"]')
-
-SelectMenuTypes: TypeAlias = (
-    StringSelectPayload | ChannelSelectPayload | RoleSelectPayload | MentionableSelectPayload | UserSelectPayload
-)
-
-T = TypeVar("T", bound="SelectMenuTypes")
-
-AnyComponent: TypeAlias = "ActionRow | Button | StringSelectMenu | InputText | UserSelectMenu | RoleSelectMenu | MentionableSelectMenu | ChannelSelectMenu | Section | TextDisplay | Thumbnail | MediaGallery | FileComponent | Separator | Container | UnknownComponent"

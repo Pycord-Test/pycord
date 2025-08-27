@@ -508,7 +508,7 @@ class Interaction:
         allowed_mentions: :class:`AllowedMentions`
             Controls the mentions being processed in this message.
             See :meth:`.abc.Messageable.send` for more information.
-        components: Optional[Sequence[AnyComponent]]
+        components:
             The updated components to update this message with. If ``None`` is passed then
             the components are removed.
 

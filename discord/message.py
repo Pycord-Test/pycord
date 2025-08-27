@@ -709,7 +709,7 @@ class ForwardedMessage:
         self.attachments: list[Attachment] = [Attachment(data=a, state=state) for a in data["attachments"]]
         self.flags: MessageFlags = MessageFlags._from_value(data.get("flags", 0))
         self.stickers: list[StickerItem] = [StickerItem(data=d, state=state) for d in data.get("sticker_items", [])]
-        self.components: ComponentsSequence = ComponentsSequence(
+        self.components: ComponentsSequence[AnyComponent] = ComponentsSequence(
             *(_component_factory(d) for d in data.get("components", []))
         )
         self._edited_timestamp: datetime.datetime | None = parse_time(data["edited_timestamp"])
@@ -994,7 +994,7 @@ class Message(Hashable):
         self.content: str = data["content"]
         self.nonce: int | str | None = data.get("nonce")
         self.stickers: list[StickerItem] = [StickerItem(data=d, state=state) for d in data.get("sticker_items", [])]
-        self.components: ComponentsSequence = ComponentsSequence(
+        self.components: ComponentsSequence[AnyComponent] = ComponentsSequence(
             *(_component_factory(d, state=state) for d in data.get("components", []))
         )
 
@@ -1248,7 +1248,7 @@ class Message(Hashable):
                     self.role_mentions.append(role)
 
     def _handle_components(self, components: list[ComponentPayload]):
-        self.components = ComponentsSequence(*(_component_factory(d, state=self._state) for d in components))
+        self.components = ComponentsSequence(*(_component_factory(d, state=self._state) for d in components))  # pyright: ignore[reportArgumentType]
 
     def _rebind_cached_references(self, new_guild: Guild, new_channel: TextChannel | Thread) -> None:
         self.guild = new_guild
@@ -1630,7 +1630,7 @@ class Message(Hashable):
             are used instead.
 
             .. versionadded:: 1.4
-        components: Optional[Sequence[:class:`AnyComponent`]]
+        components:
             The new components to replace the originals with. If ``None`` is passed then the components are removed.
 
         Raises
@@ -2263,7 +2263,7 @@ class PartialMessage(Hashable):
             to the object, otherwise it uses the attributes set in :attr:`~discord.Client.allowed_mentions`.
             If no object is passed at all then the defaults given by :attr:`~discord.Client.allowed_mentions`
             are used instead.
-        components: Optional[Sequence[AnyComponent]]
+        components:
             The new components to replace the originals with. If ``None`` is passed then the components
             are removed.
 

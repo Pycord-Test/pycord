@@ -24,6 +24,7 @@ DEALINGS IN THE SOFTWARE.
 """
 
 from __future__ import annotations
+from typing import TYPE_CHECKING, TypeAlias
 
 
 from typing_extensions import override
@@ -31,7 +32,12 @@ from typing_extensions import override
 from ..partial_emoji import PartialEmoji, _EmojiTag  # pyright: ignore[reportPrivateUsage]
 from ..utils import MISSING, Undefined
 from ..types.components import SelectOption as SelectOptionPayload
-from .types import AnyEmoji
+
+if TYPE_CHECKING:
+    from ..emoji import GuildEmoji, AppEmoji
+    from ..partial_emoji import PartialEmoji
+
+AnyEmoji: TypeAlias = "GuildEmoji | AppEmoji | PartialEmoji"
 
 
 class SelectOption:

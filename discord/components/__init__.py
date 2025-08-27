@@ -45,8 +45,8 @@ from .separator import Separator
 from .container import Container
 from .unknown_component import UnknownComponent
 from ._component_factory import _component_factory  # pyright: ignore[reportPrivateUsage]
-from .types import AnyComponent
 from .components_sequence import ComponentsSequence
+from .type_aliases import AnyComponent
 
 __all__ = (
     "Component",
