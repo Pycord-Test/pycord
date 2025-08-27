@@ -62,6 +62,9 @@ class UserSelectMenu(SelectMenu[UserSelectPayload]):
         Whether the select menu is disabled or not.
     id: :class:`int` | :data:`None`
         The user select menu's ID.
+    required: :class:`bool`
+        Whether the user select is required or not.
+        Only applicable when used in a :class:`discord.Modal`.
 
     Parameters
     ----------
@@ -84,6 +87,9 @@ class UserSelectMenu(SelectMenu[UserSelectPayload]):
     id:
         The user select menu's ID. If not provided, it is set sequentially by Discord.
         The ID `0` is treated as if no ID was provided.
+    required:
+        Whether the user select is required or not. Defaults to `True`.
+        Only applicable when used in a :class:`discord.Modal`.
     """
 
     __slots__: tuple[str, ...] = ("default_values",)
@@ -99,6 +105,7 @@ class UserSelectMenu(SelectMenu[UserSelectPayload]):
         max_values: int = 1,
         disabled: bool = False,
         id: int | None = None,
+        required: bool = True,
     ):
         super().__init__(
             custom_id=custom_id,
@@ -129,7 +136,7 @@ class UserSelectMenu(SelectMenu[UserSelectPayload]):
         )
 
     @override
-    def to_dict(self) -> UserSelectPayload:
+    def to_dict(self, modal: bool = False) -> UserSelectPayload:
         payload: UserSelectPayload = {  # pyright: ignore[reportAssignmentType]
             "type": int(self.type),
             "id": self.id,
@@ -140,7 +147,7 @@ class UserSelectMenu(SelectMenu[UserSelectPayload]):
         if self.placeholder:
             payload["placeholder"] = self.placeholder
 
-        if self.disabled:
+        if self.disabled and not modal:
             payload["disabled"] = self.disabled
 
         if self.default_values:

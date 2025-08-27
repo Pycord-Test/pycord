@@ -12,14 +12,14 @@ bot = commands.Bot(command_prefix=commands.when_mentioned_or("!"), debug_guilds=
 class MyModal(discord.ui.Modal):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(
-            discord.ui.InputText(
+            discord.ui.TextInput(
                 label="Short Input",
                 placeholder="Placeholder Test",
             ),
-            discord.ui.InputText(
+            discord.ui.TextInput(
                 label="Longer Input",
                 value="Longer Value\nSuper Long Value",
-                style=discord.InputTextStyle.long,
+                style=discord.TextInputStyle.long,
             ),
             *args,
             **kwargs,

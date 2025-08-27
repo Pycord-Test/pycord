@@ -22,7 +22,7 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
 
-from .component import Component, StateComponent, WalkableComponent
+from .component import Component, StateComponent, WalkableComponent, ModalComponentMixin
 from .action_row import ActionRow
 from .button import Button
 from .string_select_menu import StringSelectMenu
@@ -33,7 +33,7 @@ from .channel_select_menu import ChannelSelectMenu
 from .select_option import SelectOption
 from .default_select_option import DefaultSelectOption
 from .select_menu import SelectMenu
-from .input_text import InputText
+from .input_text import TextInput
 from .text_display import TextDisplay
 from .thumbnail import Thumbnail
 from .section import Section
@@ -43,7 +43,11 @@ from .unfurled_media_item import UnfurledMediaItem
 from .file_component import FileComponent
 from .separator import Separator
 from .container import Container
+from .label import Label
+from .modal import Modal
 from .unknown_component import UnknownComponent
+
+# Don't change the import order
 from ._component_factory import _component_factory  # pyright: ignore[reportPrivateUsage]
 from .components_sequence import ComponentsSequence
 from .type_aliases import AnyComponent
@@ -52,6 +56,7 @@ __all__ = (
     "Component",
     "StateComponent",
     "WalkableComponent",
+    "ModalComponentMixin",
     "ComponentsSequence",
     "ActionRow",
     "Button",
@@ -63,7 +68,7 @@ __all__ = (
     "ChannelSelectMenu",
     "SelectOption",
     "DefaultSelectOption",
-    "InputText",
+    "TextInput",
     "Section",
     "TextDisplay",
     "Thumbnail",
@@ -73,6 +78,8 @@ __all__ = (
     "FileComponent",
     "Separator",
     "Container",
+    "Label",
+    "Modal",
     "UnknownComponent",
     "_component_factory",
     "AnyComponent",

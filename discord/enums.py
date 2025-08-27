@@ -61,7 +61,7 @@ __all__ = (
     "ScheduledEventStatus",
     "ScheduledEventPrivacyLevel",
     "ScheduledEventLocationType",
-    "InputTextStyle",
+    "TextInputStyle",
     "SlashCommandOptionType",
     "AutoModTriggerType",
     "AutoModEventType",
@@ -740,7 +740,7 @@ class ButtonStyle(Enum):
         return int(self.value)
 
 
-class InputTextStyle(Enum):
+class TextInputStyle(Enum):
     """Input text style"""
 
     short = 1

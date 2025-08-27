@@ -61,14 +61,13 @@ __all__ = (
     "Interaction",
     "InteractionMessage",
     "InteractionResponse",
-    "MessageInteraction",
     "InteractionMetadata",
     "AuthorizingIntegrationOwners",
 )
 
 if TYPE_CHECKING:
     from aiohttp import ClientSession
-    from .components import AnyComponent
+    from .components import AnyComponent, Modal
 
     from .channel import (
         CategoryChannel,
@@ -89,7 +88,6 @@ if TYPE_CHECKING:
     from .types.interactions import Interaction as InteractionPayload
     from .types.interactions import InteractionData
     from .types.interactions import InteractionMetadata as InteractionMetadataPayload
-    from .types.interactions import MessageInteraction as MessageInteractionPayload
 
     InteractionChannel = Union[
         VoiceChannel,
@@ -309,23 +307,6 @@ class Interaction:
         """Indicates whether the interaction is a message component."""
         return self.type == InteractionType.component
 
-    @cached_slot_property("_cs_channel")
-    @deprecated("Interaction.channel", "2.7", stacklevel=4)
-    def cached_channel(self) -> InteractionChannel | None:
-        """The cached channel from which the interaction was sent.
-        DM channels are not resolved. These are :class:`PartialMessageable` instead.
-
-        .. deprecated:: 2.7
-        """
-        guild = self.guild
-        channel = guild and guild._resolve_channel(self.channel_id)
-        if channel is None:
-            if self.channel_id is not None:
-                type = ChannelType.text if self.guild_id is not None else ChannelType.private
-                return PartialMessageable(state=self._state, id=self.channel_id, type=type)
-            return None
-        return channel
-
     @property
     def permissions(self) -> Permissions:
         """The resolved permissions of the member in the channel, including overwrites.
@@ -446,24 +427,6 @@ class Interaction:
         self._original_response = message
         return message
 
-    @deprecated("Interaction.original_response", "2.2")
-    async def original_message(self):
-        """An alias for :meth:`original_response`.
-
-        Returns
-        -------
-        InteractionMessage
-            The original interaction response message.
-
-        Raises
-        ------
-        HTTPException
-            Fetching the original response message failed.
-        ClientException
-            The channel for the message could not be resolved.
-        """
-        return await self.original_response()
-
     async def edit_original_response(
         self,
         *,
@@ -572,28 +535,6 @@ class Interaction:
 
         return message
 
-    @deprecated("Interaction.edit_original_response", "2.2")
-    async def edit_original_message(self, **kwargs):
-        """An alias for :meth:`edit_original_response`.
-
-        Returns
-        -------
-        :class:`InteractionMessage`
-            The newly edited message.
-
-        Raises
-        ------
-        HTTPException
-            Editing the message failed.
-        Forbidden
-            Edited a message that is not yours.
-        TypeError
-            You specified both ``embed`` and ``embeds`` or ``file`` and ``files``
-        ValueError
-            The length of ``embeds`` was invalid.
-        """
-        return await self.edit_original_response(**kwargs)
-
     async def delete_original_response(self, *, delay: float | None = None) -> None:
         """|coro|
 
@@ -629,19 +570,6 @@ class Interaction:
             delay_task(delay, func)
         else:
             await func
-
-    @deprecated("Interaction.delete_original_response", "2.2")
-    async def delete_original_message(self, **kwargs):
-        """An alias for :meth:`delete_original_response`.
-
-        Raises
-        ------
-        HTTPException
-            Deleting the message failed.
-        Forbidden
-            Deleted a message that is not yours.
-        """
-        return await self.delete_original_response(**kwargs)
 
     async def respond(self, *args, **kwargs) -> Interaction | WebhookMessage:
         """|coro|
@@ -1211,14 +1139,14 @@ class InteractionResponse:
 
         self._responded = True
 
-    async def send_modal(self, modal: Modal) -> Interaction:  # TODO: this broken # noqa: F821
+    async def send_modal(self, modal: Modal) -> Interaction:
         """|coro|
         Responds to this interaction by sending a modal dialog.
         This cannot be used to respond to another modal dialog submission.
 
         Parameters
         ----------
-        modal: :class:`discord.ui.Modal`
+        modal: :class:`discord.Modal`
             The modal dialog to display to the user.
 
         Raises
@@ -1245,44 +1173,6 @@ class InteractionResponse:
                 proxy_auth=http.proxy_auth,
                 type=InteractionResponseType.modal.value,
                 data=payload,
-            )
-        )
-        self._responded = True
-        self._parent._state.store_modal(modal, self._parent.user.id)
-        return self._parent
-
-    @deprecated("a button with type ButtonType.premium", "2.6")
-    async def premium_required(self) -> Interaction:
-        """|coro|
-
-        Responds to this interaction by sending a premium required message.
-
-        .. deprecated:: 2.6
-
-            A button with type :attr:`ButtonType.premium` should be used instead.
-
-        Raises
-        ------
-        HTTPException
-            Sending the message failed.
-        InteractionResponded
-            This interaction has already been responded to before.
-        """
-        if self._responded:
-            raise InteractionResponded(self._parent)
-
-        parent = self._parent
-
-        adapter = async_context.get()
-        http = parent._state.http
-        await self._locked_response(
-            adapter.create_interaction_response(
-                parent.id,
-                parent.token,
-                session=parent._session,
-                proxy=http.proxy,
-                proxy_auth=http.proxy_auth,
-                type=InteractionResponseType.premium_required.value,
             )
         )
         self._responded = True
@@ -1450,46 +1340,6 @@ class InteractionMessage(Message):
             Deleting the message failed.
         """
         await self._state._interaction.delete_original_response(delay=delay)
-
-
-class MessageInteraction:
-    """Represents a Discord message interaction.
-
-    This is sent on the message object when the message is a response
-    to an interaction without an existing message e.g. application command.
-
-    .. versionadded:: 2.0
-
-    .. deprecated:: 2.6
-
-        See :class:`InteractionMetadata`.
-
-    .. note::
-        Responses to message components do not include this property.
-
-    Attributes
-    ----------
-    id: :class:`int`
-        The interaction's ID.
-    type: :class:`InteractionType`
-        The interaction type.
-    name: :class:`str`
-        The name of the invoked application command.
-    user: :class:`User`
-        The user that sent the interaction.
-    data: :class:`dict`
-        The raw interaction data.
-    """
-
-    __slots__: tuple[str, ...] = ("id", "type", "name", "user", "data", "_state")
-
-    def __init__(self, *, data: MessageInteractionPayload, state: ConnectionState):
-        self._state = state
-        self.data = data
-        self.id: int = int(data["id"])
-        self.type: InteractionType = data["type"]
-        self.name: str = data["name"]
-        self.user: User = self._state.store_user(data["user"])
 
 
 class InteractionMetadata:

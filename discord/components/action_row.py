@@ -35,14 +35,14 @@ from .component import WalkableComponent
 if TYPE_CHECKING:
     from typing_extensions import Self
     from .button import Button
-    from .input_text import InputText
+    from .input_text import TextInput
     from .mentionable_select_menu import MentionableSelectMenu
     from .role_select_menu import RoleSelectMenu
     from .string_select_menu import StringSelectMenu
     from .user_select_menu import UserSelectMenu
     from .channel_select_menu import ChannelSelectMenu
 
-AllowedActionRowComponents: TypeAlias = "Button | InputText | StringSelectMenu | UserSelectMenu | RoleSelectMenu | MentionableSelectMenu | ChannelSelectMenu"
+AllowedActionRowComponents: TypeAlias = "Button | TextInput | StringSelectMenu | UserSelectMenu | RoleSelectMenu | MentionableSelectMenu | ChannelSelectMenu"
 
 
 class ActionRow(WalkableComponent["ActionRowPayload", "AllowedActionRowComponents"]):

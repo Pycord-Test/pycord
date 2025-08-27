@@ -28,7 +28,7 @@ from typing import ClassVar, Generic, Literal, TypeAlias, TypeVar
 from abc import ABC
 
 from ..enums import ComponentType
-from .component import Component
+from .component import ModalComponentMixin, Component
 from ..types.components import (
     StringSelect as StringSelectPayload,
     ChannelSelect as ChannelSelectPayload,
@@ -44,7 +44,7 @@ SelectMenuTypes: TypeAlias = (
 T = TypeVar("T", bound="SelectMenuTypes")
 
 
-class SelectMenu(Component[T], ABC, Generic[T]):
+class SelectMenu(ModalComponentMixin[T], Component[T], ABC, Generic[T]):
     """Represents a select menu from the Discord Bot UI Kit.
 
     This inherits from :class:`Component`.
@@ -82,10 +82,12 @@ class SelectMenu(Component[T], ABC, Generic[T]):
         max_values: int = 1,
         disabled: bool = False,
         id: int | None = None,
+        required: bool = True,
     ):
         self.custom_id: str = custom_id
         self.placeholder: str | None = placeholder
         self.min_values: int = min_values
         self.max_values: int = max_values
         self.disabled: bool = disabled
+        self.required: bool = required
         super().__init__(id=id)

@@ -13,6 +13,15 @@ release.
 
 ### Removed
 
+- `Interaction.original_message` use `Interaction.original_response` instead
+- `Interaction.edit_original_message` use `Interaction.edit_original_response` instead
+- `Interaction.delete_original_message` use `Interaction.delete_original_response`
+  instead
+- `Interaction.premium_required` use a `Button` with type `ButtonType.premium` instead
+- `Interaction.cached_channel` use `Interaction.channel` instead
+- `Message.interaction` use `Message.interaction_metadata` instead
+- `MessageInteraction` see `InteractionMetadata` instead
+
 #### `discord.ui`
 
 Removed everything under `discord.ui`. Instead, use the new `discord.components` module
@@ -20,6 +29,8 @@ which provides a more flexible and powerful way to create interactive components
 can read more in the migration guide.
 
 <!-- TODO: Add link to migration guide -->
+
+- `InputText` -> `TextInput`
 
 #### `discord.ext.pages`
 

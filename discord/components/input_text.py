@@ -28,15 +28,15 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, ClassVar, Literal
 from typing_extensions import override
 
-from ..enums import ComponentType, InputTextStyle, try_enum
-from ..types.components import InputText as InputTextComponentPayload
-from .component import Component
+from ..enums import ComponentType, TextInputStyle, try_enum
+from ..types.components import TextInput as TextInputComponentPayload
+from .component import Component, ModalComponentMixin
 
 if TYPE_CHECKING:
     from typing_extensions import Self
 
 
-class InputText(Component[InputTextComponentPayload]):
+class TextInput(Component[TextInputComponentPayload], ModalComponentMixin[TextInputComponentPayload]):
     """Represents an Input Text field from the Discord Bot UI Kit.
 
     This inherits from :class:`Component`.
@@ -47,12 +47,10 @@ class InputText(Component[InputTextComponentPayload]):
     ----------
     type: Literal[:data:`ComponentType.input_text`]
         The type of component.
-    style: :class:`InputTextStyle`
+    style: :class:`TextInputStyle`
         The style of the input text field.
     custom_id: :class:`str` | :data:`None`
         The custom ID of the input text field that gets received during an interaction.
-    label: :class:`str`
-        The label for the input text field.
     placeholder: class:`str` | :data:`None`
         The placeholder text that is shown if nothing is selected, if any.
     min_length: :class:`int` | :data:`None`
@@ -73,8 +71,6 @@ class InputText(Component[InputTextComponentPayload]):
         The style of the input text field.
     custom_id:
         The custom ID of the input text field that gets received during an interaction.
-    label:
-        The label for the input text field.
     min_length:
         The minimum number of characters that must be entered.
         Defaults to 0.
@@ -94,7 +90,6 @@ class InputText(Component[InputTextComponentPayload]):
     __slots__: tuple[str, ...] = (
         "style",
         "custom_id",
-        "label",
         "placeholder",
         "min_length",
         "max_length",
@@ -108,9 +103,8 @@ class InputText(Component[InputTextComponentPayload]):
 
     def __init__(
         self,
-        style: int | InputTextStyle,
+        style: int | TextInputStyle,
         custom_id: str,
-        label: str,
         min_lenght: int | None = None,
         max_length: int | None = None,
         placeholder: str | None = None,
@@ -118,9 +112,8 @@ class InputText(Component[InputTextComponentPayload]):
         value: str | None = None,
         id: int | None = None,
     ) -> None:
-        self.style: InputTextStyle = style  # pyright: ignore[reportAttributeAccessIssue]
+        self.style: TextInputStyle = style  # pyright: ignore[reportAttributeAccessIssue]
         self.custom_id: str = custom_id
-        self.label: str = label
         self.min_length: int | None = min_lenght
         self.max_length: int | None = max_length
         self.placeholder: str | None = placeholder
@@ -130,10 +123,9 @@ class InputText(Component[InputTextComponentPayload]):
 
     @classmethod
     @override
-    def from_payload(cls, payload: InputTextComponentPayload) -> Self:
-        style = try_enum(InputTextStyle, payload["style"])
+    def from_payload(cls, payload: TextInputComponentPayload) -> Self:
+        style = try_enum(TextInputStyle, payload["style"])
         custom_id = payload["custom_id"]
-        label = payload["label"]
         min_length = payload.get("min_length")
         max_length = payload.get("max_length")
         placeholder = payload.get("placeholder")
@@ -143,7 +135,6 @@ class InputText(Component[InputTextComponentPayload]):
         return cls(
             style=style,
             custom_id=custom_id,
-            label=label,
             min_lenght=min_length,
             max_length=max_length,
             placeholder=placeholder,
@@ -153,12 +144,11 @@ class InputText(Component[InputTextComponentPayload]):
         )
 
     @override
-    def to_dict(self) -> InputTextComponentPayload:
-        payload: InputTextComponentPayload = {  # pyright: ignore[reportAssignmentType]
+    def to_dict(self, modal: bool = False) -> TextInputComponentPayload:
+        payload: TextInputComponentPayload = {  # pyright: ignore[reportAssignmentType]
             "type": int(self.type),
             "id": self.id,
             "style": self.style.value,
-            "label": self.label,
         }
         if self.custom_id:
             payload["custom_id"] = self.custom_id

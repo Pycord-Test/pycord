@@ -25,7 +25,8 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import Literal, Union, Generic, TypeVar
+from this import s
+from typing import Literal, TypeAlias, Union, Generic, TypeVar
 
 from typing_extensions import NotRequired, TypedDict
 
@@ -55,7 +56,7 @@ class ButtonComponent(BaseComponent):
     sku_id: NotRequired[Snowflake]
 
 
-class InputText(BaseComponent):
+class TextInput(BaseComponent):
     type: Literal[4]  # pyright: ignore[reportIncompatibleVariableOverride]
     min_length: NotRequired[int]
     max_length: NotRequired[int]
@@ -91,6 +92,7 @@ class StringSelect(BaseComponent):
     min_values: NotRequired[int]
     max_values: NotRequired[int]
     disabled: NotRequired[bool]
+    required: NotRequired[bool]
 
 
 class UserSelect(BaseComponent):
@@ -101,6 +103,7 @@ class UserSelect(BaseComponent):
     min_values: NotRequired[int]
     max_values: NotRequired[int]
     disabled: NotRequired[bool]
+    required: NotRequired[bool]
 
 
 class RoleSelect(BaseComponent):
@@ -111,6 +114,7 @@ class RoleSelect(BaseComponent):
     min_values: NotRequired[int]
     max_values: NotRequired[int]
     disabled: NotRequired[bool]
+    required: NotRequired[bool]
 
 
 class MentionableSelect(BaseComponent):
@@ -121,6 +125,7 @@ class MentionableSelect(BaseComponent):
     min_values: NotRequired[int]
     max_values: NotRequired[int]
     disabled: NotRequired[bool]
+    required: NotRequired[bool]
 
 
 class ChannelSelect(BaseComponent):
@@ -132,6 +137,7 @@ class ChannelSelect(BaseComponent):
     min_values: NotRequired[int]
     max_values: NotRequired[int]
     disabled: NotRequired[bool]
+    required: NotRequired[bool]
 
 
 class SectionComponent(BaseComponent):
@@ -188,7 +194,7 @@ class SeparatorComponent(BaseComponent):
 
 
 AllowedActionRowComponents = Union[
-    ButtonComponent, InputText, StringSelect, UserSelect, RoleSelect, MentionableSelect, ChannelSelect
+    ButtonComponent, TextInput, StringSelect, UserSelect, RoleSelect, MentionableSelect, ChannelSelect
 ]
 
 
@@ -214,6 +220,16 @@ class ContainerComponent(BaseComponent):
     components: list[AllowedContainerComponents]
 
 
+AllowedLabelComponents: TypeAlias = TextDisplayComponent | StringSelect
+
+
+class LabelComponent(BaseComponent):
+    type: Literal[18]  # pyright: ignore[reportIncompatibleVariableOverride]
+    component: AllowedLabelComponents
+    label: str
+    description: NotRequired[str]
+
+
 Component = Union[
     ActionRow,
     ButtonComponent,
@@ -222,7 +238,7 @@ Component = Union[
     RoleSelect,
     MentionableSelect,
     ChannelSelect,
-    InputText,
+    TextInput,
     TextDisplayComponent,
     SectionComponent,
     ThumbnailComponent,
@@ -230,4 +246,13 @@ Component = Union[
     FileComponent,
     SeparatorComponent,
     ContainerComponent,
+    LabelComponent,
 ]
+
+AllowedModalComponents = LabelComponent
+
+
+class Modal(TypedDict):
+    title: str
+    custom_id: str
+    components: list[AllowedModalComponents]

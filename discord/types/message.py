@@ -39,7 +39,7 @@ from .threads import Thread
 from .user import User
 
 if TYPE_CHECKING:
-    from .interactions import InteractionMetadata, MessageInteraction
+    from .interactions import InteractionMetadata
 
 from typing_extensions import NotRequired, TypedDict
 
@@ -150,7 +150,6 @@ class Message(TypedDict):
     flags: NotRequired[int]
     sticker_items: NotRequired[list[StickerItem]]
     referenced_message: NotRequired[Message | None]
-    interaction: NotRequired[MessageInteraction]
     interaction_metadata: NotRequired[InteractionMetadata]
     components: NotRequired[list[Component]]
     thread: NotRequired[Thread | None]

@@ -226,6 +226,7 @@ class Client:
         self,
         *,
         loop: asyncio.AbstractEventLoop | None = None,
+        discord_api_url: str = "https://discord.com/api/v10",
         **options: Any,
     ):
         self._flavor = options.get("flavor", logging.INFO)
@@ -248,6 +249,7 @@ class Client:
             proxy_auth=proxy_auth,
             unsync_clock=unsync_clock,
             loop=self.loop,
+            discord_api_url=discord_api_url,
         )
 
         self._handlers: dict[str, Callable] = {"ready": self._handle_ready}

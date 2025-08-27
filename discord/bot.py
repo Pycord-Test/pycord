@@ -1197,7 +1197,118 @@ class ComponentMixin(ABC):
     def _bot(self) -> Bot | AutoShardedBot: ...
 
 
-class BotBase(ApplicationCommandMixin, CogMixin, ComponentMixin, ABC):
+class ModalMixin(ABC):
+    """A mixin that provides modal handling for the bot.
+
+    This mixin is used to handle modals interactions.
+    It is not intended to be used directly, but rather to implement component interactions to bots.
+    """
+
+    def __init__(self, *args: Any, **kwargs: Any):  # pyright: ignore[reportExplicitAny]
+        super().__init__(*args, **kwargs)
+        # We map the listener to the predicate instead of the other way around
+        # so that removing a listener can be done directly and is more efficient
+        self.modals: dict[CI, Callable[[str], bool | Awaitable[bool]]] = {}
+        self._bot.add_listener(self.handle_modal_interaction, "on_interaction")
+
+    async def handle_modal_interaction(self, interaction: Interaction):
+        if interaction.type != InteractionType.modal_submit or not interaction.custom_id:
+            return
+
+        callbacks: list[Coroutine[Any, Any, Any]] = []  # pyright: ignore[reportExplicitAny]
+
+        for callback, predicate in self.modals.items():
+            if await maybe_awaitable(predicate, interaction.custom_id):
+                callbacks.append(callback(interaction))
+
+        if callbacks:
+            results = await asyncio.gather(*callbacks, return_exceptions=True)
+            for result in results:
+                if isinstance(result, Exception):
+                    _log.error(f"Error while handling modal interaction", exc_info=result)
+        else:
+            _log.debug(f"No modal handler found for {interaction.custom_id}")
+
+    def add_modal_listener(self, predicate: Callable[[str], bool | Awaitable[bool]] | str, listener: CI) -> None:
+        """Registers a modal interaction listener.
+
+        This method can be used to register a function that will be called
+        when a modal interaction occurs that matches the provided predicate.
+
+        .. versionadded:: 3.0
+
+        Parameters
+        ----------
+        predicate: Callable[[str], bool | Awaitable[bool]] | str
+            A (potentially async) function that takes a string (the modal's custom ID) and returns a boolean indicating whether the
+            function should be called for that modal. Alternatively, a string can be provided, which will match
+            the modal's custom ID exactly.
+
+        listener: Callable[[Interaction], Coroutine[Any, Any, Any]]
+            The interaction callback to call when a modal interaction occurs that matches the predicate.
+        """
+        if isinstance(predicate, str):
+            real_predicate: Callable[[str], bool | Awaitable[bool]] = lambda s: s == predicate
+        else:
+            real_predicate = predicate
+        self.modals[listener] = real_predicate
+
+    def remove_modal_listener(self, listener: CI) -> None:
+        """Unregisters a modal interaction listener.
+
+        This method can be used to unregister a function that was previously
+        registered as a modal interaction listener.
+
+        .. versionadded:: 3.0
+
+        Parameters
+        ----------
+        listener: Callable[[Interaction], Coroutine[Any, Any, Any]]
+            The interaction callback to unregister.
+
+        Raises
+        ------
+        ValueError
+            The listener was not found.
+        """
+        try:
+            del self.modals[listener]
+        except KeyError as e:
+            raise ValueError("Listener not found") from e
+
+    def modal_listener(self, predicate: Callable[[str], bool | Awaitable[bool]] | str) -> Callable[[CI_t], CI_t]:
+        """A shortcut decorator that registers a component interaction listener.
+
+        This decorator can be used to register a function that will be called
+        when a component interaction occurs that matches the provided predicate.
+
+        .. versionadded:: 3.0
+
+        Parameters
+        ----------
+        predicate: Callable[[str], bool | Awaitable[bool]] | str
+            A (potentially async) function that takes a string (the component's custom ID) and returns a boolean indicating whether the
+            function should be called for that component. Alternatively, a string can be provided, which will match
+            the component's custom ID exactly.
+
+        Returns
+        -------
+        Callable[[CI], CI]
+            A decorator that registers the function as a component interaction listener.
+        """
+
+        def wrapper(func: CI_t) -> CI_t:
+            self.add_modal_listener(predicate, func)
+            return func
+
+        return wrapper
+
+    @property
+    @abstractmethod
+    def _bot(self) -> Bot | AutoShardedBot: ...
+
+
+class BotBase(ApplicationCommandMixin, CogMixin, ComponentMixin, ModalMixin, ABC):
     _supports_prefixed_commands = False
 
     def __init__(self, description=None, *args, **options):

@@ -71,7 +71,6 @@ if TYPE_CHECKING:
     )
     from .channel import TextChannel
     from .components import Component
-    from .interactions import MessageInteraction
     from .mentions import AllowedMentions
     from .role import Role
     from .state import ConnectionState
@@ -891,12 +890,6 @@ class Message(Hashable):
 
     guild: Optional[:class:`Guild`]
         The guild that the message belongs to, if applicable.
-    interaction: Optional[:class:`MessageInteraction`]
-        The interaction associated with the message, if applicable.
-
-        .. deprecated:: 2.6
-
-            Use :attr:`interaction_metadata` instead.
     interaction_metadata: Optional[:class:`InteractionMetadata`]
         The interaction metadata associated with the message, if applicable.
 
@@ -1040,13 +1033,8 @@ class Message(Hashable):
         except KeyError:
             self.snapshots = []
 
-        from .interactions import InteractionMetadata, MessageInteraction  # noqa: PLC0415
+        from .interactions import InteractionMetadata  # noqa: PLC0415
 
-        self._interaction: MessageInteraction | None
-        try:
-            self._interaction = MessageInteraction(data=data["interaction"], state=state)
-        except KeyError:
-            self._interaction = None
         try:
             self.interaction_metadata = InteractionMetadata(data=data["interaction_metadata"], state=state)
         except KeyError:
@@ -1253,26 +1241,6 @@ class Message(Hashable):
     def _rebind_cached_references(self, new_guild: Guild, new_channel: TextChannel | Thread) -> None:
         self.guild = new_guild
         self.channel = new_channel
-
-    @property
-    def interaction(self) -> MessageInteraction | None:
-        warn_deprecated(
-            "interaction",
-            "interaction_metadata",
-            "2.6",
-            reference="https://discord.com/developers/docs/change-log#userinstallable-apps-preview",
-        )
-        return self._interaction
-
-    @interaction.setter
-    def interaction(self, value: MessageInteraction | None) -> None:
-        warn_deprecated(
-            "interaction",
-            "interaction_metadata",
-            "2.6",
-            reference="https://discord.com/developers/docs/change-log#userinstallable-apps-preview",
-        )
-        self._interaction = value
 
     @cached_slot_property("_cs_raw_mentions")
     def raw_mentions(self) -> list[int]:

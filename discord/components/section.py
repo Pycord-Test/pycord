@@ -27,7 +27,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, ClassVar, Literal, TypeAlias, cast
 from typing_extensions import override
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 from ..enums import ComponentType
 from ..types.components import SectionComponent as SectionComponentPayload
 from .component import WalkableComponent
@@ -121,3 +121,9 @@ class Section(
         if self.accessory:
             payload["accessory"] = self.accessory.to_dict()
         return payload
+
+    @override
+    def walk_components(self) -> Iterator[AllowedSectionComponents | AllowedSectionAccessoryComponents]:
+        yield from super().walk_components()
+        if self.accessory:
+            yield self.accessory

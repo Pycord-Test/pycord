@@ -143,3 +143,16 @@ class WalkableComponent(Component[P], ABC, Generic[P, C]):
                 return component
             elif isinstance(component_id, int) and getattr(component, "id", None) == component_id:
                 return component
+
+
+class ModalComponentMixin(ABC, Generic[P]):
+    """A component that can be used in a modal.
+
+    This is an abstract class and cannot be instantiated directly.
+    It is used to represent components that can be used in a modal.
+
+    This does NOT mean that the component cannot be used elsewhere.
+    """
+
+    @abstractmethod
+    def to_dict(self, modal: bool = False) -> P: ...

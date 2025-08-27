@@ -65,6 +65,9 @@ class ChannelSelectMenu(SelectMenu[ChannelSelectPayload]):
         Defaults to ``False``.
     id: :class:`int` | :data:`None`
         The channel select menu's ID.
+    required: :class:`bool`
+        Whether the channel select is required or not.
+        Only applicable when used in a :class:`discord.Modal`.
 
     Parameters
     ----------
@@ -85,6 +88,9 @@ class ChannelSelectMenu(SelectMenu[ChannelSelectPayload]):
     id:
         The select menu's ID. If not provided, it is set sequentially by Discord.
         The ID `0` is treated as if no ID was provided.
+    required:
+        Whether the channel select is required or not. Defaults to `True`.
+        Only applicable when used in a :class:`discord.Modal`.
     """
 
     __slots__: tuple[str, ...] = ("default_values",)
@@ -100,6 +106,7 @@ class ChannelSelectMenu(SelectMenu[ChannelSelectPayload]):
         max_values: int = 1,
         disabled: bool = False,
         id: int | None = None,
+        required: bool = True,
     ):
         super().__init__(
             custom_id=custom_id,
@@ -108,6 +115,7 @@ class ChannelSelectMenu(SelectMenu[ChannelSelectPayload]):
             max_values=max_values,
             disabled=disabled,
             id=id,
+            required=required,
         )
         self.default_values: list[DefaultSelectOption[Literal["channel"]]] = (
             list(default_values) if default_values is not None else []
@@ -130,18 +138,19 @@ class ChannelSelectMenu(SelectMenu[ChannelSelectPayload]):
         )
 
     @override
-    def to_dict(self) -> ChannelSelectPayload:
+    def to_dict(self, modal: bool = False) -> ChannelSelectPayload:
         payload: ChannelSelectPayload = {  # pyright: ignore[reportAssignmentType]
             "type": int(self.type),
             "id": self.id,
             "custom_id": self.custom_id,
             "min_values": self.min_values,
             "max_values": self.max_values,
+            "required": self.required,
         }
         if self.placeholder:
             payload["placeholder"] = self.placeholder
 
-        if self.disabled:
+        if self.disabled and not modal:
             payload["disabled"] = self.disabled
 
         if self.default_values:

@@ -29,13 +29,13 @@ from typing_extensions import override
 
 from ..enums import ComponentType
 from ..types.components import TextDisplayComponent as TextDisplayComponentPayload
-from .component import Component
+from .component import ModalComponentMixin, Component
 
 if TYPE_CHECKING:
     from typing_extensions import Self
 
 
-class TextDisplay(Component[TextDisplayComponentPayload]):
+class TextDisplay(ModalComponentMixin[TextDisplayComponentPayload], Component[TextDisplayComponentPayload]):
     """Represents a Text Display from Components V2.
 
     This is a component that displays text.
@@ -63,7 +63,7 @@ class TextDisplay(Component[TextDisplayComponentPayload]):
         The ID `0` is treated as if no ID was provided.
     """
 
-    __slots__: tuple[str, ...] = ("content",)
+    __slots__: tuple[str, ...] = ("content",)  # pyright: ignore[reportIncompatibleUnannotatedOverride]
 
     __repr_info__: ClassVar[tuple[str, ...]] = __slots__
     versions: tuple[int, ...] = (2,)
@@ -82,5 +82,5 @@ class TextDisplay(Component[TextDisplayComponentPayload]):
         )
 
     @override
-    def to_dict(self) -> TextDisplayComponentPayload:
+    def to_dict(self, modal: bool = False) -> TextDisplayComponentPayload:
         return {"type": int(self.type), "id": self.id, "content": self.content}  # pyright: ignore[reportReturnType]

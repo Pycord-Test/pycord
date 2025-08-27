@@ -27,10 +27,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+
 from .action_row import ActionRow
 from .button import Button
 from .string_select_menu import StringSelectMenu
-from .input_text import InputText
+from .input_text import TextInput
 from .user_select_menu import UserSelectMenu
 from .role_select_menu import RoleSelectMenu
 from .mentionable_select_menu import MentionableSelectMenu
@@ -42,6 +43,7 @@ from .media_gallery import MediaGallery
 from .file_component import FileComponent
 from .separator import Separator
 from .container import Container
+from .label import Label
 from .unknown_component import UnknownComponent
 from .component import StateComponent, Component
 from .types import P
@@ -54,7 +56,7 @@ COMPONENT_MAPPINGS = {
     1: ActionRow,
     2: Button,
     3: StringSelectMenu,
-    4: InputText,
+    4: TextInput,
     5: UserSelectMenu,
     6: RoleSelectMenu,
     7: MentionableSelectMenu,
@@ -66,6 +68,7 @@ COMPONENT_MAPPINGS = {
     13: FileComponent,
     14: Separator,
     17: Container,
+    18: Label,
 }
 
 STATE_COMPONENTS = (Section, Container, Thumbnail, MediaGallery, FileComponent)

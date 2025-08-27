@@ -65,6 +65,9 @@ class StringSelectMenu(SelectMenu[StringSelectPayload]):
         Defaults to ``False``.
     id: :class:`int` | :data:`None`
         The string select menu's ID.
+    required: :class:`bool`
+        Whether the string select is required or not.
+        Only applicable when used in a :class:`discord.Modal`.
 
     Parameters
     ----------
@@ -85,6 +88,9 @@ class StringSelectMenu(SelectMenu[StringSelectPayload]):
     id:
         The string select menu's ID. If not provided, it is set sequentially by Discord.
         The ID `0` is treated as if no ID was provided.
+    required:
+        Whether the string select is required or not. Defaults to `True`.
+        Only applicable when used in a :class:`discord.Modal`.
     """
 
     __slots__: tuple[str, ...] = ("options",)
@@ -100,6 +106,7 @@ class StringSelectMenu(SelectMenu[StringSelectPayload]):
         max_values: int = 1,
         disabled: bool = False,
         id: int | None = None,
+        required: bool = True,
     ):
         super().__init__(
             custom_id=custom_id,
@@ -108,6 +115,7 @@ class StringSelectMenu(SelectMenu[StringSelectPayload]):
             max_values=max_values,
             disabled=disabled,
             id=id,
+            required=required,
         )
         self.options: list[SelectOption] = list(options)
 
@@ -126,7 +134,7 @@ class StringSelectMenu(SelectMenu[StringSelectPayload]):
         )
 
     @override
-    def to_dict(self) -> StringSelectPayload:
+    def to_dict(self, modal: bool = False) -> StringSelectPayload:
         payload: StringSelectPayload = {  # pyright: ignore[reportAssignmentType]
             "type": int(self.type),
             "id": self.id,
@@ -134,11 +142,12 @@ class StringSelectMenu(SelectMenu[StringSelectPayload]):
             "options": [option.to_dict() for option in self.options],
             "min_values": self.min_values,
             "max_values": self.max_values,
+            "required": self.required,
         }
         if self.placeholder:
             payload["placeholder"] = self.placeholder
 
-        if self.disabled:
+        if self.disabled and not modal:
             payload["disabled"] = self.disabled
 
         return payload

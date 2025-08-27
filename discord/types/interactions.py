@@ -240,13 +240,6 @@ class InteractionResponse(TypedDict):
     type: InteractionResponseType
 
 
-class MessageInteraction(TypedDict):
-    id: Snowflake
-    type: InteractionType
-    name: str
-    user: User
-
-
 class EditApplicationCommand(TypedDict):
     description: NotRequired[str]
     options: NotRequired[list[ApplicationCommandOption] | None]

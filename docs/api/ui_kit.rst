@@ -96,8 +96,18 @@ API Objects
     :members:
     :inherited-members:
 
+.. attributetable:: discord.Label
+.. autoclass:: discord.Label
+    :members:
+    :inherited-members:
+
 Additional Objects
 ------------------
+
+.. attributetable:: discord.Modal
+.. autoclass:: discord.Modal
+    :members:
+    :inherited-members:
 
 .. attributetable:: discord.UnknownComponent
 .. autoclass:: discord.UnknownComponent
@@ -132,6 +142,11 @@ ABCs
 
 .. attributetable:: discord.WalkableComponent
 .. autoclass:: discord.WalkableComponent
+    :members:
+    :inherited-members:
+
+.. attributetable:: discord.ModalComponent
+.. autoclass:: discord.ModalComponent
     :members:
     :inherited-members:
 
