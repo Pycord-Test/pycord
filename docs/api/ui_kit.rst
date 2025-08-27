@@ -145,8 +145,8 @@ ABCs
     :members:
     :inherited-members:
 
-.. attributetable:: discord.ModalComponent
-.. autoclass:: discord.ModalComponent
+.. attributetable:: discord.ModalComponentMixin
+.. autoclass:: discord.ModalComponentMixin
     :members:
     :inherited-members:
 
