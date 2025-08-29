@@ -32,6 +32,7 @@ from typing import TYPE_CHECKING, Any, Generic, Literal, TypeAlias, TypeVar, cas
 from typing_extensions import override
 
 from ..enums import ComponentType, try_enum
+from ..types.interaction_components import InteractionButton as InteractionButtonPayload
 from ..types.interaction_components import InteractionChannelSelectMenu as InteractionChannelSelectMenuPayload
 from ..types.interaction_components import InteractionComponent as InteractionComponentPayload
 from ..types.interaction_components import InteractionLabel as InteractionLabelPayload
@@ -41,7 +42,6 @@ from ..types.interaction_components import InteractionStringSelectMenu as Intera
 from ..types.interaction_components import InteractionTextDisplay as InteractionTextDisplayPayload
 from ..types.interaction_components import InteractionTextInput as InteractionTextInputPayload
 from ..types.interaction_components import InteractionUserSelectMenu as InteractionUserSelectMenuPayload
-from ..types.interaction_components import InteractionButton as InteractionButtonPayload
 
 if TYPE_CHECKING:
     from typing_extensions import Self
@@ -93,6 +93,7 @@ class InteractionWalkableComponent(InteractionComponent[T, P], ABC, Generic[T, P
 
 V = TypeVar("V", bound="str | int")
 
+
 @dataclass
 class InteractionButton(InteractionComponent[Literal[ComponentType.button], InteractionButtonPayload]):
     """Represents a :class:`Button` component as returned by Discord during a :class:`Interaction` of type :data:`InteractionType.modal_submit`.
@@ -117,6 +118,7 @@ class InteractionButton(InteractionComponent[Literal[ComponentType.button], Inte
     @override
     def from_payload(cls, payload: InteractionButtonPayload) -> Self:
         return cls(id=payload["id"], custom_id=payload.get("custom_id"))
+
 
 @dataclass
 class InteractionSelectMenu(InteractionComponent[T, P], ABC, Generic[T, V, P]):
@@ -312,14 +314,17 @@ class InteractionTextInput(InteractionComponent[Literal[ComponentType.text_input
         return cls(id=payload["id"], custom_id=payload["custom_id"], value=payload["value"])
 
 
-AllowedInteractionLabelComponents: TypeAlias = "InteractionStringSelectMenu | InteractionTextInput"
+AllowedInteractionLabelComponents: TypeAlias = "InteractionStringSelectMenu | InteractionUserSelectMenu | InteractionChannelSelectMenu | InteractionRoleSelectMenu | InteractionMentionableSelectMenu | InteractionTextInput"
+
+L_c = TypeVar("L_c", bound=AllowedInteractionLabelComponents, default=AllowedInteractionLabelComponents)
 
 
 @dataclass
 class InteractionLabel(
     InteractionWalkableComponent[
         Literal[ComponentType.label], InteractionLabelPayload, AllowedInteractionLabelComponents
-    ]
+    ],
+    Generic[L_c],
 ):
     """Represents a :class:`Label` component as returned by Discord during a :class:`Interaction` of type :data:`InteractionType.modal_submit`.
 
@@ -338,7 +343,7 @@ class InteractionLabel(
     """
 
     id: int
-    component: AllowedInteractionLabelComponents
+    component: L_c
     type: Literal[ComponentType.label] = field(default=ComponentType.label, kw_only=True)
 
     @classmethod

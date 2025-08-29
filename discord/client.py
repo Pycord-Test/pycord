@@ -38,7 +38,6 @@ import aiohttp
 from discord.banners import print_banner, start_logging
 
 from . import utils
-from .utils.private import resolve_invite, resolve_template, bytes_to_base64_data, SequenceProxy
 from .activity import ActivityTypes, BaseActivity, create_activity
 from .appinfo import AppInfo, PartialAppInfo
 from .application_role_connection import ApplicationRoleConnectionMetadata
@@ -63,6 +62,7 @@ from .template import Template
 from .threads import Thread
 from .user import ClientUser, User
 from .utils import MISSING
+from .utils.private import SequenceProxy, bytes_to_base64_data, resolve_invite, resolve_template
 from .voice_client import VoiceClient
 from .webhook import Webhook
 from .widget import Widget

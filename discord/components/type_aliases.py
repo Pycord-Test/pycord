@@ -7,6 +7,7 @@ from .container import Container
 from .file_component import FileComponent
 from .input_text import TextInput
 from .interaction_components import (
+    InteractionButton,
     InteractionChannelSelectMenu,
     InteractionLabel,
     InteractionMentionableSelectMenu,
@@ -15,7 +16,6 @@ from .interaction_components import (
     InteractionTextDisplay,
     InteractionTextInput,
     InteractionUserSelectMenu,
-    InteractionButton,
     UnknownInteractionComponent,
 )
 from .label import Label
@@ -74,13 +74,13 @@ AnyTopLevelModalInteractionComponent: TypeAlias = (
 )
 
 AnyMessageInteractionComponent: TypeAlias = (
-        InteractionStringSelectMenu
-        | InteractionUserSelectMenu
-        | InteractionRoleSelectMenu
-        | InteractionMentionableSelectMenu
-        | InteractionButton
-        | InteractionChannelSelectMenu
-        | UnknownInteractionComponent
+    InteractionStringSelectMenu
+    | InteractionUserSelectMenu
+    | InteractionRoleSelectMenu
+    | InteractionMentionableSelectMenu
+    | InteractionButton
+    | InteractionChannelSelectMenu
+    | UnknownInteractionComponent
 )
 
 __all__ = ("AnyComponent",)

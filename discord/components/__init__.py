@@ -27,18 +27,23 @@ from .action_row import ActionRow
 from .button import Button
 from .channel_select_menu import ChannelSelectMenu
 from .component import Component, ModalComponentMixin, StateComponent, WalkableComponent
-from .components_sequence import ComponentsSequence
+from .components_sequence import ComponentsHolder
 from .container import Container
 from .default_select_option import DefaultSelectOption
 from .file_component import FileComponent
 from .input_text import TextInput
 from .interaction_components import (
+    InteractionButton,
+    InteractionChannelSelectMenu,
     InteractionComponent,
     InteractionLabel,
+    InteractionMentionableSelectMenu,
+    InteractionRoleSelectMenu,
     InteractionSelectMenu,
     InteractionStringSelectMenu,
     InteractionTextDisplay,
     InteractionTextInput,
+    InteractionUserSelectMenu,
     InteractionWalkableComponent,
     UnknownInteractionComponent,
     _interaction_component_factory,  # pyright: ignore[reportPrivateUsage]
@@ -61,10 +66,10 @@ from .thumbnail import Thumbnail
 from .type_aliases import (
     AnyComponent,
     AnyInteractionComponent,
+    AnyMessageInteractionComponent,
     AnyTopLevelMessageComponent,
     AnyTopLevelModalComponent,
     AnyTopLevelModalInteractionComponent,
-    AnyMessageInteractionComponent
 )
 from .unfurled_media_item import UnfurledMediaItem
 from .unknown_component import UnknownComponent
@@ -75,7 +80,7 @@ __all__ = (
     "StateComponent",
     "WalkableComponent",
     "ModalComponentMixin",
-    "ComponentsSequence",
+    "ComponentsHolder",
     "ActionRow",
     "Button",
     "SelectMenu",
@@ -105,6 +110,11 @@ __all__ = (
     "InteractionComponent",
     "InteractionSelectMenu",
     "InteractionStringSelectMenu",
+    "InteractionUserSelectMenu",
+    "InteractionButton",
+    "InteractionRoleSelectMenu",
+    "InteractionMentionableSelectMenu",
+    "InteractionChannelSelectMenu",
     "InteractionTextInput",
     "InteractionTextDisplay",
     "UnknownInteractionComponent",

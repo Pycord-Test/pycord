@@ -25,10 +25,9 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Callable, ClassVar, Generator, TypeVar
 from functools import cached_property
+from typing import TYPE_CHECKING, Any, Callable, ClassVar, Generator, TypeVar
 
-from .utils.private import get_as_snowflake
 from . import enums, utils
 from .asset import Asset
 from .automod import AutoModAction, AutoModTriggerMetadata
@@ -37,6 +36,7 @@ from .invite import Invite
 from .mixins import Hashable
 from .object import Object
 from .permissions import PermissionOverwrite, Permissions
+from .utils.private import get_as_snowflake
 
 __all__ = (
     "AuditLogDiff",

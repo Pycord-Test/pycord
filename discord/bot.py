@@ -34,6 +34,7 @@ import logging
 import sys
 import traceback
 from abc import ABC, abstractmethod
+from collections.abc import Awaitable
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -64,9 +65,8 @@ from .interactions import Interaction
 from .shard import AutoShardedClient
 from .types import interactions
 from .user import User
-from .utils import MISSING, find, Undefined
+from .utils import MISSING, Undefined, find
 from .utils.private import async_all, maybe_awaitable
-from collections.abc import Awaitable
 
 if TYPE_CHECKING:
     from .member import Member
@@ -1081,7 +1081,7 @@ class ApplicationCommandMixin(ABC):
     def _bot(self) -> Bot | AutoShardedBot: ...
 
 
-CI: TypeAlias = Callable[[Interaction], Coroutine[Any, Any, Any]]  # pyright: ignore[reportExplicitAny]
+CI: TypeAlias = Callable[..., Coroutine[Any, Any, Any]]  # pyright: ignore[reportExplicitAny]
 CI_t = TypeVar("CI_t", bound=CI)
 Coro = TypeVar("Coro", bound=Callable[..., Coroutine[Any, Any, Any]])  # pyright: ignore[reportExplicitAny]
 

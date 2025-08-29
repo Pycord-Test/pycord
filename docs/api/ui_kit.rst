@@ -168,8 +168,8 @@ Additional Objects
     :members:
     :inherited-members:
 
-.. attributetable:: discord.ComponentsSequence
-.. autoclass:: discord.ComponentsSequence
+.. attributetable:: discord.ComponentsHolder
+.. autoclass:: discord.ComponentsHolder
     :members:
     :inherited-members:
 

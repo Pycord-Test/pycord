@@ -31,8 +31,8 @@ from typing import TYPE_CHECKING, Any, Generic, TypeVar, Union
 
 import discord.abc
 from discord.message import Message
+from discord.utils import MISSING, Undefined
 from discord.utils.private import copy_doc
-from discord.utils import Undefined, MISSING
 
 if TYPE_CHECKING:
     from typing_extensions import ParamSpec

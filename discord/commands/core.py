@@ -69,7 +69,7 @@ from ..role import Role
 from ..threads import Thread
 from ..user import User
 from ..utils import MISSING, find, utcnow
-from ..utils.private import warn_deprecated, async_all, maybe_awaitable
+from ..utils.private import async_all, maybe_awaitable, warn_deprecated
 from .context import ApplicationContext, AutocompleteContext
 from .options import Option, OptionChoice
 

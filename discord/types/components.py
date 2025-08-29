@@ -26,7 +26,7 @@ DEALINGS IN THE SOFTWARE.
 from __future__ import annotations
 
 from this import s
-from typing import Literal, TypeAlias, Union, Generic, TypeVar
+from typing import Generic, Literal, TypeAlias, TypeVar, Union
 
 from typing_extensions import NotRequired, TypedDict
 

@@ -40,9 +40,11 @@ class BaseInteractionComponent(TypedDict):
     type: ComponentType
     id: int
 
+
 class InteractionButton(BaseInteractionComponent):
     type: Literal[2]  # pyright: ignore[reportIncompatibleVariableOverride]
     custom_id: str | None
+
 
 class InteractionStringSelectMenu(BaseInteractionComponent):
     type: Literal[3]  # pyright: ignore[reportIncompatibleVariableOverride]

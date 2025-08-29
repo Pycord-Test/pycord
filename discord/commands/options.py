@@ -41,9 +41,8 @@ from ..channel import (
     VoiceChannel,
 )
 from ..commands import ApplicationContext
-from ..enums import ChannelType
+from ..enums import ChannelType, SlashCommandOptionType
 from ..enums import Enum as DiscordEnum
-from ..enums import SlashCommandOptionType
 from ..utils import MISSING, Undefined, basic_autocomplete
 
 if TYPE_CHECKING:

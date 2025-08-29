@@ -26,23 +26,21 @@ DEALINGS IN THE SOFTWARE.
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Sequence
 import json
 import logging
 import re
 import weakref
+from collections.abc import Sequence
 from contextvars import ContextVar
 from typing import TYPE_CHECKING, Any, Literal, NamedTuple, overload
 from urllib.parse import quote as urlquote
 
 import aiohttp
 
-from ..components import AnyComponent
-
-from ..utils.private import bytes_to_base64_data, get_as_snowflake, parse_ratelimit_header, to_json
 from .. import utils
 from ..asset import Asset
 from ..channel import ForumChannel, PartialMessageable
+from ..components import AnyComponent
 from ..enums import WebhookType, try_enum
 from ..errors import (
     DiscordServerError,
@@ -59,6 +57,7 @@ from ..mixins import Hashable
 from ..object import Object
 from ..threads import Thread
 from ..user import BaseUser, User
+from ..utils.private import bytes_to_base64_data, get_as_snowflake, parse_ratelimit_header, to_json
 
 __all__ = (
     "Webhook",

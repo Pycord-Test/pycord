@@ -28,6 +28,7 @@ from __future__ import annotations
 import datetime
 import io
 import re
+from collections.abc import Sequence
 from os import PathLike
 from typing import (
     TYPE_CHECKING,
@@ -39,12 +40,10 @@ from typing import (
     overload,
 )
 from urllib.parse import parse_qs, urlparse
-from collections.abc import Sequence
 
-from .utils.private import get_as_snowflake, parse_time, warn_deprecated, delay_task, cached_slot_property
 from . import utils
 from .channel import PartialMessageable
-from .components import _component_factory, AnyComponent, ComponentsSequence
+from .components import AnyComponent, ComponentsHolder, _component_factory
 from .embeds import Embed
 from .emoji import AppEmoji, GuildEmoji
 from .enums import ChannelType, MessageReferenceType, MessageType, try_enum
@@ -61,6 +60,7 @@ from .reaction import Reaction
 from .sticker import StickerItem
 from .threads import Thread
 from .utils import MISSING, escape_mentions
+from .utils.private import cached_slot_property, delay_task, get_as_snowflake, parse_time, warn_deprecated
 
 if TYPE_CHECKING:
     from .abc import (
@@ -92,7 +92,6 @@ if TYPE_CHECKING:
     from .types.threads import ThreadArchiveDuration
     from .types.user import User as UserPayload
     from .user import User
-    from .components import Component
 
     MR = TypeVar("MR", bound="MessageReference")
     EmojiInputType = Union[GuildEmoji, AppEmoji, PartialEmoji, str]
@@ -677,11 +676,11 @@ class ForwardedMessage:
         A list of :class:`Role` that were originally mentioned.
     stickers: List[:class:`StickerItem`]
         A list of sticker items given to the original message.
-    components: :class:`ComponentsSequence`
+    components: :class:`ComponentsHolder`
         A list of components in the original message.
 
         .. versionchanged:: 3.0
-            Now is of type :class:`ComponentsSequence` instead of :class:`list`.
+            Now is of type :class:`ComponentsHolder` instead of :class:`list`.
     """
 
     def __init__(
@@ -708,7 +707,7 @@ class ForwardedMessage:
         self.attachments: list[Attachment] = [Attachment(data=a, state=state) for a in data["attachments"]]
         self.flags: MessageFlags = MessageFlags._from_value(data.get("flags", 0))
         self.stickers: list[StickerItem] = [StickerItem(data=d, state=state) for d in data.get("sticker_items", [])]
-        self.components: ComponentsSequence[AnyComponent] = ComponentsSequence(
+        self.components: ComponentsHolder[AnyComponent] = ComponentsHolder(
             *(_component_factory(d) for d in data.get("components", []))
         )
         self._edited_timestamp: datetime.datetime | None = parse_time(data["edited_timestamp"])
@@ -880,13 +879,13 @@ class Message(Hashable):
         A list of sticker items given to the message.
 
         .. versionadded:: 1.6
-    components: :class:`ComponentsSequence`
+    components: :class:`ComponentsHolder`
         A list of components in the message.
 
         .. versionadded:: 2.0
 
         .. versionchanged:: 3.0
-            Now is of type :class:`ComponentsSequence` instead of :class:`list`.
+            Now is of type :class:`ComponentsHolder` instead of :class:`list`.
 
     guild: Optional[:class:`Guild`]
         The guild that the message belongs to, if applicable.
@@ -987,7 +986,7 @@ class Message(Hashable):
         self.content: str = data["content"]
         self.nonce: int | str | None = data.get("nonce")
         self.stickers: list[StickerItem] = [StickerItem(data=d, state=state) for d in data.get("sticker_items", [])]
-        self.components: ComponentsSequence[AnyComponent] = ComponentsSequence(
+        self.components: ComponentsHolder[AnyComponent] = ComponentsHolder(
             *(_component_factory(d, state=state) for d in data.get("components", []))
         )
 
@@ -1236,7 +1235,7 @@ class Message(Hashable):
                     self.role_mentions.append(role)
 
     def _handle_components(self, components: list[ComponentPayload]):
-        self.components = ComponentsSequence(*(_component_factory(d, state=self._state) for d in components))  # pyright: ignore[reportArgumentType]
+        self.components = ComponentsHolder(*(_component_factory(d, state=self._state) for d in components))  # pyright: ignore[reportArgumentType]
 
     def _rebind_cached_references(self, new_guild: Guild, new_channel: TextChannel | Thread) -> None:
         self.guild = new_guild

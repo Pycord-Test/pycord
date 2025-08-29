@@ -26,16 +26,16 @@ DEALINGS IN THE SOFTWARE.
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Sequence
 import datetime
-from typing import TYPE_CHECKING, Any, Coroutine, Generic, Union, cast
-from typing_extensions import TypeVar
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Any, Coroutine, Generic, Union, Unpack, cast
 
-from .utils.private import get_as_snowflake, delay_task, cached_slot_property
+from typing_extensions import TypeVar, TypeVarTuple
+
 from . import utils
 from .channel import PartialMessageable, _threaded_channel_factory
-from .components import ComponentsSequence, _interaction_component_factory
-from .enums import InteractionContextType, InteractionResponseType, InteractionType, try_enum, ChannelType
+from .components import ComponentsHolder, _interaction_component_factory
+from .enums import ChannelType, InteractionContextType, InteractionResponseType, InteractionType, try_enum
 from .errors import ClientException, InteractionResponded, InvalidArgument
 from .file import File, VoiceMessage
 from .flags import MessageFlags
@@ -46,6 +46,7 @@ from .monetization import Entitlement
 from .object import Object
 from .permissions import Permissions
 from .user import User
+from .utils.private import cached_slot_property, delay_task, get_as_snowflake
 from .webhook.async_ import (
     Webhook,
     WebhookMessage,
@@ -63,12 +64,6 @@ __all__ = (
 
 if TYPE_CHECKING:
     from aiohttp import ClientSession
-    from .components import (
-        Modal,
-        AnyMessageInteractionComponent,
-        AnyTopLevelModalComponent,
-        AnyTopLevelModalInteractionComponent,
-    )
 
     from .channel import (
         CategoryChannel,
@@ -81,15 +76,21 @@ if TYPE_CHECKING:
     )
     from .client import Client
     from .commands import ApplicationCommand, OptionChoice
+    from .components import (
+        AnyMessageInteractionComponent,
+        AnyTopLevelModalComponent,
+        AnyTopLevelModalInteractionComponent,
+        Modal,
+    )
     from .embeds import Embed
     from .mentions import AllowedMentions
     from .poll import Poll
     from .state import ConnectionState
     from .threads import Thread
+    from .types.interaction_components import InteractionComponent
     from .types.interactions import Interaction as InteractionPayload
     from .types.interactions import InteractionData
     from .types.interactions import InteractionMetadata as InteractionMetadataPayload
-    from .types.interaction_components import InteractionComponent
 
     InteractionChannel = Union[
         VoiceChannel,
@@ -105,9 +106,12 @@ if TYPE_CHECKING:
 
 MISSING: Any = utils.MISSING
 
-Components_t = TypeVar("Components_t", AnyMessageInteractionComponent, AnyTopLevelModalInteractionComponent, default=AnyMessageInteractionComponent)
+Components_t = TypeVarTuple(
+    "Components_t", default=Unpack[tuple[AnyMessageInteractionComponent | AnyTopLevelModalInteractionComponent, ...]]
+)
 
-class Interaction(Generic[Component_t]):
+
+class Interaction(Generic[Unpack[Components_t]]):
     """Represents a Discord interaction.
 
     An interaction happens when a user does an action that needs to
@@ -287,13 +291,14 @@ class Interaction(Generic[Component_t]):
         self._message_data = message_data
 
     @cached_slot_property("_components")
-    def components(self) -> ComponentsSequence[AnyTopLevelModalInteractionComponent]:
+    def components(self) -> ComponentsHolder[Unpack[Components_t]]:
         if not self.type == InteractionType.modal_submit:
             raise TypeError("Only modal submit interactions have components")
         if not self.data:
             raise TypeError("This interaction has no data. This should never happen, please open an issue on GitHub")
         components_payload = cast("list[InteractionComponent]", self.data.get("components", []))
-        return ComponentsSequence(*(_interaction_component_factory(component) for component in components_payload))
+
+        return ComponentsHolder(*(_interaction_component_factory(component) for component in components_payload))  # pyright: ignore[reportReturnType]
 
     @cached_slot_property("_component")
     def component(self) -> AnyMessageInteractionComponent:

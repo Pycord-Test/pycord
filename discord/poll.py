@@ -25,14 +25,14 @@ DEALINGS IN THE SOFTWARE.
 from __future__ import annotations
 
 import datetime
-from typing import TYPE_CHECKING, Any
 from functools import cached_property
+from typing import TYPE_CHECKING, Any
 
-from .utils.private import parse_time
 from . import utils
 from .enums import PollLayoutType, try_enum
 from .iterators import VoteIterator
 from .partial_emoji import PartialEmoji
+from .utils.private import parse_time
 
 __all__ = (
     "PollMedia",

@@ -28,6 +28,7 @@ from __future__ import annotations
 import asyncio
 import copy
 import time
+from collections.abc import Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -39,8 +40,7 @@ from typing import (
     overload,
     runtime_checkable,
 )
-from collections.abc import Sequence
-from .utils.private import warn_deprecated
+
 from . import utils
 from .context_managers import Typing
 from .enums import ChannelType
@@ -55,6 +55,7 @@ from .permissions import PermissionOverwrite, Permissions
 from .role import Role
 from .scheduled_events import ScheduledEvent
 from .sticker import GuildSticker, StickerItem
+from .utils.private import warn_deprecated
 from .voice_client import VoiceClient, VoiceProtocol
 
 __all__ = (
@@ -83,6 +84,7 @@ if TYPE_CHECKING:
         VoiceChannel,
     )
     from .client import Client
+    from .components import AnyComponent
     from .embeds import Embed
     from .enums import InviteTarget
     from .guild import Guild
@@ -96,7 +98,6 @@ if TYPE_CHECKING:
     from .types.channel import OverwriteType
     from .types.channel import PermissionOverwrite as PermissionOverwritePayload
     from .user import ClientUser
-    from .components import AnyComponent
 
     PartialMessageableChannel = Union[TextChannel, VoiceChannel, StageChannel, Thread, DMChannel, PartialMessageable]
     MessageableChannel = Union[PartialMessageableChannel, GroupChannel]

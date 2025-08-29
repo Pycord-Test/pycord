@@ -26,6 +26,7 @@ DEALINGS IN THE SOFTWARE.
 from __future__ import annotations
 
 import datetime
+from collections.abc import Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -38,9 +39,9 @@ from typing import (
 
 import discord.abc
 
-from .utils.private import bytes_to_base64_data, get_as_snowflake, copy_doc
 from . import utils
 from .asset import Asset
+from .components import AnyComponent
 from .emoji import GuildEmoji
 from .enums import (
     ChannelType,
@@ -52,8 +53,6 @@ from .enums import (
     VoiceRegion,
     try_enum,
 )
-from collections.abc import Sequence
-from .components import AnyComponent
 from .errors import ClientException, InvalidArgument
 from .file import File
 from .flags import ChannelFlags, MessageFlags
@@ -66,6 +65,7 @@ from .permissions import PermissionOverwrite, Permissions
 from .stage_instance import StageInstance
 from .threads import Thread
 from .utils import MISSING
+from .utils.private import bytes_to_base64_data, copy_doc, get_as_snowflake
 
 __all__ = (
     "TextChannel",

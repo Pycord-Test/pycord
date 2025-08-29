@@ -28,9 +28,9 @@ from __future__ import annotations
 import datetime
 from typing import TYPE_CHECKING, Any, Mapping, TypeVar
 
-from .utils.private import parse_time
 from . import utils
 from .colour import Colour
+from .utils.private import parse_time
 
 __all__ = (
     "Embed",

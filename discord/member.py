@@ -44,7 +44,7 @@ from .object import Object
 from .permissions import Permissions
 from .user import BaseUser, User, _UserTag
 from .utils import MISSING
-from .utils.private import parse_time, SnowflakeList, copy_doc
+from .utils.private import SnowflakeList, copy_doc, parse_time
 
 __all__ = (
     "VoiceState",

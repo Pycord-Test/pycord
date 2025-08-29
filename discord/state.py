@@ -43,9 +43,7 @@ from typing import (
     Union,
 )
 
-from .utils.private import parse_time, sane_wait_for
 from . import utils
-from .utils.private import get_as_snowflake, parse_time, sane_wait_for
 from .activity import BaseActivity
 from .audit_logs import AuditLogEntry
 from .automod import AutoModRule
@@ -72,6 +70,7 @@ from .stage_instance import StageInstance
 from .sticker import GuildSticker
 from .threads import Thread, ThreadMember
 from .user import ClientUser, User
+from .utils.private import get_as_snowflake, parse_time, sane_wait_for
 
 if TYPE_CHECKING:
     from .abc import PrivateChannel

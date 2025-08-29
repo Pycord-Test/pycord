@@ -33,7 +33,7 @@ from typing import TYPE_CHECKING, Any, Iterator, Literal, Pattern, TypeVar, Unio
 
 from discord import utils
 from discord.utils import MISSING, Undefined
-from discord.utils.private import resolve_annotation, maybe_awaitable
+from discord.utils.private import maybe_awaitable, resolve_annotation
 
 from .converter import run_converters
 from .errors import (
