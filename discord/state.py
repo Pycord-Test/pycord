@@ -54,7 +54,7 @@ from .enums import ChannelType, InteractionType, ScheduledEventStatus, Status, t
 from .flags import ApplicationFlags, Intents, MemberCacheFlags
 from .guild import Guild
 from .integrations import _integration_factory
-from .interactions import Interaction
+from .interactions import ComponentInteraction, Interaction, ModalInteraction
 from .invite import Invite
 from .member import Member
 from .mentions import AllowedMentions
@@ -866,13 +866,12 @@ class ConnectionState:
                 self.dispatch("poll_vote_remove", poll, user, answer)
 
     def parse_interaction_create(self, data) -> None:
-        interaction = Interaction(data=data, state=self)
-        if interaction.type == InteractionType.modal_submit:
-            user_id, custom_id = (  # noqa:F841
-                interaction.user.id,
-                interaction.data["custom_id"],
-            )
-            # TODO: modal interactions
+        if data["type"] == InteractionType.modal_submit.value:
+            interaction = ModalInteraction(data=data, state=self)
+        elif data["type"] == InteractionType.component.value:
+            interaction = ComponentInteraction(data=data, state=self)
+        else:
+            interaction = Interaction(data=data, state=self)
 
         self.dispatch("interaction", interaction)
 

@@ -343,6 +343,12 @@ Interactions
 .. autoclass:: Interaction()
     :members:
 
+.. autoclass:: ComponentInteraction()
+    :members:
+
+.. autoclass:: ModalInteraction()
+    :members:
+
 .. attributetable:: InteractionResponse
 
 .. autoclass:: InteractionResponse()

@@ -27,9 +27,9 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Generic, Literal, TypeAlias, TypeVar, cast
+from typing import TYPE_CHECKING, Any, Generic, Literal, TypeAlias, cast
 
-from typing_extensions import override
+from typing_extensions import override, TypeVar
 
 from ..enums import ComponentType, try_enum
 from ..types.interaction_components import InteractionButton as InteractionButtonPayload

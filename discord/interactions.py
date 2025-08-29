@@ -56,6 +56,8 @@ from .webhook.async_ import (
 
 __all__ = (
     "Interaction",
+    "ModalInteraction",
+    "ComponentInteraction",
     "InteractionMessage",
     "InteractionResponse",
     "InteractionMetadata",
@@ -106,12 +108,9 @@ if TYPE_CHECKING:
 
 MISSING: Any = utils.MISSING
 
-Components_t = TypeVarTuple(
-    "Components_t", default=Unpack[tuple[AnyMessageInteractionComponent | AnyTopLevelModalInteractionComponent, ...]]
-)
 
 
-class Interaction(Generic[Unpack[Components_t]]):
+class Interaction:
     """Represents a Discord interaction.
 
     An interaction happens when a user does an action that needs to
@@ -202,7 +201,6 @@ class Interaction(Generic[Unpack[Components_t]]):
         "_cs_response",
         "_cs_followup",
         "_cs_channel",
-        "_components",
     )
 
     def __init__(self, *, data: InteractionPayload, state: ConnectionState):
@@ -289,24 +287,6 @@ class Interaction(Generic[Unpack[Components_t]]):
             self.message = Message(state=self._state, channel=self.channel, data=message_data)
 
         self._message_data = message_data
-
-    @cached_slot_property("_components")
-    def components(self) -> ComponentsHolder[Unpack[Components_t]]:
-        if not self.type == InteractionType.modal_submit:
-            raise TypeError("Only modal submit interactions have components")
-        if not self.data:
-            raise TypeError("This interaction has no data. This should never happen, please open an issue on GitHub")
-        components_payload = cast("list[InteractionComponent]", self.data.get("components", []))
-
-        return ComponentsHolder(*(_interaction_component_factory(component) for component in components_payload))  # pyright: ignore[reportReturnType]
-
-    @cached_slot_property("_component")
-    def component(self) -> AnyMessageInteractionComponent:
-        if not self.type == InteractionType.component:
-            raise TypeError("Only component interactions have a component")
-        if not self.data:
-            raise TypeError("This interaction has no data. This should never happen, please open an issue on GitHub")
-        return _interaction_component_factory(self.data, key="component_type")  # pyright: ignore[reportArgumentType, reportReturnType]
 
     @property
     def client(self) -> Client:
@@ -677,6 +657,35 @@ class Interaction(Generic[Unpack[Components_t]]):
             data["message"] = self._message_data
 
         return data
+
+Components_t = TypeVarTuple(
+    "Components_t", default="Unpack[tuple[AnyTopLevelModalInteractionComponent, ...]]"
+)
+
+
+class ModalInteraction(Interaction, Generic[Unpack[Components_t]]):
+    __slots__ = ("_components",)
+    @cached_slot_property("_components")
+    def components(self) -> ComponentsHolder[Unpack[Components_t]]:
+        if not self.type == InteractionType.modal_submit:
+            raise TypeError("Only modal submit interactions have components")
+        if not self.data:
+            raise TypeError("This interaction has no data. This should never happen, please open an issue on GitHub")
+        components_payload = cast("list[InteractionComponent]", self.data.get("components", []))
+
+        return ComponentsHolder(*(_interaction_component_factory(component) for component in components_payload))  # pyright: ignore[reportReturnType]
+
+Component_t = TypeVar("Component_t", bound="AnyMessageInteractionComponent", default="AnyMessageInteractionComponent")
+
+class ComponentInteraction(Generic[Component_t], Interaction):
+    __slots__ = ("_component",)
+    @cached_slot_property("_component")
+    def component(self) -> Component_t:
+        if not self.type == InteractionType.component:
+            raise TypeError("Only component interactions have a component")
+        if not self.data:
+            raise TypeError("This interaction has no data. This should never happen, please open an issue on GitHub")
+        return _interaction_component_factory(self.data, key="component_type")  # pyright: ignore[reportArgumentType, reportReturnType]
 
 
 class InteractionResponse:
