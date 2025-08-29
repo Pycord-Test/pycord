@@ -56,7 +56,7 @@ class Label(
 
     Attributes
     ----------
-    type: Literal[:data:`ComponentType.section`]
+    type: Literal[:data:`ComponentType.label`]
         The type of component.
     component: :class:`list` of :class:`Component`
         The components contained in this section. Currently supports :class:`TextDisplay`.
