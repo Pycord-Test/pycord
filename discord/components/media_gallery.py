@@ -24,9 +24,10 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar, Literal
-from typing_extensions import override
 from collections.abc import Sequence
+from typing import TYPE_CHECKING, ClassVar, Literal
+
+from typing_extensions import override
 
 from ..enums import ComponentType
 from ..types.components import MediaGalleryComponent as MediaGalleryComponentPayload
@@ -35,6 +36,7 @@ from .media_gallery_item import MediaGalleryItem
 
 if TYPE_CHECKING:
     from typing_extensions import Self
+
     from ..state import ConnectionState
 
 

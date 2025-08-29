@@ -24,18 +24,26 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import ClassVar, Generic, Literal, TypeAlias, TypeVar
 from abc import ABC
+from typing import ClassVar, Generic, Literal, TypeAlias, TypeVar
 
 from ..enums import ComponentType
-from .component import ModalComponentMixin, Component
+from ..types.components import (
+    ChannelSelect as ChannelSelectPayload,
+)
+from ..types.components import (
+    MentionableSelect as MentionableSelectPayload,
+)
+from ..types.components import (
+    RoleSelect as RoleSelectPayload,
+)
 from ..types.components import (
     StringSelect as StringSelectPayload,
-    ChannelSelect as ChannelSelectPayload,
-    RoleSelect as RoleSelectPayload,
-    MentionableSelect as MentionableSelectPayload,
+)
+from ..types.components import (
     UserSelect as UserSelectPayload,
 )
+from .component import Component, ModalComponentMixin
 
 SelectMenuTypes: TypeAlias = (
     StringSelectPayload | ChannelSelectPayload | RoleSelectPayload | MentionableSelectPayload | UserSelectPayload

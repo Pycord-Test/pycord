@@ -24,9 +24,10 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Literal
-from typing_extensions import override
 from collections.abc import Sequence
+from typing import TYPE_CHECKING, Literal
+
+from typing_extensions import override
 
 from ..enums import ComponentType
 from ..types.components import StringSelect as StringSelectPayload

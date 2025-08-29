@@ -24,14 +24,15 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Literal
-from typing_extensions import override
 from collections.abc import Sequence
+from typing import TYPE_CHECKING, Literal
+
+from typing_extensions import override
 
 from ..enums import ComponentType
 from ..types.components import UserSelect as UserSelectPayload
-from .select_menu import SelectMenu
 from .default_select_option import DefaultSelectOption
+from .select_menu import SelectMenu
 
 if TYPE_CHECKING:
     from typing_extensions import Self

@@ -4,6 +4,7 @@ These changes are part of `pycord-test/pycord`, and are candidates for the next 
 release.
 
 ### Added
+- `Interaction.components` available only during modal submissions
 
 ### Fixed
 
@@ -30,7 +31,10 @@ can read more in the migration guide.
 
 <!-- TODO: Add link to migration guide -->
 
-- `InputText` -> `TextInput`
+- `InputText` use `TextInput` instead
+- `ComponentType.input_text` use `ComponentType.text_input` instead
+- `InputTextStyle` use `TextInputStyle` instead
+- `ComponentType.select` use `ComponentType.string_select` instead
 
 #### `discord.ext.pages`
 

@@ -25,6 +25,7 @@ DEALINGS IN THE SOFTWARE.
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, ClassVar, Literal, TypeAlias, cast
+
 from typing_extensions import override
 
 from ..colour import Colour
@@ -34,13 +35,14 @@ from .component import WalkableComponent
 
 if TYPE_CHECKING:
     from typing_extensions import Self
+
     from ..state import ConnectionState
     from .action_row import ActionRow
-    from .text_display import TextDisplay
-    from .section import Section
-    from .media_gallery import MediaGallery
-    from .separator import Separator
     from .file_component import FileComponent
+    from .media_gallery import MediaGallery
+    from .section import Section
+    from .separator import Separator
+    from .text_display import TextDisplay
 
 
 AllowedContainerComponents: TypeAlias = "ActionRow | TextDisplay | Section | MediaGallery | Separator | FileComponent"

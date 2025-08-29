@@ -28,18 +28,14 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Sequence
 import datetime
-from typing import TYPE_CHECKING, Any, Coroutine, Union
+from typing import TYPE_CHECKING, Any, Coroutine, Generic, Union, cast
+from typing_extensions import TypeVar
 
-
-from .utils.private import get_as_snowflake, deprecated, delay_task, cached_slot_property
+from .utils.private import get_as_snowflake, delay_task, cached_slot_property
 from . import utils
-from .channel import ChannelType, PartialMessageable, _threaded_channel_factory
-from .enums import (
-    InteractionContextType,
-    InteractionResponseType,
-    InteractionType,
-    try_enum,
-)
+from .channel import PartialMessageable, _threaded_channel_factory
+from .components import ComponentsSequence, _interaction_component_factory
+from .enums import InteractionContextType, InteractionResponseType, InteractionType, try_enum, ChannelType
 from .errors import ClientException, InteractionResponded, InvalidArgument
 from .file import File, VoiceMessage
 from .flags import MessageFlags
@@ -67,7 +63,12 @@ __all__ = (
 
 if TYPE_CHECKING:
     from aiohttp import ClientSession
-    from .components import AnyComponent, Modal
+    from .components import (
+        Modal,
+        AnyMessageInteractionComponent,
+        AnyTopLevelModalComponent,
+        AnyTopLevelModalInteractionComponent,
+    )
 
     from .channel import (
         CategoryChannel,
@@ -88,6 +89,7 @@ if TYPE_CHECKING:
     from .types.interactions import Interaction as InteractionPayload
     from .types.interactions import InteractionData
     from .types.interactions import InteractionMetadata as InteractionMetadataPayload
+    from .types.interaction_components import InteractionComponent
 
     InteractionChannel = Union[
         VoiceChannel,
@@ -103,8 +105,9 @@ if TYPE_CHECKING:
 
 MISSING: Any = utils.MISSING
 
+Components_t = TypeVar("Components_t", AnyMessageInteractionComponent, AnyTopLevelModalInteractionComponent, default=AnyMessageInteractionComponent)
 
-class Interaction:
+class Interaction(Generic[Component_t]):
     """Represents a Discord interaction.
 
     An interaction happens when a user does an action that needs to
@@ -195,6 +198,7 @@ class Interaction:
         "_cs_response",
         "_cs_followup",
         "_cs_channel",
+        "_components",
     )
 
     def __init__(self, *, data: InteractionPayload, state: ConnectionState):
@@ -281,6 +285,23 @@ class Interaction:
             self.message = Message(state=self._state, channel=self.channel, data=message_data)
 
         self._message_data = message_data
+
+    @cached_slot_property("_components")
+    def components(self) -> ComponentsSequence[AnyTopLevelModalInteractionComponent]:
+        if not self.type == InteractionType.modal_submit:
+            raise TypeError("Only modal submit interactions have components")
+        if not self.data:
+            raise TypeError("This interaction has no data. This should never happen, please open an issue on GitHub")
+        components_payload = cast("list[InteractionComponent]", self.data.get("components", []))
+        return ComponentsSequence(*(_interaction_component_factory(component) for component in components_payload))
+
+    @cached_slot_property("_component")
+    def component(self) -> AnyMessageInteractionComponent:
+        if not self.type == InteractionType.component:
+            raise TypeError("Only component interactions have a component")
+        if not self.data:
+            raise TypeError("This interaction has no data. This should never happen, please open an issue on GitHub")
+        return _interaction_component_factory(self.data, key="component_type")  # pyright: ignore[reportArgumentType, reportReturnType]
 
     @property
     def client(self) -> Client:
@@ -436,7 +457,7 @@ class Interaction:
         file: File | utils.Undefined = MISSING,
         files: list[File] | utils.Undefined = MISSING,
         attachments: list[Attachment] | utils.Undefined = MISSING,
-        components: Sequence[AnyComponent] | None | utils.Undefined = MISSING,
+        components: Sequence[AnyTopLevelModalComponent] | None | utils.Undefined = MISSING,
         allowed_mentions: AllowedMentions | None = None,
         delete_after: float | None = None,
         suppress: bool = False,
@@ -792,7 +813,7 @@ class InteractionResponse:
         *,
         embed: Embed = None,
         embeds: list[Embed] = None,
-        components: Sequence[AnyComponent] = None,
+        components: Sequence[AnyTopLevelModalComponent] = None,
         tts: bool = False,
         ephemeral: bool = False,
         allowed_mentions: AllowedMentions = None,
@@ -817,7 +838,7 @@ class InteractionResponse:
             ``embeds`` parameter.
         tts: :class:`bool`
             Indicates if the message should be sent using text-to-speech.
-        components: Sequence[:class:`AnyComponent`]
+        components:
             The components to send with the message.
         ephemeral: :class:`bool`
             Indicates if the message should only be visible to the user who started the interaction.
@@ -956,7 +977,7 @@ class InteractionResponse:
         file: File | utils.Undefined = MISSING,
         files: list[File] | utils.Undefined = MISSING,
         attachments: list[Attachment] | utils.Undefined = MISSING,
-        components: Sequence[AnyComponent] | None | utils.Undefined = MISSING,
+        components: Sequence[AnyTopLevelModalComponent] | None | utils.Undefined = MISSING,
         delete_after: float | None = None,
         suppress: bool | None | utils.Undefined = MISSING,
         allowed_mentions: AllowedMentions | None = None,
@@ -983,7 +1004,7 @@ class InteractionResponse:
         attachments: List[:class:`Attachment`]
             A list of attachments to keep in the message. If ``[]`` is passed
             then all attachments are removed.
-        components: Optional[Sequence[AnyComponent]]
+        components:
             The updated components to update this message with. If ``None`` is passed then
             the components are removed.
         delete_after: Optional[:class:`float`]
@@ -1247,7 +1268,7 @@ class InteractionMessage(Message):
         file: File | utils.Undefined = MISSING,
         files: list[File] | utils.Undefined = MISSING,
         attachments: list[Attachment] | utils.Undefined = MISSING,
-        components: Sequence[AnyComponent] | None | utils.Undefined = MISSING,
+        components: Sequence[AnyTopLevelModalComponent] | None | utils.Undefined = MISSING,
         allowed_mentions: AllowedMentions | None = None,
         delete_after: float | None = None,
         suppress: bool | None | utils.Undefined = MISSING,
@@ -1276,7 +1297,7 @@ class InteractionMessage(Message):
         allowed_mentions: :class:`AllowedMentions`
             Controls the mentions being processed in this message.
             See :meth:`.abc.Messageable.send` for more information.
-        components: Optional[Sequence[AnyComponent]]
+        components:
             The updated components to update this message with. If ``None`` is passed then
             the components are removed.
         delete_after: Optional[:class:`float`]

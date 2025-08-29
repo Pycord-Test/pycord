@@ -25,16 +25,18 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Callable, ClassVar, Generic
-from typing_extensions import override
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
+from typing import TYPE_CHECKING, Callable, ClassVar, Generic
+
+from typing_extensions import override
 
 from ..enums import ComponentType
-from .types import P, C
+from .types import C, P
 
 if TYPE_CHECKING:
     from typing_extensions import Self
+
     from ..state import ConnectionState
 
 

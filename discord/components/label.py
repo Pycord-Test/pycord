@@ -27,18 +27,21 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from typing import TYPE_CHECKING, ClassVar, Literal, TypeAlias, cast
+
 from typing_extensions import override
 
 from ..enums import ComponentType
 from ..types.components import LabelComponent as LabelComponentPayload
-from .component import WalkableComponent, ModalComponentMixin
+from .component import ModalComponentMixin, WalkableComponent
 
 if TYPE_CHECKING:
     from typing_extensions import Self
+
     from discord.state import ConnectionState
+
+    from .input_text import TextInput
     from .string_select_menu import StringSelectMenu
     from .user_select_menu import UserSelectMenu
-    from .input_text import TextInput
 
 AllowedLabelComponents: TypeAlias = "StringSelectMenu | UserSelectMenu | TextInput"
 
@@ -59,7 +62,7 @@ class Label(
     type: Literal[:data:`ComponentType.label`]
         The type of component.
     component: :class:`list` of :class:`Component`
-        The components contained in this section. Currently supports :class:`TextDisplay`.
+        The components contained in this label.
     label: :class:`str`
         The text of the label.
     description: :class:`str` | :data:`None`

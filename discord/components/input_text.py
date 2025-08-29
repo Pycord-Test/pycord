@@ -26,6 +26,7 @@ DEALINGS IN THE SOFTWARE.
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, ClassVar, Literal
+
 from typing_extensions import override
 
 from ..enums import ComponentType, TextInputStyle, try_enum
@@ -67,7 +68,7 @@ class TextInput(Component[TextInputComponentPayload], ModalComponentMixin[TextIn
 
     Parameters
     ----------
-    style: :class:`InputTextStyle`
+    style: :class:`TextInputStyle`
         The style of the input text field.
     custom_id:
         The custom ID of the input text field that gets received during an interaction.
@@ -87,7 +88,7 @@ class TextInput(Component[TextInputComponentPayload], ModalComponentMixin[TextIn
         The ID `0` is treated as if no ID was provided.
     """
 
-    __slots__: tuple[str, ...] = (
+    __slots__: tuple[str, ...] = (  # pyright: ignore[reportIncompatibleUnannotatedOverride]
         "style",
         "custom_id",
         "placeholder",
@@ -99,7 +100,7 @@ class TextInput(Component[TextInputComponentPayload], ModalComponentMixin[TextIn
 
     __repr_info__: ClassVar[tuple[str, ...]] = __slots__
     versions: tuple[int, ...] = (1, 2)
-    type: Literal[ComponentType.input_text] = ComponentType.input_text  # pyright: ignore[reportIncompatibleVariableOverride]
+    type: Literal[ComponentType.text_input] = ComponentType.text_input  # pyright: ignore[reportIncompatibleVariableOverride]
 
     def __init__(
         self,

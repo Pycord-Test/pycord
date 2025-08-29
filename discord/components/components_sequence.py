@@ -23,14 +23,17 @@ DEALINGS IN THE SOFTWARE.
 """
 
 from __future__ import annotations
+
+from collections.abc import Iterable, Iterator, MutableSequence
 from typing import Generic, TypeVar, overload
-from .type_aliases import AnyComponent
-from collections.abc import MutableSequence, Iterator, Iterable
-from .component import WalkableComponent
+
 from typing_extensions import override
 
+from .component import WalkableComponent
+from .interaction_components import InteractionWalkableComponent
+from .type_aliases import AnyComponent, AnyInteractionComponent
 
-T = TypeVar("T", bound=AnyComponent)
+T = TypeVar("T", AnyComponent, AnyInteractionComponent)
 
 
 class ComponentsSequence(MutableSequence[T], Generic[T]):
@@ -113,11 +116,15 @@ class ComponentsSequence(MutableSequence[T], Generic[T]):
             elif isinstance(component_id, int) and getattr(component, "id", None) == component_id:
                 return component
 
-            if isinstance(component, WalkableComponent):
+            if isinstance(component, (WalkableComponent, InteractionWalkableComponent)):
                 if found := component.get_by_id(component_id):
-                    return found  # pyright: ignore[reportReturnType]
+                    return found
         return None
 
     @override
     def __iter__(self) -> Iterator[T]:
         yield from self._components
+
+    @override
+    def __repr__(self) -> str:
+        return f"<ComponentsSequence components={self._components!r}>"

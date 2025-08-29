@@ -22,35 +22,53 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
 
-from .component import Component, StateComponent, WalkableComponent, ModalComponentMixin
+from ._component_factory import _component_factory  # pyright: ignore[reportPrivateUsage]
 from .action_row import ActionRow
 from .button import Button
-from .string_select_menu import StringSelectMenu
-from .user_select_menu import UserSelectMenu
-from .role_select_menu import RoleSelectMenu
-from .mentionable_select_menu import MentionableSelectMenu
 from .channel_select_menu import ChannelSelectMenu
-from .select_option import SelectOption
+from .component import Component, ModalComponentMixin, StateComponent, WalkableComponent
+from .components_sequence import ComponentsSequence
+from .container import Container
 from .default_select_option import DefaultSelectOption
-from .select_menu import SelectMenu
+from .file_component import FileComponent
 from .input_text import TextInput
-from .text_display import TextDisplay
-from .thumbnail import Thumbnail
-from .section import Section
+from .interaction_components import (
+    InteractionComponent,
+    InteractionLabel,
+    InteractionSelectMenu,
+    InteractionStringSelectMenu,
+    InteractionTextDisplay,
+    InteractionTextInput,
+    InteractionWalkableComponent,
+    UnknownInteractionComponent,
+    _interaction_component_factory,  # pyright: ignore[reportPrivateUsage]
+)
+from .label import Label
 from .media_gallery import MediaGallery
 from .media_gallery_item import MediaGalleryItem
-from .unfurled_media_item import UnfurledMediaItem
-from .file_component import FileComponent
-from .separator import Separator
-from .container import Container
-from .label import Label
+from .mentionable_select_menu import MentionableSelectMenu
 from .modal import Modal
-from .unknown_component import UnknownComponent
+from .role_select_menu import RoleSelectMenu
+from .section import Section
+from .select_menu import SelectMenu
+from .select_option import SelectOption
+from .separator import Separator
+from .string_select_menu import StringSelectMenu
+from .text_display import TextDisplay
+from .thumbnail import Thumbnail
 
 # Don't change the import order
-from ._component_factory import _component_factory  # pyright: ignore[reportPrivateUsage]
-from .components_sequence import ComponentsSequence
-from .type_aliases import AnyComponent
+from .type_aliases import (
+    AnyComponent,
+    AnyInteractionComponent,
+    AnyTopLevelMessageComponent,
+    AnyTopLevelModalComponent,
+    AnyTopLevelModalInteractionComponent,
+    AnyMessageInteractionComponent
+)
+from .unfurled_media_item import UnfurledMediaItem
+from .unknown_component import UnknownComponent
+from .user_select_menu import UserSelectMenu
 
 __all__ = (
     "Component",
@@ -66,6 +84,7 @@ __all__ = (
     "RoleSelectMenu",
     "MentionableSelectMenu",
     "ChannelSelectMenu",
+    "AnyMessageInteractionComponent",
     "SelectOption",
     "DefaultSelectOption",
     "TextInput",
@@ -82,5 +101,18 @@ __all__ = (
     "Modal",
     "UnknownComponent",
     "_component_factory",
+    "InteractionLabel",
+    "InteractionComponent",
+    "InteractionSelectMenu",
+    "InteractionStringSelectMenu",
+    "InteractionTextInput",
+    "InteractionTextDisplay",
+    "UnknownInteractionComponent",
+    "_interaction_component_factory",
     "AnyComponent",
+    "AnyTopLevelModalComponent",
+    "AnyTopLevelMessageComponent",
+    "AnyInteractionComponent",
+    "AnyTopLevelModalInteractionComponent",
+    "InteractionWalkableComponent",
 )

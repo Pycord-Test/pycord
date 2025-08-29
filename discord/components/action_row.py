@@ -26,6 +26,7 @@ DEALINGS IN THE SOFTWARE.
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, ClassVar, Literal, TypeAlias, cast
+
 from typing_extensions import override
 
 from ..enums import ComponentType
@@ -34,13 +35,14 @@ from .component import WalkableComponent
 
 if TYPE_CHECKING:
     from typing_extensions import Self
+
     from .button import Button
+    from .channel_select_menu import ChannelSelectMenu
     from .input_text import TextInput
     from .mentionable_select_menu import MentionableSelectMenu
     from .role_select_menu import RoleSelectMenu
     from .string_select_menu import StringSelectMenu
     from .user_select_menu import UserSelectMenu
-    from .channel_select_menu import ChannelSelectMenu
 
 AllowedActionRowComponents: TypeAlias = "Button | TextInput | StringSelectMenu | UserSelectMenu | RoleSelectMenu | MentionableSelectMenu | ChannelSelectMenu"
 
@@ -83,7 +85,7 @@ class ActionRow(WalkableComponent["ActionRowPayload", "AllowedActionRowComponent
     type: Literal[ComponentType.action_row] = ComponentType.action_row  # pyright: ignore[reportIncompatibleVariableOverride]
 
     def __init__(self, *components: AllowedActionRowComponents, id: int | None = None) -> None:
-        self.components: list[AllowedActionRowComponents] = list(*components)
+        self.components: list[AllowedActionRowComponents] = list(components)
         super().__init__(id=id)
 
     @classmethod

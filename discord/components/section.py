@@ -25,18 +25,22 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar, Literal, TypeAlias, cast
-from typing_extensions import override
 from collections.abc import Iterator, Sequence
+from typing import TYPE_CHECKING, ClassVar, Literal, TypeAlias, cast
+
+from typing_extensions import override
+
 from ..enums import ComponentType
 from ..types.components import SectionComponent as SectionComponentPayload
 from .component import WalkableComponent
 
 if TYPE_CHECKING:
     from typing_extensions import Self
+
     from discord.state import ConnectionState
-    from .text_display import TextDisplay
+
     from .button import Button
+    from .text_display import TextDisplay
     from .thumbnail import Thumbnail
 
 AllowedSectionComponents: TypeAlias = "TextDisplay"

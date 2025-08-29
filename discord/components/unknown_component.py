@@ -25,6 +25,7 @@ DEALINGS IN THE SOFTWARE.
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+
 from typing_extensions import override
 
 from ..enums import ComponentType, try_enum

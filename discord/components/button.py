@@ -25,7 +25,8 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar, Literal, overload, TypeAlias
+from typing import TYPE_CHECKING, ClassVar, Literal, TypeAlias, overload
+
 from typing_extensions import override
 
 from ..enums import ButtonStyle, ComponentType, try_enum
@@ -35,7 +36,8 @@ from .component import Component
 
 if TYPE_CHECKING:
     from typing_extensions import Self
-    from ..emoji import GuildEmoji, AppEmoji
+
+    from ..emoji import AppEmoji, GuildEmoji
     from ..partial_emoji import PartialEmoji
 
 AnyEmoji: TypeAlias = "GuildEmoji | AppEmoji | PartialEmoji"

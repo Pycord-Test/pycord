@@ -101,6 +101,50 @@ API Objects
     :members:
     :inherited-members:
 
+Interaction Components
+-----------
+These objects are dataclasses that represent components as they are recieved from Discord in interaction payloads, currently applicable only with :class:`discord.Interaction` of type :data:`discord.InteractionType.modal_submit`.
+
+.. attributetable:: discord.InteractionLabel
+.. autoclass:: discord.InteractionLabel
+    :members:
+    :inherited-members:
+
+.. attributetable:: discord.InteractionStringSelectMenu
+.. autoclass:: discord.InteractionStringSelectMenu
+    :members:
+    :inherited-members:
+
+.. attributetable:: discord.InteractionUserSelectMenu
+.. autoclass:: discord.InteractionUserSelectMenu
+    :members:
+    :inherited-members:
+
+.. attributetable:: discord.InteractionRoleSelectMenu
+.. autoclass:: discord.InteractionRoleSelectMenu
+    :members:
+    :inherited-members:
+
+.. attributetable:: discord.InteractionMentionableSelectMenu
+.. autoclass:: discord.InteractionMentionableSelectMenu
+    :members:
+    :inherited-members:
+
+.. attributetable:: discord.InteractionChannelSelectMenu
+.. autoclass:: discord.InteractionChannelSelectMenu
+    :members:
+    :inherited-members:
+
+.. attributetable:: discord.InteractionTextInput
+.. autoclass:: discord.InteractionTextInput
+    :members:
+    :inherited-members:
+
+.. attributetable:: discord.InteractionTextDisplay
+.. autoclass:: discord.InteractionTextDisplay
+    :members:
+    :inherited-members:
+
 Additional Objects
 ------------------
 
@@ -140,17 +184,7 @@ ABCs
 .. autoclass:: discord.Component
     :members:
 
-.. attributetable:: discord.WalkableComponent
-.. autoclass:: discord.WalkableComponent
-    :members:
-    :inherited-members:
-
-.. attributetable:: discord.ModalComponentMixin
-.. autoclass:: discord.ModalComponentMixin
-    :members:
-    :inherited-members:
-
-.. attributetable:: discord.SelectMenu
-.. autoclass:: discord.SelectMenu
+.. attributetable:: discord.InteractionComponent
+.. autoclass:: discord.InteractionComponent
     :members:
     :inherited-members:
