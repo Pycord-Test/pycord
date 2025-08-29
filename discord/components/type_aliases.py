@@ -8,14 +8,14 @@ from .file_component import FileComponent
 from .input_text import TextInput
 from .interaction_components import (
     InteractionButton,
-    InteractionChannelSelectMenu,
+    InteractionChannelSelect,
     InteractionLabel,
-    InteractionMentionableSelectMenu,
-    InteractionRoleSelectMenu,
-    InteractionStringSelectMenu,
+    InteractionMentionableSelect,
+    InteractionRoleSelect,
+    InteractionStringSelect,
     InteractionTextDisplay,
     InteractionTextInput,
-    InteractionUserSelectMenu,
+    InteractionUserSelect,
     UnknownInteractionComponent,
 )
 from .label import Label
@@ -57,16 +57,16 @@ AnyTopLevelMessageComponent: TypeAlias = (
 AnyTopLevelModalComponent: TypeAlias = TextDisplay | Label
 
 AnyInteractionComponent: TypeAlias = (
-    InteractionLabel
-    | InteractionTextInput
-    | InteractionStringSelectMenu
-    | InteractionTextDisplay
-    | InteractionUserSelectMenu
-    | InteractionRoleSelectMenu
-    | InteractionMentionableSelectMenu
-    | InteractionChannelSelectMenu
-    | UnknownInteractionComponent
-    | InteractionButton
+        InteractionLabel
+        | InteractionTextInput
+        | InteractionStringSelect
+        | InteractionTextDisplay
+        | InteractionUserSelect
+        | InteractionRoleSelect
+        | InteractionMentionableSelect
+        | InteractionChannelSelect
+        | UnknownInteractionComponent
+        | InteractionButton
 )
 
 AnyTopLevelModalInteractionComponent: TypeAlias = (
@@ -74,13 +74,13 @@ AnyTopLevelModalInteractionComponent: TypeAlias = (
 )
 
 AnyMessageInteractionComponent: TypeAlias = (
-    InteractionStringSelectMenu
-    | InteractionUserSelectMenu
-    | InteractionRoleSelectMenu
-    | InteractionMentionableSelectMenu
-    | InteractionButton
-    | InteractionChannelSelectMenu
-    | UnknownInteractionComponent
+        InteractionStringSelect
+        | InteractionUserSelect
+        | InteractionRoleSelect
+        | InteractionMentionableSelect
+        | InteractionButton
+        | InteractionChannelSelect
+        | UnknownInteractionComponent
 )
 
 __all__ = ("AnyComponent",)

@@ -29,7 +29,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Generic, Literal, TypeAlias, cast
 
-from typing_extensions import override, TypeVar
+from typing_extensions import TypeVar, override
 
 from ..enums import ComponentType, try_enum
 from ..types.interaction_components import InteractionButton as InteractionButtonPayload
@@ -47,6 +47,11 @@ if TYPE_CHECKING:
     from typing_extensions import Self
 
     from .type_aliases import AnyInteractionComponent
+
+
+# Below, the usage of field with kw_only=True is used to push the attribute at the end of the __init__ signature and
+# avoid issues with optional arguments order during class inheritance.
+# Reference: https://stackoverflow.com/questions/51575931/class-inheritance-in-python-3-7-dataclasses
 
 
 T = TypeVar("T", bound="ComponentType")
@@ -121,7 +126,7 @@ class InteractionButton(InteractionComponent[Literal[ComponentType.button], Inte
 
 
 @dataclass
-class InteractionSelectMenu(InteractionComponent[T, P], ABC, Generic[T, V, P]):
+class InteractionSelect(InteractionComponent[T, P], ABC, Generic[T, V, P]):
     """Base class for all select menu interaction components returned by Discord during an :class:`Interaction` of type :data:`InteractionType.modal_submit`.
 
     .. versionadded:: 3.0
@@ -133,14 +138,9 @@ class InteractionSelectMenu(InteractionComponent[T, P], ABC, Generic[T, V, P]):
     type: T
 
 
-# Below, the usage of field with kw_only=True is used to push the attribute at the end of the __init__ signature and
-# avoid issues with optional arguments order during class inheritance.
-# Reference: https://stackoverflow.com/questions/51575931/class-inheritance-in-python-3-7-dataclasses
-
-
 @dataclass
-class InteractionStringSelectMenu(
-    InteractionSelectMenu[Literal[ComponentType.string_select], str, InteractionStringSelectMenuPayload]
+class InteractionStringSelect(
+    InteractionSelect[Literal[ComponentType.string_select], str, InteractionStringSelectMenuPayload]
 ):
     """Represents a :class:`StringSelectMenu` component as returned by Discord during a :class:`Interaction` of type :data:`InteractionType.modal_submit`.
 
@@ -180,7 +180,7 @@ P_int_select = TypeVar(
 
 
 @dataclass
-class InteractionSnowflakeSelectMenu(InteractionSelectMenu[T, int, P_int_select], ABC, Generic[T, P_int_select]):
+class InteractionSnowflakeSelect(InteractionSelect[T, int, P_int_select], ABC, Generic[T, P_int_select]):
     type: T
 
     @classmethod
@@ -194,8 +194,8 @@ class InteractionSnowflakeSelectMenu(InteractionSelectMenu[T, int, P_int_select]
 
 
 @dataclass
-class InteractionUserSelectMenu(
-    InteractionSnowflakeSelectMenu[Literal[ComponentType.user_select], InteractionUserSelectMenuPayload]
+class InteractionUserSelect(
+    InteractionSnowflakeSelect[Literal[ComponentType.user_select], InteractionUserSelectMenuPayload]
 ):
     """Represents a :class:`UserSelectMenu` component as returned by Discord during a :class:`Interaction` of type :data:`InteractionType.modal_submit`.
 
@@ -217,8 +217,8 @@ class InteractionUserSelectMenu(
 
 
 @dataclass
-class InteractionRoleSelectMenu(
-    InteractionSnowflakeSelectMenu[Literal[ComponentType.role_select], InteractionRoleSelectMenuPayload]
+class InteractionRoleSelect(
+    InteractionSnowflakeSelect[Literal[ComponentType.role_select], InteractionRoleSelectMenuPayload]
 ):
     """Represents a :class:`RoleSelectMenu` component as returned by Discord during a :class:`Interaction` of type :data:`InteractionType.modal_submit`.
 
@@ -240,8 +240,8 @@ class InteractionRoleSelectMenu(
 
 
 @dataclass
-class InteractionChannelSelectMenu(
-    InteractionSnowflakeSelectMenu[Literal[ComponentType.channel_select], InteractionChannelSelectMenuPayload]
+class InteractionChannelSelect(
+    InteractionSnowflakeSelect[Literal[ComponentType.channel_select], InteractionChannelSelectMenuPayload]
 ):
     """Represents a :class:`ChannelSelectMenu` component as returned by Discord during a :class:`Interaction` of type :data:`InteractionType.modal_submit`.
 
@@ -263,8 +263,8 @@ class InteractionChannelSelectMenu(
 
 
 @dataclass
-class InteractionMentionableSelectMenu(
-    InteractionSnowflakeSelectMenu[Literal[ComponentType.mentionable_select], InteractionMentionableSelectMenuPayload]
+class InteractionMentionableSelect(
+    InteractionSnowflakeSelect[Literal[ComponentType.mentionable_select], InteractionMentionableSelectMenuPayload]
 ):
     """Represents a :class:`MentionableSelectMenu` component as returned by Discord during a :class:`Interaction` of type :data:`InteractionType.modal_submit`.
 
@@ -314,7 +314,7 @@ class InteractionTextInput(InteractionComponent[Literal[ComponentType.text_input
         return cls(id=payload["id"], custom_id=payload["custom_id"], value=payload["value"])
 
 
-AllowedInteractionLabelComponents: TypeAlias = "InteractionStringSelectMenu | InteractionUserSelectMenu | InteractionChannelSelectMenu | InteractionRoleSelectMenu | InteractionMentionableSelectMenu | InteractionTextInput"
+AllowedInteractionLabelComponents: TypeAlias = "InteractionStringSelect | InteractionUserSelect | InteractionChannelSelect | InteractionRoleSelect | InteractionMentionableSelect | InteractionTextInput"
 
 L_c = TypeVar("L_c", bound=AllowedInteractionLabelComponents, default=AllowedInteractionLabelComponents)
 
@@ -336,7 +336,7 @@ class InteractionLabel(
     ----------
     type: Literal[:data:`ComponentType.label`]
         The type of component.
-    component: :class:`InteractionTextInput` | :class:`InteractionStringSelectMenu`
+    component: :class:`InteractionTextInput` | :class:`InteractionStringSelect`
         The component contained in this label.
     id: :class:`int`
         The ID of this label component.
@@ -416,12 +416,12 @@ class UnknownInteractionComponent(InteractionComponent[ComponentType, Interactio
 
 COMPONENT_MAPPINGS = {
     2: InteractionButton,
-    3: InteractionStringSelectMenu,
+    3: InteractionStringSelect,
     4: InteractionTextInput,
-    5: InteractionUserSelectMenu,
-    6: InteractionRoleSelectMenu,
-    7: InteractionMentionableSelectMenu,
-    8: InteractionChannelSelectMenu,
+    5: InteractionUserSelect,
+    6: InteractionRoleSelect,
+    7: InteractionMentionableSelect,
+    8: InteractionChannelSelect,
     10: InteractionTextDisplay,
     18: InteractionLabel,
 }
