@@ -1783,7 +1783,7 @@ def check_any(*checks: Check) -> Callable[[T], T]:
         the :func:`check` decorator.
 
     Raises
-    -------
+    ------
     TypeError
         A check passed has not been decorated with the :func:`check`
         decorator.
