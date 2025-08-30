@@ -40,10 +40,10 @@ if TYPE_CHECKING:
     from discord.state import ConnectionState
 
     from .input_text import TextInput
-    from .string_select_menu import StringSelectMenu
-    from .user_select_menu import UserSelectMenu
+    from .string_select_menu import StringSelect
+    from .user_select_menu import UserSelect
 
-AllowedLabelComponents: TypeAlias = "StringSelectMenu | UserSelectMenu | TextInput"
+AllowedLabelComponents: TypeAlias = "StringSelect | UserSelect | TextInput"
 
 
 class Label(
@@ -73,7 +73,7 @@ class Label(
     Parameters
     ----------
     component:
-        The component held by this label. Currently supports :class:`TextDisplay` and :class:`StringSelectMenu`.
+        The component held by this label. Currently supports :class:`TextDisplay` and :class:`StringSelect`.
     label:
         The text of the label.
     description:

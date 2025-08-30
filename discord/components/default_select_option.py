@@ -35,7 +35,7 @@ from .types import DT
 class DefaultSelectOption(Generic[DT]):
     """
     Represents a default select menu option.
-    Can only be used :class:`UserSelectMenu`, :class:`RoleSelectMenu`, and :class:`MentionableSelectMenu`.
+    Can only be used :class:`UserSelect`, :class:`RoleSelect`, and :class:`MentionableSelect`.
 
     .. versionadded:: 3.0
 

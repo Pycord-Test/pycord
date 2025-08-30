@@ -21,7 +21,7 @@ class ComponentsHolder(tuple[Unpack[Ts]], Generic[Unpack[Ts]]):
     .. versionadded:: 3.0
     """
 
-    __slots__: tuple[str, ...] = tuple()
+    __slots__: tuple[str, ...] = ()
 
     def __new__(cls, *components: Unpack[Ts]) -> ComponentsHolder[Unpack[Ts]]:
         return super().__new__(cls, components)

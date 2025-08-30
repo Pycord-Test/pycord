@@ -2,7 +2,7 @@ from typing import TypeAlias
 
 from .action_row import ActionRow
 from .button import Button
-from .channel_select_menu import ChannelSelectMenu
+from .channel_select_menu import ChannelSelect
 from .container import Container
 from .file_component import FileComponent
 from .input_text import TextInput
@@ -20,34 +20,34 @@ from .interaction_components import (
 )
 from .label import Label
 from .media_gallery import MediaGallery
-from .mentionable_select_menu import MentionableSelectMenu
-from .role_select_menu import RoleSelectMenu
+from .mentionable_select_menu import MentionableSelect
+from .role_select_menu import RoleSelect
 from .section import Section
 from .separator import Separator
-from .string_select_menu import StringSelectMenu
+from .string_select_menu import StringSelect
 from .text_display import TextDisplay
 from .thumbnail import Thumbnail
 from .unknown_component import UnknownComponent
-from .user_select_menu import UserSelectMenu
+from .user_select_menu import UserSelect
 
 AnyComponent: TypeAlias = (
-    ActionRow
-    | Button
-    | StringSelectMenu
-    | TextInput
-    | UserSelectMenu
-    | RoleSelectMenu
-    | MentionableSelectMenu
-    | ChannelSelectMenu
-    | Section
-    | TextDisplay
-    | Thumbnail
-    | MediaGallery
-    | FileComponent
-    | Separator
-    | Container
-    | Label
-    | UnknownComponent
+        ActionRow
+        | Button
+        | StringSelect
+        | TextInput
+        | UserSelect
+        | RoleSelect
+        | MentionableSelect
+        | ChannelSelect
+        | Section
+        | TextDisplay
+        | Thumbnail
+        | MediaGallery
+        | FileComponent
+        | Separator
+        | Container
+        | Label
+        | UnknownComponent
 )
 
 AnyTopLevelMessageComponent: TypeAlias = (

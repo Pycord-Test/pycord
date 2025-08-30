@@ -20,9 +20,9 @@ API Objects
     :members:
     :inherited-members:
 
-.. attributetable:: discord.StringSelectMenu
+.. attributetable:: discord.StringSelect
 
-.. autoclass:: discord.StringSelectMenu
+.. autoclass:: discord.StringSelect
     :members:
     :inherited-members:
 
@@ -32,27 +32,27 @@ API Objects
     :members:
     :inherited-members:
 
-.. attributetable:: discord.UserSelectMenu
+.. attributetable:: discord.UserSelect
 
-.. autoclass:: discord.UserSelectMenu
+.. autoclass:: discord.UserSelect
     :members:
     :inherited-members:
 
-.. attributetable:: discord.RoleSelectMenu
+.. attributetable:: discord.RoleSelect
 
-.. autoclass:: discord.RoleSelectMenu
+.. autoclass:: discord.RoleSelect
     :members:
     :inherited-members:
 
-.. attributetable:: discord.MentionableSelectMenu
+.. attributetable:: discord.MentionableSelect
 
-.. autoclass:: discord.MentionableSelectMenu
+.. autoclass:: discord.MentionableSelect
     :members:
     :inherited-members:
 
-.. attributetable:: discord.ChannelSelectMenu
+.. attributetable:: discord.ChannelSelect
 
-.. autoclass:: discord.ChannelSelectMenu
+.. autoclass:: discord.ChannelSelect
     :members:
     :inherited-members:
 
@@ -110,28 +110,28 @@ These objects are dataclasses that represent components as they are recieved fro
     :members:
     :inherited-members:
 
-.. attributetable:: discord.InteractionStringSelectMenu
-.. autoclass:: discord.InteractionStringSelectMenu
+.. attributetable:: discord.InteractionStringSelect
+.. autoclass:: discord.InteractionStringSelect
     :members:
     :inherited-members:
 
-.. attributetable:: discord.InteractionUserSelectMenu
-.. autoclass:: discord.InteractionUserSelectMenu
+.. attributetable:: discord.InteractionUserSelect
+.. autoclass:: discord.InteractionUserSelect
     :members:
     :inherited-members:
 
-.. attributetable:: discord.InteractionRoleSelectMenu
-.. autoclass:: discord.InteractionRoleSelectMenu
+.. attributetable:: discord.InteractionRoleSelect
+.. autoclass:: discord.InteractionRoleSelect
     :members:
     :inherited-members:
 
-.. attributetable:: discord.InteractionMentionableSelectMenu
-.. autoclass:: discord.InteractionMentionableSelectMenu
+.. attributetable:: discord.InteractionMentionableSelect
+.. autoclass:: discord.InteractionMentionableSelect
     :members:
     :inherited-members:
 
-.. attributetable:: discord.InteractionChannelSelectMenu
-.. autoclass:: discord.InteractionChannelSelectMenu
+.. attributetable:: discord.InteractionChannelSelect
+.. autoclass:: discord.InteractionChannelSelect
     :members:
     :inherited-members:
 

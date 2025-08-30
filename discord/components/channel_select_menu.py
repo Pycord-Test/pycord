@@ -32,13 +32,13 @@ from typing_extensions import override
 from ..enums import ComponentType
 from ..types.components import ChannelSelect as ChannelSelectPayload
 from .default_select_option import DefaultSelectOption
-from .select_menu import SelectMenu
+from .select_menu import Select
 
 if TYPE_CHECKING:
     from typing_extensions import Self
 
 
-class ChannelSelectMenu(SelectMenu[ChannelSelectPayload]):
+class ChannelSelect(Select[ChannelSelectPayload]):
     """Represents a channel select menu from the Discord Bot UI Kit.
 
     This inherits from :class:`SelectMenu`.

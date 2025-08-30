@@ -31,14 +31,14 @@ from typing_extensions import override
 
 from ..enums import ComponentType
 from ..types.components import StringSelect as StringSelectPayload
-from .select_menu import SelectMenu
+from .select_menu import Select
 from .select_option import SelectOption
 
 if TYPE_CHECKING:
     from typing_extensions import Self
 
 
-class StringSelectMenu(SelectMenu[StringSelectPayload]):
+class StringSelect(Select[StringSelectPayload]):
     """Represents a string select menu from the Discord Bot UI Kit.
 
     This inherits from :class:`SelectMenu`.

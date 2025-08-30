@@ -142,7 +142,7 @@ class InteractionSelect(InteractionComponent[T, P], ABC, Generic[T, V, P]):
 class InteractionStringSelect(
     InteractionSelect[Literal[ComponentType.string_select], str, InteractionStringSelectMenuPayload]
 ):
-    """Represents a :class:`StringSelectMenu` component as returned by Discord during a :class:`Interaction` of type :data:`InteractionType.modal_submit`.
+    """Represents a :class:`StringSelect` component as returned by Discord during a :class:`Interaction` of type :data:`InteractionType.modal_submit`.
 
     .. versionadded:: 3.0
 
@@ -197,7 +197,7 @@ class InteractionSnowflakeSelect(InteractionSelect[T, int, P_int_select], ABC, G
 class InteractionUserSelect(
     InteractionSnowflakeSelect[Literal[ComponentType.user_select], InteractionUserSelectMenuPayload]
 ):
-    """Represents a :class:`UserSelectMenu` component as returned by Discord during a :class:`Interaction` of type :data:`InteractionType.modal_submit`.
+    """Represents a :class:`UserSelect` component as returned by Discord during a :class:`Interaction` of type :data:`InteractionType.modal_submit`.
 
     .. versionadded:: 3.0
 
@@ -220,7 +220,7 @@ class InteractionUserSelect(
 class InteractionRoleSelect(
     InteractionSnowflakeSelect[Literal[ComponentType.role_select], InteractionRoleSelectMenuPayload]
 ):
-    """Represents a :class:`RoleSelectMenu` component as returned by Discord during a :class:`Interaction` of type :data:`InteractionType.modal_submit`.
+    """Represents a :class:`RoleSelect` component as returned by Discord during a :class:`Interaction` of type :data:`InteractionType.modal_submit`.
 
     .. versionadded:: 3.0
 
@@ -243,7 +243,7 @@ class InteractionRoleSelect(
 class InteractionChannelSelect(
     InteractionSnowflakeSelect[Literal[ComponentType.channel_select], InteractionChannelSelectMenuPayload]
 ):
-    """Represents a :class:`ChannelSelectMenu` component as returned by Discord during a :class:`Interaction` of type :data:`InteractionType.modal_submit`.
+    """Represents a :class:`ChannelSelect` component as returned by Discord during a :class:`Interaction` of type :data:`InteractionType.modal_submit`.
 
     .. versionadded:: 3.0
 
@@ -266,7 +266,7 @@ class InteractionChannelSelect(
 class InteractionMentionableSelect(
     InteractionSnowflakeSelect[Literal[ComponentType.mentionable_select], InteractionMentionableSelectMenuPayload]
 ):
-    """Represents a :class:`MentionableSelectMenu` component as returned by Discord during a :class:`Interaction` of type :data:`InteractionType.modal_submit`.
+    """Represents a :class:`MentionableSelect` component as returned by Discord during a :class:`Interaction` of type :data:`InteractionType.modal_submit`.
 
     .. versionadded:: 3.0
 

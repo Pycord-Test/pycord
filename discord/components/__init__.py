@@ -25,9 +25,9 @@ DEALINGS IN THE SOFTWARE.
 from ._component_factory import _component_factory  # pyright: ignore[reportPrivateUsage]
 from .action_row import ActionRow
 from .button import Button
-from .channel_select_menu import ChannelSelectMenu
+from .channel_select_menu import ChannelSelect
 from .component import Component, ModalComponentMixin, StateComponent, WalkableComponent
-from .components_sequence import ComponentsHolder
+from .components_holder import ComponentsHolder
 from .container import Container
 from .default_select_option import DefaultSelectOption
 from .file_component import FileComponent
@@ -51,14 +51,14 @@ from .interaction_components import (
 from .label import Label
 from .media_gallery import MediaGallery
 from .media_gallery_item import MediaGalleryItem
-from .mentionable_select_menu import MentionableSelectMenu
+from .mentionable_select_menu import MentionableSelect
 from .modal import Modal
-from .role_select_menu import RoleSelectMenu
+from .role_select_menu import RoleSelect
 from .section import Section
-from .select_menu import SelectMenu
+from .select_menu import Select
 from .select_option import SelectOption
 from .separator import Separator
-from .string_select_menu import StringSelectMenu
+from .string_select_menu import StringSelect
 from .text_display import TextDisplay
 from .thumbnail import Thumbnail
 
@@ -73,7 +73,7 @@ from .type_aliases import (
 )
 from .unfurled_media_item import UnfurledMediaItem
 from .unknown_component import UnknownComponent
-from .user_select_menu import UserSelectMenu
+from .user_select_menu import UserSelect
 
 __all__ = (
     "Component",
@@ -83,12 +83,12 @@ __all__ = (
     "ComponentsHolder",
     "ActionRow",
     "Button",
-    "SelectMenu",
-    "StringSelectMenu",
-    "UserSelectMenu",
-    "RoleSelectMenu",
-    "MentionableSelectMenu",
-    "ChannelSelectMenu",
+    "Select",
+    "StringSelect",
+    "UserSelect",
+    "RoleSelect",
+    "MentionableSelect",
+    "ChannelSelect",
     "AnyMessageInteractionComponent",
     "SelectOption",
     "DefaultSelectOption",

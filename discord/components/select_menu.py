@@ -52,7 +52,7 @@ SelectMenuTypes: TypeAlias = (
 T = TypeVar("T", bound="SelectMenuTypes")
 
 
-class SelectMenu(ModalComponentMixin[T], Component[T], ABC, Generic[T]):
+class Select(ModalComponentMixin[T], Component[T], ABC, Generic[T]):
     """Represents a select menu from the Discord Bot UI Kit.
 
     This inherits from :class:`Component`.

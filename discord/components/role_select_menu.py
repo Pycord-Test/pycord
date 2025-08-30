@@ -32,13 +32,13 @@ from typing_extensions import override
 from ..enums import ComponentType
 from ..types.components import RoleSelect as RoleSelectPayload
 from .default_select_option import DefaultSelectOption
-from .select_menu import SelectMenu
+from .select_menu import Select
 
 if TYPE_CHECKING:
     from typing_extensions import Self
 
 
-class RoleSelectMenu(SelectMenu[RoleSelectPayload]):
+class RoleSelect(Select[RoleSelectPayload]):
     """Represents a role select menu from the Discord Bot UI Kit.
 
     This inherits from :class:`SelectMenu`.
