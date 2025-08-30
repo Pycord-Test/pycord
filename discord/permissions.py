@@ -858,7 +858,7 @@ class PermissionOverwrite:
         """
         return len(self._values) == 0
 
-    def update(self, **kwargs: bool) -> None:
+    def update(self, **kwargs: bool | None) -> None:
         r"""Bulk updates this permission overwrite object.
 
         Allows you to set multiple attributes by using keyword
