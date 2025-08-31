@@ -538,7 +538,7 @@ def find(predicate: Callable[[T], Any], seq: Iterable[T]) -> T | None:
     return None
 
 
-with importlib.resources.files(__package__).joinpath("emojis.json").open(encoding="utf-8") as f:
+with importlib.resources.files(__package__).joinpath("../emojis.json").open(encoding="utf-8") as f:
     EMOJIS_MAP = json.load(f)
 
 UNICODE_EMOJIS = set(EMOJIS_MAP.values())
