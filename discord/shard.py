@@ -42,6 +42,7 @@ from .errors import (
     PrivilegedIntentsRequired,
 )
 from .gateway import *
+from .http import API_VERSION
 from .state import AutoShardedConnectionState
 
 if TYPE_CHECKING:
@@ -423,9 +424,11 @@ class AutoShardedClient(Client):
 
     async def launch_shards(self) -> None:
         if self.shard_count is None:
-            self.shard_count, gateway = await self.http.get_bot_gateway()
+            data = await self.http.get_gateway_bot()
+            self.shard_count = data["shards"]
         else:
-            gateway = await self.http.get_gateway()
+            data = await self.http.get_gateway()
+        gateway = f"{data['url']}?encoding=json&v={API_VERSION}"
 
         self._connection.shard_count = self.shard_count
 
