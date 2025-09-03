@@ -26,7 +26,7 @@ jobs:
         with:
           python-version: "3.13"
       - name: "Setup UV"
-        uses: ./.github/workflows/sync-uv.yml
+        uses: pycord-development/pycord-next/.github/workflows/sync-uv.yml@main
         with:
           groups: 'dev,docs'
           extras: 'speed,voice'
