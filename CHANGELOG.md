@@ -10,6 +10,27 @@ possible (see our [Version Guarantees] for more info).
 
 These changes are available on the `master` branch, but have not yet been released.
 
+### Added
+
+- Implemented `with_response` for interaction callbacks, adding
+  `Interaction.callback.is_loading()` and `Interaction.callback.is_ephemeral()`.
+  ([#2711](https://github.com/Pycord-Development/pycord/pull/2711))
+- Added `RawMessageUpdateEvent.new_message` - message update events now contain full
+  message objects ([#2780](https://github.com/Pycord-Development/pycord/pull/2780))
+
+### Changed
+
+### Fixed
+
+- Manage silence for new SSRC with existing user_id.
+  ([#2808](https://github.com/Pycord-Development/pycord/pull/2808))
+- Unbound `raw` reference in `parse_message_update` causing errors on message updates.
+  ([#2905](https://github.com/Pycord-Development/pycord/pull/2905))
+
+### Removed
+
+## [2.7.0rc1] - 2025-08-30
+
 ⚠️ **This version removes support for Python 3.8.** ⚠️
 
 ### Added
