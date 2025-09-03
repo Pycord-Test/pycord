@@ -27,46 +27,37 @@ runs:
       with:
         enable-cache: true
 
-    - name: "Build groups args"
-      shell: bash
-      id: groups
-      run: |
-          set +e
-          args=""
-          if [ -n "${{ inputs.groups }}" ]; then
-            IFS=',' read -ra GROUPS <<< "${{ inputs.groups }}"
-            for group in "${GROUPS[@]}"; do
-              group=$(echo "$group" | xargs)
-              if [ -n "$group" ]; then
-                args="$args --group $(printf %q "$group")"
-              fi
-            done
-          fi
-          echo "value=$args" >> $GITHUB_OUTPUT || exit 0
-
-    - name: "Build extras args"
-      shell: bash
-      id: extras
-      run: |
-          set +e
-          args=""
-          if [ -n "${{ inputs.extras }}" ]; then
-            IFS=',' read -ra EXTRAS <<< "${{ inputs.extras }}"
-            for extra in "${EXTRAS[@]}"; do
-              extra=$(echo "$extra" | xargs)
-              if [ -n "$extra" ]; then
-                args="$args --extra $(printf %q "$extra")"
-              fi
-            done
-          fi
-          echo "value=$args" >> $GITHUB_OUTPUT || exit 0
-
     - name: "Run UV sync"
       shell: bash
       run: |
-        cmd="uv sync${{ steps.groups.outputs.value }}${{ steps.extras.outputs.value }}"
-        echo "Executing: $cmd"
-        eval "$cmd"
+        cmd_args=("uv" "sync")
+        
+        # groups
+        if [ -n "${{ inputs.groups }}" ]; then
+          IFS=',' read -ra GROUPS <<< "${{ inputs.groups }}"
+          for group in "${GROUPS[@]}"; do
+            group=$(echo "$group" | xargs)
+            if [ -n "$group" ]; then
+              cmd_args+=("--group" "$group")
+            fi
+          done
+        fi
+        echo "Groups: ${GROUPS[*]}"
+        
+        # extras
+        if [ -n "${{ inputs.extras }}" ]; then
+          IFS=',' read -ra EXTRAS <<< "${{ inputs.extras }}"
+          for extra in "${EXTRAS[@]}"; do
+            extra=$(echo "$extra" | xargs)
+            if [ -n "$extra" ]; then
+              cmd_args+=("--extra" "$extra")
+            fi
+          done
+        fi
+        echo "Extras: ${EXTRAS[*]}"
+        
+        echo "Executing: ${cmd_args[*]}"
+        "${cmd_args[@]}"
       env:
         UV_NO_PYTHON_DOWNLOADS: ${{ inputs.no_python_downloads == 'true' && '1' || '' }}
         UV_FROZEN: ${{ inputs.frozen == 'true' && '1' || '' }}
