@@ -25,7 +25,7 @@ jobs:
         with:
           python-version: "3.13"
       - name: "Setup UV"
-        uses: pycord-development/pycord-next/.github/workflows/sync-uv.yml@master
+        uses: ./.github/actions/sync-uv
         with:
           groups: 'dev,ci'
       - name: "Run guild features sync"
