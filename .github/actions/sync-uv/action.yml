@@ -31,29 +31,35 @@ runs:
       shell: bash
       id: groups
       run: |
-        args=""
-        if [ -n "${{ inputs.groups }}" ]; then
-          IFS=',' read -ra GROUPS <<< "${{ inputs.groups }}"
-          for group in "${GROUPS[@]}"; do
-            group=$(echo "$group" | xargs)
-            [ -n "$group" ] && args="$args --group $(printf %q "$group")"
-          done
-        fi
-        echo "value=$args" >> $GITHUB_OUTPUT
+          set -x
+          args=""
+          if [ -n "${{ inputs.groups }}" ]; then
+            IFS=',' read -ra GROUPS <<< "${{ inputs.groups }}"
+            for group in "${GROUPS[@]}"; do
+              group=$(echo "$group" | xargs)
+              if [ -n "$group" ]; then
+                args="$args --group $(printf %q "$group")"
+              fi
+            done
+          fi
+          echo "value=$args" >> $GITHUB_OUTPUT || exit 0
 
     - name: "Build extras args"
       shell: bash
       id: extras
       run: |
-        args=""
-        if [ -n "${{ inputs.extras }}" ]; then
-          IFS=',' read -ra EXTRAS <<< "${{ inputs.extras }}"
-          for extra in "${EXTRAS[@]}"; do
-            extra=$(echo "$extra" | xargs)
-            [ -n "$extra" ] && args="$args --extra $(printf %q "$extra")"
-          done
-        fi
-        echo "value=$args" >> $GITHUB_OUTPUT
+          set -x
+          args=""
+          if [ -n "${{ inputs.extras }}" ]; then
+            IFS=',' read -ra EXTRAS <<< "${{ inputs.extras }}"
+            for extra in "${EXTRAS[@]}"; do
+              extra=$(echo "$extra" | xargs)
+              if [ -n "$extra" ]; then
+                args="$args --extra $(printf %q "$extra")"
+              fi
+            done
+          fi
+          echo "value=$args" >> $GITHUB_OUTPUT || exit 0
 
     - name: "Run UV sync"
       shell: bash
