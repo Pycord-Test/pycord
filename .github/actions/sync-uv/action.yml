@@ -62,5 +62,5 @@ runs:
         echo "Executing: $cmd"
         eval "$cmd"
       env:
-        UV_NO_PYTHON_DOWNLOADS: ${{ inputs.no_python_downloads && '1' || '' }}
-        UV_FROZEN: ${{ inputs.frozen && '1' || '' }}
+        UV_NO_PYTHON_DOWNLOADS: ${{ inputs.no_python_downloads == 'true' && '1' || '' }}
+        UV_FROZEN: ${{ inputs.frozen == 'true' && '1' || '' }}
