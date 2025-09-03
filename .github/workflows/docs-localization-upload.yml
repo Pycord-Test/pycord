@@ -25,12 +25,11 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      - name: "Install uv"
-        uses: astral-sh/setup-uv@v6
+      - name: "Setup UV"
+        uses: ./.github/workflows/sync-uv.yml
         with:
-          enable-cache: true
-      - name: Sync dependencies
-        run: uv sync --no-python-downloads --group dev --group docs --extra speed --extra voice
+          groups: 'dev,docs'
+          extras: 'speed,voice'
       - name: "Get locales"
         env:
           SPHINXBUILD: ${{ github.workspace }}/.venv/bin/sphinx-build
