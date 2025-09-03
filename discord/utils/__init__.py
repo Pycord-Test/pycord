@@ -27,12 +27,6 @@ from __future__ import annotations
 
 from typing import (
     Any,
-    AsyncIterator,
-    Iterator,
-    Mapping,
-    Protocol,
-    TypeVar,
-    Union,
 )
 
 from ..errors import HTTPException
@@ -52,6 +46,7 @@ from .public import (
     raw_role_mentions,
     remove_markdown,
     escape_markdown,
+    UNICODE_EMOJIS,
 )
 
 DISCORD_EPOCH = 1420070400000
@@ -74,6 +69,7 @@ __all__ = (
     "basic_autocomplete",
     "Undefined",
     "MISSING",
+    "UNICODE_EMOJIS",
 )
 
 
