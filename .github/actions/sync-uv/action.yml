@@ -33,6 +33,7 @@ runs:
         cmd_args=("uv" "sync")
         
         # groups
+        set +e
         if [ -n "${{ inputs.groups }}" ]; then
           IFS=',' read -ra GROUPS <<< "${{ inputs.groups }}"
           for group in "${GROUPS[@]}"; do
@@ -42,9 +43,11 @@ runs:
             fi
           done
         fi
+        set -e
         echo "Groups: ${GROUPS[*]}"
         
         # extras
+        set +e
         if [ -n "${{ inputs.extras }}" ]; then
           IFS=',' read -ra EXTRAS <<< "${{ inputs.extras }}"
           for extra in "${EXTRAS[@]}"; do
@@ -54,6 +57,7 @@ runs:
             fi
           done
         fi
+        set -e
         echo "Extras: ${EXTRAS[*]}"
         
         echo "Executing: ${cmd_args[*]}"
