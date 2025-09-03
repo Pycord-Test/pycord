@@ -31,7 +31,7 @@ runs:
       shell: bash
       id: groups
       run: |
-          set -x
+          set +e
           args=""
           if [ -n "${{ inputs.groups }}" ]; then
             IFS=',' read -ra GROUPS <<< "${{ inputs.groups }}"
@@ -48,7 +48,7 @@ runs:
       shell: bash
       id: extras
       run: |
-          set -x
+          set +e
           args=""
           if [ -n "${{ inputs.extras }}" ]; then
             IFS=',' read -ra EXTRAS <<< "${{ inputs.extras }}"
