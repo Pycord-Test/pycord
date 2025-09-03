@@ -27,12 +27,6 @@ from __future__ import annotations
 
 from typing import (
     Any,
-    AsyncIterator,
-    Iterator,
-    Mapping,
-    Protocol,
-    TypeVar,
-    Union,
 )
 
 from ..errors import HTTPException
@@ -53,6 +47,7 @@ from .public import (
     remove_markdown,
     escape_markdown,
     DISCORD_EPOCH,
+    UNICODE_EMOJIS,
 )
 
 __all__ = (
@@ -73,6 +68,7 @@ __all__ = (
     "Undefined",
     "MISSING",
     "DISCORD_EPOCH",
+    "UNICODE_EMOJIS",
 )
 
 

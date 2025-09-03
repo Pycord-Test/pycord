@@ -32,24 +32,25 @@ from discord.interactions import Interaction, InteractionMessage, InteractionRes
 from discord.webhook.async_ import Webhook
 
 if TYPE_CHECKING:
+    from typing import Awaitable, Callable
+
     from typing_extensions import ParamSpec
 
     import discord
-    from .. import Bot
-    from ..state import ConnectionState
-    from ..voice_client import VoiceClient
 
-    from .core import ApplicationCommand, Option
-    from ..interactions import InteractionChannel
+    from .. import Bot
+    from ..client import ClientUser
+    from ..cog import Cog
     from ..guild import Guild
+    from ..interactions import InteractionChannel
     from ..member import Member
     from ..message import Message
-    from ..user import User
     from ..permissions import Permissions
-    from ..client import ClientUser
-
-    from ..cog import Cog
+    from ..state import ConnectionState
+    from ..user import User
+    from ..voice_client import VoiceClient
     from ..webhook import WebhookMessage
+    from .core import ApplicationCommand, Option
 
     from typing import Callable, Awaitable
 
@@ -80,8 +81,6 @@ class ApplicationContext(discord.abc.Messageable):
         The bot that the command belongs to.
     interaction: :class:`.Interaction`
         The interaction object that invoked the command.
-    command: :class:`.ApplicationCommand`
-        The command that this context belongs to.
     """
 
     def __init__(self, bot: Bot, interaction: Interaction):
@@ -89,7 +88,6 @@ class ApplicationContext(discord.abc.Messageable):
         self.interaction = interaction
 
         # below attributes will be set after initialization
-        self.command: ApplicationCommand = None  # type: ignore
         self.focused: Option = None  # type: ignore
         self.value: str = None  # type: ignore
         self.options: dict = None  # type: ignore
@@ -135,6 +133,15 @@ class ApplicationContext(discord.abc.Messageable):
             The command argument to invoke is missing.
         """
         return await command(self, *args, **kwargs)
+
+    @property
+    def command(self) -> ApplicationCommand | None:
+        """The command that this context belongs to."""
+        return self.interaction.command
+
+    @command.setter
+    def command(self, value: ApplicationCommand | None) -> None:
+        self.interaction.command = value
 
     @property
     def channel(self) -> InteractionChannel | None:
@@ -256,6 +263,13 @@ class ApplicationContext(discord.abc.Messageable):
             else:
                 return self.command.options  # type: ignore
         return None
+
+    @property
+    def attachment_size_limit(self) -> int:
+        """Returns the attachment size limit associated with this context's interaction.
+        Shorthand for :attr:`.Interaction.attachment_size_limit`.
+        """
+        return self.interaction.attachment_size_limit
 
     @property
     @copy_doc(InteractionResponse.send_modal)
@@ -384,8 +398,6 @@ class AutocompleteContext:
         The bot that the command belongs to.
     interaction: :class:`.Interaction`
         The interaction object that invoked the autocomplete.
-    command: :class:`.ApplicationCommand`
-        The command that this context belongs to.
     focused: :class:`.Option`
         The option the user is currently typing.
     value: :class:`.str`
@@ -394,13 +406,12 @@ class AutocompleteContext:
         A name to value mapping of the options that the user has selected before this option.
     """
 
-    __slots__ = ("bot", "interaction", "command", "focused", "value", "options")
+    __slots__ = ("bot", "interaction", "focused", "value", "options")
 
     def __init__(self, bot: Bot, interaction: Interaction):
         self.bot = bot
         self.interaction = interaction
 
-        self.command: ApplicationCommand = None  # type: ignore
         self.focused: Option = None  # type: ignore
         self.value: str = None  # type: ignore
         self.options: dict = None  # type: ignore
@@ -414,3 +425,12 @@ class AutocompleteContext:
             return None
 
         return self.command.cog
+
+    @property
+    def command(self) -> ApplicationCommand | None:
+        """The command that this context belongs to."""
+        return self.interaction.command
+
+    @command.setter
+    def command(self, value: ApplicationCommand | None) -> None:
+        self.interaction.command = value

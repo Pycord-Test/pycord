@@ -43,10 +43,9 @@ from typing import (
 )
 
 import discord
-import discord.utils.private
-from ...utils.private import evaluate_annotation
+from discord.utils.private import evaluate_annotation, async_all, maybe_awaitable
 from discord import utils
-from ...utils import Undefined
+from discord.utils import Undefined
 
 from ...commands import (
     ApplicationCommand,
@@ -1147,7 +1146,7 @@ class Command(_BaseCommand, Generic[CogT, P, T]):
             if cog is not None:
                 local_check = Cog._get_overridden_method(cog.cog_check)
                 if local_check is not None:
-                    ret = await discord.utils.private.maybe_awaitable(local_check, ctx)
+                    ret = await maybe_awaitable(local_check, ctx)
                     if not ret:
                         return False
 
@@ -1156,7 +1155,7 @@ class Command(_BaseCommand, Generic[CogT, P, T]):
                 # since we have no checks, then we just return True.
                 return True
 
-            return await discord.utils.private.async_all(predicate(ctx) for predicate in predicates)  # type: ignore
+            return await async_all(predicate(ctx) for predicate in predicates)  # type: ignore
         finally:
             ctx.command = original
 

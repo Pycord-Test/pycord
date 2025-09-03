@@ -41,6 +41,7 @@ from typing import (
 )
 
 import discord
+from discord.utils import UNICODE_EMOJIS
 
 from .errors import *
 
@@ -810,7 +811,8 @@ class EmojiConverter(IDConverter[discord.GuildEmoji]):
 class PartialEmojiConverter(Converter[discord.PartialEmoji]):
     """Converts to a :class:`~discord.PartialEmoji`.
 
-    This is done by extracting the animated flag, name and ID from the emoji.
+    This is done by extracting the animated flag, name, and ID for custom emojis,
+    or by using the standard Unicode emojis supported by Discord.
 
     .. versionchanged:: 1.5
          Raise :exc:`.PartialEmojiConversionFailure` instead of generic :exc:`.BadArgument`
@@ -829,6 +831,14 @@ class PartialEmojiConverter(Converter[discord.PartialEmoji]):
                 animated=emoji_animated,
                 name=emoji_name,
                 id=emoji_id,
+            )
+
+        if argument in UNICODE_EMOJIS:
+            return discord.PartialEmoji.with_state(
+                ctx.bot._connection,
+                animated=False,
+                name=argument,
+                id=None,
             )
 
         raise PartialEmojiConversionFailure(argument)
@@ -857,7 +867,7 @@ class GuildStickerConverter(IDConverter[discord.GuildSticker]):
         if match is None:
             # Try to get the sticker by name. Try local guild first.
             if guild:
-                result = discord.utils.find(lambda s: s.name == argument, guild.stickers, name=argument)
+                result = discord.utils.find(lambda s: s.name == argument, guild.stickers)
 
             if result is None:
                 result = discord.utils.find(lambda s: s.name == argument, bot.stickers)

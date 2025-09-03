@@ -31,8 +31,8 @@ import itertools
 import re
 from typing import TYPE_CHECKING, Any
 
-from ... import utils
-from ...utils.private import string_width, maybe_awaitable
+from discord import utils
+from discord.utils.private import string_width, maybe_awaitable
 
 from .core import Command, Group
 from .errors import CommandError
@@ -571,7 +571,7 @@ class HelpCommand:
             key = lambda c: c.name
 
         # Ignore Application Commands because they don't have hidden/docs
-        from ...commands import ApplicationCommand  # noqa: PLC0415
+        from discord import ApplicationCommand  # noqa: PLC0415
 
         new_commands = [
             command

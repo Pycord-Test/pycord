@@ -38,7 +38,7 @@ import aiohttp
 from discord.banners import print_banner, start_logging
 
 from . import utils
-from .utils.private import resolve_invite, resolve_template, bytes_to_base64_data
+from .utils.private import resolve_invite, resolve_template, bytes_to_base64_data, SequenceProxy
 from .activity import ActivityTypes, BaseActivity, create_activity
 from .appinfo import AppInfo, PartialAppInfo
 from .application_role_connection import ApplicationRoleConnectionMetadata
@@ -64,7 +64,6 @@ from .threads import Thread
 from .ui.view import View
 from .user import ClientUser, User
 from .utils import MISSING
-from .utils.private import SequenceProxy
 from .voice_client import VoiceClient
 from .webhook import Webhook
 from .widget import Widget
@@ -72,9 +71,11 @@ from .widget import Widget
 if TYPE_CHECKING:
     from .abc import GuildChannel, PrivateChannel, Snowflake, SnowflakeTime
     from .channel import DMChannel
+    from .interaction import Interaction
     from .member import Member
     from .message import Message
     from .poll import Poll
+    from .ui.item import Item
     from .voice_client import VoiceProtocol
 
 __all__ = ("Client",)
@@ -539,6 +540,32 @@ class Client:
         """
         print(f"Ignoring exception in {event_method}", file=sys.stderr)
         traceback.print_exc()
+
+    async def on_view_error(self, error: Exception, item: Item, interaction: Interaction) -> None:
+        """|coro|
+
+        The default view error handler provided by the client.
+
+        This only fires for a view if you did not define its :func:`~discord.ui.View.on_error`.
+        """
+
+        print(
+            f"Ignoring exception in view {interaction.view} for item {item}:",
+            file=sys.stderr,
+        )
+        traceback.print_exception(error.__class__, error, error.__traceback__, file=sys.stderr)
+
+    async def on_modal_error(self, error: Exception, interaction: Interaction) -> None:
+        """|coro|
+
+        The default modal error handler provided by the client.
+        The default implementation prints the traceback to stderr.
+
+        This only fires for a modal if you did not define its :func:`~discord.ui.Modal.on_error`.
+        """
+
+        print(f"Ignoring exception in modal {interaction.modal}:", file=sys.stderr)
+        traceback.print_exception(error.__class__, error, error.__traceback__, file=sys.stderr)
 
     # hooks
 

@@ -30,9 +30,9 @@ import re
 from typing import TYPE_CHECKING, Any, Generic, TypeVar, Union
 
 import discord.abc
-import discord.utils
 from discord.message import Message
 from discord.utils.private import copy_doc
+from discord.utils import Undefined, MISSING
 
 if TYPE_CHECKING:
     from typing_extensions import ParamSpec
@@ -50,8 +50,6 @@ if TYPE_CHECKING:
     from .view import StringView
 
 __all__ = ("Context",)
-
-MISSING: Any = discord.utils.MISSING
 
 
 T = TypeVar("T")
@@ -126,12 +124,12 @@ class Context(discord.abc.Messageable, Generic[BotT]):
         message: Message,
         bot: BotT,
         view: StringView,
-        args: list[Any] | discord.utils.Undefined = MISSING,
-        kwargs: dict[str, Any] | discord.utils.Undefined = MISSING,
+        args: list[Any] | Undefined = MISSING,
+        kwargs: dict[str, Any] | Undefined = MISSING,
         prefix: str | None = None,
         command: Command | None = None,
         invoked_with: str | None = None,
-        invoked_parents: list[str] | discord.utils.Undefined = MISSING,
+        invoked_parents: list[str] | Undefined = MISSING,
         invoked_subcommand: Command | None = None,
         subcommand_passed: str | None = None,
         command_failed: bool = False,
