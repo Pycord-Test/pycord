@@ -35,8 +35,8 @@ runs:
         # groups
         set +e
         if [ -n "${{ inputs.groups }}" ]; then
-          IFS=',' read -ra GROUPS <<< "${{ inputs.groups }}"
-          for group in "${GROUPS[@]}"; do
+          IFS=',' read -ra PARSED_GROUPS <<< "${{ inputs.groups }}"
+          for group in "${PARSED_GROUPS[@]}"; do
             group=$(echo "$group" | xargs)
             if [ -n "$group" ]; then
               cmd_args+=("--group" "$group")
@@ -44,13 +44,13 @@ runs:
           done
         fi
         set -e
-        echo "Groups: ${GROUPS[*]}"
+        echo "Groups: ${PARSED_GROUPS[*]}"
         
         # extras
         set +e
         if [ -n "${{ inputs.extras }}" ]; then
-          IFS=',' read -ra EXTRAS <<< "${{ inputs.extras }}"
-          for extra in "${EXTRAS[@]}"; do
+          IFS=',' read -ra PARSED_EXTRAS <<< "${{ inputs.extras }}"
+          for extra in "${PARSED_EXTRAS[@]}"; do
             extra=$(echo "$extra" | xargs)
             if [ -n "$extra" ]; then
               cmd_args+=("--extra" "$extra")
@@ -58,7 +58,7 @@ runs:
           done
         fi
         set -e
-        echo "Extras: ${EXTRAS[*]}"
+        echo "Extras: ${PARSED_EXTRAS[*]}"
         
         echo "Executing: ${cmd_args[*]}"
         "${cmd_args[@]}"
