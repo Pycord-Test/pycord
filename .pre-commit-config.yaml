@@ -36,6 +36,7 @@ repos:
     rev: v0.19.1
     hooks:
       - id: slotscheck
+        language: python
         additional_dependencies:
           - "typing-extensions>=4,<5"
           - "colorlog~=6.9.0"
