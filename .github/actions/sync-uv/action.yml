@@ -1,5 +1,5 @@
 name: 'Sync UV Action'
-description: 'Sync UV with specified groups and extras'
+description: 'Install and sync UV with specified groups and extras'
 author: 'Pycord Development <admin@pycord.dev>'
 inputs:
   groups:
