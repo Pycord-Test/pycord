@@ -43,6 +43,7 @@ from typing import (
 )
 
 import discord
+from discord.utils.private import evaluate_annotation, async_all, maybe_awaitable
 from discord import utils
 from discord.utils import Undefined
 from discord.utils.private import async_all, evaluate_annotation, maybe_awaitable

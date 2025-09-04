@@ -39,9 +39,8 @@ from discord import (
     SlashCommandGroup,
     SlashCommandOptionType,
 )
-from discord.utils import MISSING, find
-from discord.utils.private import warn_deprecated
 
+from discord.utils import MISSING, find
 from ..commands import (
     BadArgument,
     Command,

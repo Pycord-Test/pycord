@@ -36,6 +36,7 @@ from .flags import ChannelFlags
 from .mixins import Hashable
 from .utils import MISSING
 from .utils.private import get_as_snowflake, parse_time
+from discord import utils
 
 __all__ = (
     "Thread",

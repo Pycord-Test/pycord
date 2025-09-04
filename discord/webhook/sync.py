@@ -41,6 +41,7 @@ from typing import TYPE_CHECKING, Any, Literal, overload
 from urllib.parse import quote as urlquote
 
 from .. import utils
+from ..utils.private import parse_ratelimit_header, bytes_to_base64_data, to_json
 from ..channel import PartialMessageable
 from ..errors import (
     DiscordServerError,

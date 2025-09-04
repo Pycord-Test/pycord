@@ -41,6 +41,7 @@ from typing import (
     runtime_checkable,
 )
 
+from .utils.private import warn_deprecated
 from . import utils
 from .context_managers import Typing
 from .enums import ChannelType

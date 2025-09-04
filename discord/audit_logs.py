@@ -27,7 +27,9 @@ from __future__ import annotations
 
 from functools import cached_property
 from typing import TYPE_CHECKING, Any, Callable, ClassVar, Generator, TypeVar
+from functools import cached_property
 
+from .utils.private import get_as_snowflake
 from . import enums, utils
 from .asset import Asset
 from .automod import AutoModAction, AutoModTriggerMetadata
