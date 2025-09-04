@@ -63,7 +63,8 @@ from .interactions import Interaction
 from .shard import AutoShardedClient
 from .types import interactions
 from .user import User
-from .utils import MISSING, async_all, find, get
+from .utils import MISSING, find
+from .utils.private import async_all
 
 if TYPE_CHECKING:
     from .member import Member
@@ -216,13 +217,13 @@ class ApplicationCommandMixin(ABC):
                 return command
             elif (names := name.split())[0] == command.name and isinstance(command, SlashCommandGroup):
                 while len(names) > 1:
-                    command = get(commands, name=names.pop(0))
+                    command = find(lambda c: c.name == names.pop(0), commands)
                     if not isinstance(command, SlashCommandGroup) or (
                         guild_ids is not None and command.guild_ids != guild_ids
                     ):
                         return
                     commands = command.subcommands
-                command = get(commands, name=names.pop())
+                command = find(lambda c: c.name == names.pop(), commands)
                 if not isinstance(command, type) or (guild_ids is not None and command.guild_ids != guild_ids):
                     return
                 return command
@@ -293,7 +294,7 @@ class ApplicationCommandMixin(ABC):
                     "integration_types": None,
                 }
                 for check, value in to_check.items():
-                    if type(to_check[check]) == list:
+                    if type(value) == list:
                         # We need to do some falsy conversion here
                         # The API considers False (autocomplete) and [] (choices) to be falsy values
                         falsy_vals = (False, [])
@@ -307,9 +308,12 @@ class ApplicationCommandMixin(ABC):
                             ]:
                                 # We have a difference
                                 return True
-                    elif getattr(cmd, check, None) != match.get(check):
-                        # We have a difference
-                        if check == "default_permission" and getattr(cmd, check) is True and match.get(check) is None:
+                    elif (attr := getattr(cmd, check, None)) != (found := match.get(check)):
+                        # We might have a difference
+                        if "localizations" in check and bool(attr) == bool(found):
+                            # unlike other attrs, localizations are MISSING by default
+                            continue
+                        elif check == "default_permission" and attr is True and found is None:
                             # This is a special case
                             # TODO: Remove for perms v2
                             continue
@@ -354,12 +358,12 @@ class ApplicationCommandMixin(ABC):
 
         # Now let's see if there are any commands on discord that we need to delete
         for cmd, value_ in registered_commands_dict.items():
-            match = get(pending, name=registered_commands_dict[cmd]["name"])
+            match = find(lambda c: c.name == value_["name"], pending)
             if match is None:
                 # We have this command registered but not in our list
                 return_value.append(
                     {
-                        "command": registered_commands_dict[cmd]["name"],
+                        "command": value_["name"],
                         "id": int(value_["id"]),
                         "action": "delete",
                     }
@@ -513,7 +517,7 @@ class ApplicationCommandMixin(ABC):
                     )
                     continue
                 # We can assume the command item is a command, since it's only a string if action is delete
-                match = get(pending, name=cmd["command"].name, type=cmd["command"].type)
+                match = find(lambda c: c.name == cmd["command"].name and c.type == cmd["command"].type, pending)
                 if match is None:
                     continue
                 if cmd["action"] == "edit":
@@ -602,10 +606,9 @@ class ApplicationCommandMixin(ABC):
             registered = await register("bulk", data, guild_id=guild_id)
 
         for i in registered:
-            cmd = get(
+            cmd = find(
+                lambda c: c.name == i["name"] and c.type == i.get("type"),
                 self.pending_application_commands,
-                name=i["name"],
-                type=i.get("type"),
             )
             if not cmd:
                 raise ValueError(f"Registered command {i['name']}, type {i.get('type')} not found in pending commands")
@@ -709,11 +712,9 @@ class ApplicationCommandMixin(ABC):
                 registered_guild_commands[guild_id] = app_cmds
 
         for i in registered_commands:
-            cmd = get(
+            cmd = find(
+                lambda c: c.name == i["name"] and c.guild_ids is None and c.type == i.get("type"),
                 self.pending_application_commands,
-                name=i["name"],
-                guild_ids=None,
-                type=i.get("type"),
             )
             if cmd:
                 cmd.id = i["id"]
@@ -800,13 +801,13 @@ class ApplicationCommandMixin(ABC):
 
         ctx = await self.get_application_context(interaction)
         if command:
-            ctx.command = command
+            interaction.command = command
         await self.invoke_application_command(ctx)
 
     async def on_application_command_auto_complete(self, interaction: Interaction, command: ApplicationCommand) -> None:
         async def callback() -> None:
             ctx = await self.get_autocomplete_context(interaction)
-            ctx.command = command
+            interaction.command = command
             return await command.invoke_autocomplete_callback(ctx)
 
         autocomplete_task = self._bot.loop.create_task(callback())

@@ -32,28 +32,30 @@ from discord.interactions import Interaction, InteractionMessage, InteractionRes
 from discord.webhook.async_ import Webhook
 
 if TYPE_CHECKING:
+    from typing import Awaitable, Callable
+
     from typing_extensions import ParamSpec
 
     import discord
+
     from .. import Bot
     from ..app.state import ConnectionState
     from ..voice_client import VoiceClient
 
-    from .core import ApplicationCommand, Option
-    from ..interactions import InteractionChannel
+    from ..client import ClientUser
+    from ..cog import Cog
     from ..guild import Guild
+    from ..interactions import InteractionChannel
     from ..member import Member
     from ..message import Message
-    from ..user import User
     from ..permissions import Permissions
-    from ..client import ClientUser
-
-    from ..cog import Cog
+    from ..user import User
     from ..webhook import WebhookMessage
+    from .core import ApplicationCommand, Option
 
     from typing import Callable, Awaitable
 
-from ..utils import cached_property
+from ..utils.private import copy_doc
 
 T = TypeVar("T")
 CogT = TypeVar("CogT", bound="Cog")
@@ -80,8 +82,6 @@ class ApplicationContext(discord.abc.Messageable):
         The bot that the command belongs to.
     interaction: :class:`.Interaction`
         The interaction object that invoked the command.
-    command: :class:`.ApplicationCommand`
-        The command that this context belongs to.
     """
 
     def __init__(self, bot: Bot, interaction: Interaction):
@@ -89,7 +89,6 @@ class ApplicationContext(discord.abc.Messageable):
         self.interaction = interaction
 
         # below attributes will be set after initialization
-        self.command: ApplicationCommand = None  # type: ignore
         self.focused: Option = None  # type: ignore
         self.value: str = None  # type: ignore
         self.options: dict = None  # type: ignore
@@ -136,53 +135,62 @@ class ApplicationContext(discord.abc.Messageable):
         """
         return await command(self, *args, **kwargs)
 
-    @cached_property
+    @property
+    def command(self) -> ApplicationCommand | None:
+        """The command that this context belongs to."""
+        return self.interaction.command
+
+    @command.setter
+    def command(self, value: ApplicationCommand | None) -> None:
+        self.interaction.command = value
+
+    @property
     def channel(self) -> InteractionChannel | None:
         """Union[:class:`abc.GuildChannel`, :class:`PartialMessageable`, :class:`Thread`]:
         Returns the channel associated with this context's command. Shorthand for :attr:`.Interaction.channel`.
         """
         return self.interaction.channel
 
-    @cached_property
+    @property
     def channel_id(self) -> int | None:
         """Returns the ID of the channel associated with this context's command.
         Shorthand for :attr:`.Interaction.channel_id`.
         """
         return self.interaction.channel_id
 
-    @cached_property
+    @property
     def guild(self) -> Guild | None:
         """Returns the guild associated with this context's command.
         Shorthand for :attr:`.Interaction.guild`.
         """
         return self.interaction.guild
 
-    @cached_property
+    @property
     def guild_id(self) -> int | None:
         """Returns the ID of the guild associated with this context's command.
         Shorthand for :attr:`.Interaction.guild_id`.
         """
         return self.interaction.guild_id
 
-    @cached_property
+    @property
     def locale(self) -> str | None:
         """Returns the locale of the guild associated with this context's command.
         Shorthand for :attr:`.Interaction.locale`.
         """
         return self.interaction.locale
 
-    @cached_property
+    @property
     def guild_locale(self) -> str | None:
         """Returns the locale of the guild associated with this context's command.
         Shorthand for :attr:`.Interaction.guild_locale`.
         """
         return self.interaction.guild_locale
 
-    @cached_property
+    @property
     def app_permissions(self) -> Permissions:
         return self.interaction.app_permissions
 
-    @cached_property
+    @property
     def me(self) -> Member | ClientUser | None:
         """Union[:class:`.Member`, :class:`.ClientUser`]:
         Similar to :attr:`.Guild.me` except it may return the :class:`.ClientUser` in private message
@@ -190,14 +198,14 @@ class ApplicationContext(discord.abc.Messageable):
         """
         return self.interaction.guild.me if self.interaction.guild is not None else self.bot.user
 
-    @cached_property
+    @property
     def message(self) -> Message | None:
         """Returns the message sent with this context's command.
         Shorthand for :attr:`.Interaction.message`, if applicable.
         """
         return self.interaction.message
 
-    @cached_property
+    @property
     def user(self) -> Member | User:
         """Returns the user that sent this context's command.
         Shorthand for :attr:`.Interaction.user`.
@@ -216,7 +224,7 @@ class ApplicationContext(discord.abc.Messageable):
 
         return self.interaction.guild.voice_client
 
-    @cached_property
+    @property
     def response(self) -> InteractionResponse:
         """Returns the response object associated with this context's command.
         Shorthand for :attr:`.Interaction.response`.
@@ -258,17 +266,24 @@ class ApplicationContext(discord.abc.Messageable):
         return None
 
     @property
-    @discord.utils.copy_doc(InteractionResponse.send_modal)
+    def attachment_size_limit(self) -> int:
+        """Returns the attachment size limit associated with this context's interaction.
+        Shorthand for :attr:`.Interaction.attachment_size_limit`.
+        """
+        return self.interaction.attachment_size_limit
+
+    @property
+    @copy_doc(InteractionResponse.send_modal)
     def send_modal(self) -> Callable[..., Awaitable[Interaction]]:
         return self.interaction.response.send_modal
 
     @property
-    @discord.utils.copy_doc(Interaction.respond)
+    @copy_doc(Interaction.respond)
     def respond(self, *args, **kwargs) -> Callable[..., Awaitable[Interaction | WebhookMessage]]:
         return self.interaction.respond
 
     @property
-    @discord.utils.copy_doc(InteractionResponse.send_message)
+    @copy_doc(InteractionResponse.send_message)
     def send_response(self) -> Callable[..., Awaitable[Interaction]]:
         if not self.interaction.response.is_done():
             return self.interaction.response.send_message
@@ -278,7 +293,7 @@ class ApplicationContext(discord.abc.Messageable):
             )
 
     @property
-    @discord.utils.copy_doc(Webhook.send)
+    @copy_doc(Webhook.send)
     def send_followup(self) -> Callable[..., Awaitable[WebhookMessage]]:
         if self.interaction.response.is_done():
             return self.followup.send
@@ -288,7 +303,7 @@ class ApplicationContext(discord.abc.Messageable):
             )
 
     @property
-    @discord.utils.copy_doc(InteractionResponse.defer)
+    @copy_doc(InteractionResponse.defer)
     def defer(self) -> Callable[..., Awaitable[None]]:
         return self.interaction.response.defer
 
@@ -322,7 +337,7 @@ class ApplicationContext(discord.abc.Messageable):
         return await self.interaction.delete_original_response(delay=delay)
 
     @property
-    @discord.utils.copy_doc(Interaction.edit_original_response)
+    @copy_doc(Interaction.edit_original_response)
     def edit(self) -> Callable[..., Awaitable[InteractionMessage]]:
         return self.interaction.edit_original_response
 
@@ -384,8 +399,6 @@ class AutocompleteContext:
         The bot that the command belongs to.
     interaction: :class:`.Interaction`
         The interaction object that invoked the autocomplete.
-    command: :class:`.ApplicationCommand`
-        The command that this context belongs to.
     focused: :class:`.Option`
         The option the user is currently typing.
     value: :class:`.str`
@@ -394,13 +407,12 @@ class AutocompleteContext:
         A name to value mapping of the options that the user has selected before this option.
     """
 
-    __slots__ = ("bot", "interaction", "command", "focused", "value", "options")
+    __slots__ = ("bot", "interaction", "focused", "value", "options")
 
     def __init__(self, bot: Bot, interaction: Interaction):
         self.bot = bot
         self.interaction = interaction
 
-        self.command: ApplicationCommand = None  # type: ignore
         self.focused: Option = None  # type: ignore
         self.value: str = None  # type: ignore
         self.options: dict = None  # type: ignore
@@ -414,3 +426,12 @@ class AutocompleteContext:
             return None
 
         return self.command.cog
+
+    @property
+    def command(self) -> ApplicationCommand | None:
+        """The command that this context belongs to."""
+        return self.interaction.command
+
+    @command.setter
+    def command(self, value: ApplicationCommand | None) -> None:
+        self.interaction.command = value

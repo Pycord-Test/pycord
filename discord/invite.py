@@ -32,7 +32,8 @@ from .asset import Asset
 from .enums import ChannelType, InviteTarget, VerificationLevel, try_enum
 from .mixins import Hashable
 from .object import Object
-from .utils import _get_as_snowflake, parse_time, snowflake_time
+from .utils import snowflake_time
+from .utils.private import get_as_snowflake, parse_time
 
 __all__ = (
     "PartialInviteChannel",
@@ -375,7 +376,7 @@ class Invite(Hashable):
 
         self.target_type: InviteTarget = try_enum(InviteTarget, data.get("target_type", 0))
 
-        from .scheduled_events import ScheduledEvent
+        from .scheduled_events import ScheduledEvent  # noqa: PLC0415
 
         scheduled_event: ScheduledEventPayload = data.get("guild_scheduled_event")
         self.scheduled_event: ScheduledEvent | None = (
@@ -388,9 +389,7 @@ class Invite(Hashable):
         )
 
     @classmethod
-    async def from_incomplete(
-        cls: type[I], *, state: ConnectionState, data: InvitePayload
-    ) -> I:
+    async def from_incomplete(cls: type[I], *, state: ConnectionState, data: InvitePayload) -> I:
         guild: Guild | PartialInviteGuild | None
         try:
             guild_data = data["guild"]
@@ -414,10 +413,8 @@ class Invite(Hashable):
         return cls(state=state, data=data, guild=guild, channel=channel)
 
     @classmethod
-    async def from_gateway(
-        cls: type[I], *, state: ConnectionState, data: GatewayInvitePayload
-    ) -> I:
-        guild_id: int | None = _get_as_snowflake(data, "guild_id")
+    async def from_gateway(cls: type[I], *, state: ConnectionState, data: GatewayInvitePayload) -> I:
+        guild_id: int | None = get_as_snowflake(data, "guild_id")
         guild: Guild | Object | None = await state._get_guild(guild_id)
         channel_id = int(data["channel_id"])
         if guild is not None:

@@ -43,6 +43,7 @@ from typing import (
     overload,
 )
 
+from .utils.private import get_as_snowflake, bytes_to_base64_data
 from . import abc, utils
 from .asset import Asset
 from .automod import AutoModAction, AutoModRule, AutoModTriggerMetadata
@@ -82,7 +83,7 @@ from .mixins import Hashable
 from .monetization import Entitlement
 from .onboarding import Onboarding
 from .permissions import PermissionOverwrite
-from .role import Role
+from .role import Role, RoleColours
 from .scheduled_events import ScheduledEvent, ScheduledEventLocation
 from .stage_instance import StageInstance
 from .sticker import GuildSticker
@@ -91,7 +92,7 @@ from .user import User
 from .welcome_screen import WelcomeScreen, WelcomeScreenChannel
 from .widget import Widget
 
-__all__ = ("Guild",)
+__all__ = ("BanEntry", "Guild")
 
 MISSING = utils.MISSING
 
@@ -308,9 +309,7 @@ class Guild(Hashable):
     async def _add_member(self, member: Member, /) -> None:
         await cast(ConnectionState, self._state).cache.store_member(member)
 
-    async def _get_and_update_member(
-        self, payload: MemberPayload, user_id: int, cache_flag: bool, /
-    ) -> Member:
+    async def _get_and_update_member(self, payload: MemberPayload, user_id: int, cache_flag: bool, /) -> Member:
         members = await cast(ConnectionState, self._state).cache.get_guild_members(self.id)
         # we always get the member, and we only update if the cache_flag (this cache
         # flag should always be MemberCacheFlag.interaction) is set to True
@@ -476,7 +475,7 @@ class Guild(Hashable):
         self.stickers: tuple[GuildSticker, ...] = tuple(stickers)
         self.features: list[GuildFeature] = guild.get("features", [])
         self._splash: str | None = guild.get("splash")
-        self._system_channel_id: int | None = utils._get_as_snowflake(guild, "system_channel_id")
+        self._system_channel_id: int | None = get_as_snowflake(guild, "system_channel_id")
         self.description: str | None = guild.get("description")
         self.max_presences: int | None = guild.get("max_presences")
         self.max_members: int | None = guild.get("max_members")
@@ -487,8 +486,8 @@ class Guild(Hashable):
         self._system_channel_flags: int = guild.get("system_channel_flags", 0)
         self.preferred_locale: str | None = guild.get("preferred_locale")
         self._discovery_splash: str | None = guild.get("discovery_splash")
-        self._rules_channel_id: int | None = utils._get_as_snowflake(guild, "rules_channel_id")
-        self._public_updates_channel_id: int | None = utils._get_as_snowflake(guild, "public_updates_channel_id")
+        self._rules_channel_id: int | None = get_as_snowflake(guild, "rules_channel_id")
+        self._public_updates_channel_id: int | None = get_as_snowflake(guild, "public_updates_channel_id")
         self.nsfw_level: NSFWLevel = try_enum(NSFWLevel, guild.get("nsfw_level", 0))
         self.approximate_presence_count = guild.get("approximate_presence_count")
         self.approximate_member_count = guild.get("approximate_member_count")
@@ -507,23 +506,15 @@ class Guild(Hashable):
 
         events = []
         for event in guild.get("guild_scheduled_events", []):
-            creator = (
-                None
-                if not event.get("creator", None)
-                else await self.get_member(event.get("creator_id"))
-            )
-            events.append(
-                ScheduledEvent(
-                    state=self._state, guild=self, creator=creator, data=event
-                )
-            )
+            creator = None if not event.get("creator", None) else await self.get_member(event.get("creator_id"))
+            events.append(ScheduledEvent(state=self._state, guild=self, creator=creator, data=event))
         self._scheduled_events_from_list(events)
 
         self._sync(guild)
         self._large: bool | None = None if self._member_count is None else self._member_count >= 250
 
-        self.owner_id: int | None = utils._get_as_snowflake(guild, "owner_id")
-        self.afk_channel: VoiceChannel | None = self.get_channel(utils._get_as_snowflake(guild, "afk_channel_id"))  # type: ignore
+        self.owner_id: int | None = get_as_snowflake(guild, "owner_id")
+        self.afk_channel: VoiceChannel | None = self.get_channel(get_as_snowflake(guild, "afk_channel_id"))  # type: ignore
 
         for obj in guild.get("voice_states", []):
             await self._update_voice_state(obj, int(obj["channel_id"]))
@@ -584,7 +575,9 @@ class Guild(Hashable):
         members, which for this library is set to the maximum of 250.
         """
         if self._large is None:
-            return (self._member_count or len(await cast(ConnectionState, self._state).cache.get_guild_members(self.id))) >= 250
+            return (
+                self._member_count or len(await cast(ConnectionState, self._state).cache.get_guild_members(self.id))
+            ) >= 250
         return self._large
 
     @property
@@ -1028,7 +1021,7 @@ class Guild(Hashable):
 
             # do the actual lookup and return if found
             # if it isn't found then we'll do a full name lookup below.
-            result = utils.get(members, name=name[:-5], discriminator=potential_discriminator)
+            result = utils.find(lambda m: m.name == name[:-5] and discriminator == potential_discriminator, members)
             if result is not None:
                 return result
 
@@ -1609,6 +1602,9 @@ class Guild(Hashable):
         public_updates_channel: TextChannel | None | utils.Undefined = MISSING,
         premium_progress_bar_enabled: bool | utils.Undefined = MISSING,
         disable_invites: bool | utils.Undefined = MISSING,
+        discoverable: bool | utils.Undefined = MISSING,
+        disable_raid_alerts: bool | utils.Undefined = MISSING,
+        enable_activity_feed: bool | utils.Undefined = MISSING,
     ) -> Guild:
         r"""|coro|
 
@@ -1686,6 +1682,12 @@ class Guild(Hashable):
             Whether the guild should have premium progress bar enabled.
         disable_invites: :class:`bool`
             Whether the guild should have server invites enabled or disabled.
+        discoverable: :class:`bool`
+            Whether the guild should be discoverable in the discover tab.
+        disable_raid_alerts: :class:`bool`
+            Whether activity alerts for the guild should be disabled.
+        enable_activity_feed: class:`bool`
+            Whether the guild's user activity feed should be enabled.
         reason: Optional[:class:`str`]
             The reason for editing this guild. Shows up on the audit log.
 
@@ -1723,24 +1725,24 @@ class Guild(Hashable):
             fields["afk_timeout"] = afk_timeout
 
         if icon is not MISSING:
-            fields["icon"] = icon if icon is None else utils._bytes_to_base64_data(icon)
+            fields["icon"] = icon if icon is None else bytes_to_base64_data(icon)
         if banner is not MISSING:
             if banner is None:
                 fields["banner"] = banner
             else:
-                fields["banner"] = utils._bytes_to_base64_data(banner)
+                fields["banner"] = bytes_to_base64_data(banner)
 
         if splash is not MISSING:
             if splash is None:
                 fields["splash"] = splash
             else:
-                fields["splash"] = utils._bytes_to_base64_data(splash)
+                fields["splash"] = bytes_to_base64_data(splash)
 
         if discovery_splash is not MISSING:
             if discovery_splash is None:
                 fields["discovery_splash"] = discovery_splash
             else:
-                fields["discovery_splash"] = utils._bytes_to_base64_data(discovery_splash)
+                fields["discovery_splash"] = bytes_to_base64_data(discovery_splash)
 
         if default_notifications is not MISSING:
             if not isinstance(default_notifications, NotificationLevel):
@@ -1795,8 +1797,12 @@ class Guild(Hashable):
 
             fields["system_channel_flags"] = system_channel_flags.value
 
+        if premium_progress_bar_enabled is not MISSING:
+            fields["premium_progress_bar_enabled"] = premium_progress_bar_enabled
+
+        features: list[GuildFeature] = self.features.copy()
+
         if community is not MISSING:
-            features = self.features.copy()
             if community:
                 if "rules_channel_id" in fields and "public_updates_channel_id" in fields:
                     if "COMMUNITY" not in features:
@@ -1813,20 +1819,43 @@ class Guild(Hashable):
                         fields["public_updates_channel_id"] = None
                     features.remove("COMMUNITY")
 
-            fields["features"] = features
-
-        if premium_progress_bar_enabled is not MISSING:
-            fields["premium_progress_bar_enabled"] = premium_progress_bar_enabled
-
         if disable_invites is not MISSING:
-            features = self.features.copy()
             if disable_invites:
-                if not "INVITES_DISABLED" in features:
+                if "INVITES_DISABLED" not in features:
                     features.append("INVITES_DISABLED")
             else:
                 if "INVITES_DISABLED" in features:
                     features.remove("INVITES_DISABLED")
 
+        if discoverable is not MISSING:
+            if discoverable:
+                if "DISCOVERABLE" not in features:
+                    features.append("DISCOVERABLE")
+            else:
+                if "DISCOVERABLE" in features:
+                    features.remove("DISCOVERABLE")
+
+        if disable_raid_alerts is not MISSING:
+            if disable_raid_alerts:
+                if "RAID_ALERTS_DISABLED" not in features:
+                    features.append("RAID_ALERTS_DISABLED")
+            else:
+                if "RAID_ALERTS_DISABLED" in features:
+                    features.remove("RAID_ALERTS_DISABLED")
+
+        if enable_activity_feed is not MISSING:
+            if enable_activity_feed:
+                if "ACTIVITY_FEED_ENABLED_BY_USER" not in features:
+                    features.append("ACTIVITY_FEED_ENABLED_BY_USER")
+                if "ACTIVITY_FEED_DISABLED_BY_USER" in features:
+                    features.remove("ACTIVITY_FEED_DISABLED_BY_USER")
+            else:
+                if "ACTIVITY_FEED_ENABLED_BY_USER" in features:
+                    features.remove("ACTIVITY_FEED_ENABLED_BY_USER")
+                if "ACTIVITY_FEED_DISABLED_BY_USER" not in features:
+                    features.append("ACTIVITY_FEED_DISABLED_BY_USER")
+
+        if self.features != features:
             fields["features"] = features
 
         data = await http.edit_guild(self.id, reason=reason, **fields)
@@ -2234,7 +2263,7 @@ class Guild(Hashable):
         Forbidden
             You don't have permissions to get the templates.
         """
-        from .template import Template
+        from .template import Template  # noqa: PLC0415
 
         data = await self._state.http.guild_templates(self.id)
         return [await Template.from_data(data=d, state=self._state) for d in data]
@@ -2257,7 +2286,7 @@ class Guild(Hashable):
             You don't have permissions to get the webhooks.
         """
 
-        from .webhook import Webhook
+        from .webhook import Webhook  # noqa: PLC0415
 
         data = await self._state.http.guild_webhooks(self.id)
         return [Webhook.from_state(d, state=self._state) for d in data]
@@ -2347,7 +2376,7 @@ class Guild(Hashable):
         description: :class:`str`
             The description of the template.
         """
-        from .template import Template
+        from .template import Template  # noqa: PLC0415
 
         payload = {"name": name}
 
@@ -2658,11 +2687,9 @@ class Guild(Hashable):
             The created emoji.
         """
 
-        img = utils._bytes_to_base64_data(image)
+        img = bytes_to_base64_data(image)
         role_ids = [role.id for role in roles] if roles else []
-        data = await self._state.http.create_custom_emoji(
-            self.id, name, img, roles=role_ids, reason=reason
-        )
+        data = await self._state.http.create_custom_emoji(self.id, name, img, roles=role_ids, reason=reason)
         return await self._state.store_emoji(self, data)
 
     async def delete_emoji(self, emoji: Snowflake, *, reason: str | None = None) -> None:
@@ -2778,6 +2805,8 @@ class Guild(Hashable):
         name: str = ...,
         permissions: Permissions = ...,
         colour: Colour | int = ...,
+        colours: RoleColours = ...,
+        holographic: bool = ...,
         hoist: bool = ...,
         mentionable: bool = ...,
         icon: bytes | None | utils.Undefined = MISSING,
@@ -2792,6 +2821,8 @@ class Guild(Hashable):
         name: str = ...,
         permissions: Permissions = ...,
         color: Colour | int = ...,
+        colors: RoleColours = ...,
+        holographic: bool = ...,
         hoist: bool = ...,
         mentionable: bool = ...,
         icon: bytes | None = ...,
@@ -2805,6 +2836,9 @@ class Guild(Hashable):
         permissions: Permissions | utils.Undefined = MISSING,
         color: Colour | int | utils.Undefined = MISSING,
         colour: Colour | int | utils.Undefined = MISSING,
+        colors: RoleColours | utils.Undefined = MISSING,
+        colours: RoleColours | utils.Undefined = MISSING,
+        holographic: bool | utils.Undefined = MISSING,
         hoist: bool | utils.Undefined = MISSING,
         mentionable: bool | utils.Undefined = MISSING,
         reason: str | None = None,
@@ -2868,11 +2902,28 @@ class Guild(Hashable):
         else:
             fields["permissions"] = "0"
 
-        actual_colour = colour or color or Colour.default()
+        actual_colour = colour if colour not in (MISSING, None) else color
+
         if isinstance(actual_colour, int):
-            fields["color"] = actual_colour
+            actual_colour = Colour(actual_colour)
+
+        if actual_colour not in (MISSING, None):
+            utils.warn_deprecated("colour", "colours", "2.7")
+            actual_colours = RoleColours(primary=actual_colour)
+        elif holographic:
+            actual_colours = RoleColours.holographic()
         else:
-            fields["color"] = actual_colour.value
+            actual_colours = colours or colors or RoleColours.default()
+
+        if isinstance(actual_colours, RoleColours):
+            if "ENHANCED_ROLE_COLORS" not in self.features:
+                actual_colours.secondary = None
+                actual_colours.tertiary = None
+            fields["colors"] = actual_colours._to_dict()
+        else:
+            raise InvalidArgument(
+                "colours parameter must be of type RoleColours, not {}".format(actual_colours.__class__.__name__)
+            )
 
         if hoist is not MISSING:
             fields["hoist"] = hoist
@@ -2887,7 +2938,7 @@ class Guild(Hashable):
             if icon is None:
                 fields["icon"] = None
             else:
-                fields["icon"] = utils._bytes_to_base64_data(icon)
+                fields["icon"] = bytes_to_base64_data(icon)
                 fields["unicode_emoji"] = None
 
         if unicode_emoji is not MISSING:
@@ -3212,12 +3263,12 @@ class Guild(Hashable):
         Getting the first 100 entries: ::
 
             async for entry in guild.audit_logs(limit=100):
-                print(f'{entry.user} did {entry.action} to {await entry.get_target()}')
+                print(f"{entry.user} did {entry.action} to {await entry.get_target()}")
 
         Getting entries for a specific action: ::
 
             async for entry in guild.audit_logs(action=discord.AuditLogAction.ban):
-                print(f'{entry.user} banned {await entry.get_target()}')
+                print(f"{entry.user} banned {await entry.get_target()}")
 
         Getting entries made by a specific user: ::
 
@@ -3554,16 +3605,8 @@ class Guild(Hashable):
         data = await self._state.http.get_scheduled_events(self.id, with_user_count=with_user_count)
         result = []
         for event in data:
-            creator = (
-                None
-                if not event.get("creator", None)
-                else await self.get_member(event.get("creator_id"))
-            )
-            result.append(
-                ScheduledEvent(
-                    state=self._state, guild=self, creator=creator, data=event
-                )
-            )
+            creator = None if not event.get("creator", None) else await self.get_member(event.get("creator_id"))
+            result.append(ScheduledEvent(state=self._state, guild=self, creator=creator, data=event))
 
         self._scheduled_events_from_list(result)
         return result
@@ -3602,14 +3645,8 @@ class Guild(Hashable):
         data = await self._state.http.get_scheduled_event(
             guild_id=self.id, event_id=event_id, with_user_count=with_user_count
         )
-        creator = (
-            None
-            if not data.get("creator", None)
-            else await self.get_member(data.get("creator_id"))
-        )
-        event = ScheduledEvent(
-            state=self._state, guild=self, creator=creator, data=data
-        )
+        creator = None if not data.get("creator", None) else await self.get_member(data.get("creator_id"))
+        event = ScheduledEvent(state=self._state, guild=self, creator=creator, data=data)
 
         old_event = self._scheduled_events.get(event.id)
         if old_event:
@@ -3707,7 +3744,7 @@ class Guild(Hashable):
             payload["scheduled_end_time"] = end_time.isoformat()
 
         if image is not MISSING:
-            payload["image"] = utils._bytes_to_base64_data(image)
+            payload["image"] = bytes_to_base64_data(image)
 
         data = await self._state.http.create_scheduled_event(guild_id=self.id, reason=reason, **payload)
         event = ScheduledEvent(state=self._state, guild=self, creator=self.me, data=data)

@@ -27,7 +27,9 @@ from __future__ import annotations
 
 from inspect import isawaitable
 from typing import TYPE_CHECKING, Any, Callable, ClassVar, Generator, TypeVar
+from functools import cached_property
 
+from .utils.private import get_as_snowflake
 from . import enums, utils
 from .asset import Asset
 from .automod import AutoModAction, AutoModTriggerMetadata
@@ -342,7 +344,7 @@ class AuditLogChanges:
                     before = await self._maybe_await(transformer(entry, before))
 
             if attr == "location" and hasattr(self.before, "location_type"):
-                from .scheduled_events import ScheduledEventLocation
+                from .scheduled_events import ScheduledEventLocation  # noqa: PLC0415
 
                 if self.before.location_type is enums.ScheduledEventLocationType.external:
                     before = ScheduledEventLocation(state=state, value=before)
@@ -360,7 +362,7 @@ class AuditLogChanges:
                     after = await self._maybe_await(transformer(entry, after))
 
             if attr == "location" and hasattr(self.after, "location_type"):
-                from .scheduled_events import ScheduledEventLocation
+                from .scheduled_events import ScheduledEventLocation  # noqa: PLC0415
 
                 if self.after.location_type is enums.ScheduledEventLocationType.external:
                     after = ScheduledEventLocation(state=state, value=after)
@@ -566,8 +568,8 @@ class AuditLogEntry(Hashable):
         # into meaningful data when requested
         self._changes = data.get("changes", [])
 
-        self.user = self._get_member(utils._get_as_snowflake(data, "user_id"))  # type: ignore
-        self._target_id = utils._get_as_snowflake(data, "target_id")
+        self.user = self._get_member(get_as_snowflake(data, "user_id"))  # type: ignore
+        self._target_id = get_as_snowflake(data, "target_id")
 
     async def _get_member(self, user_id: int) -> Member | User | None:
         return await self.guild.get_member(user_id) or self._users.get(user_id)
@@ -575,7 +577,7 @@ class AuditLogEntry(Hashable):
     def __repr__(self) -> str:
         return f"<AuditLogEntry id={self.id} action={self.action} user={self.user!r}>"
 
-    @utils.cached_property
+    @cached_property
     def created_at(self) -> datetime.datetime:
         """Returns the entry's creation time in UTC."""
         return utils.snowflake_time(self.id)
@@ -606,7 +608,7 @@ class AuditLogEntry(Hashable):
                 r = await r
             return r
 
-    @utils.cached_property
+    @property
     def category(self) -> enums.AuditLogActionCategory:
         """The category of the action, if applicable."""
         return self.action.category
@@ -617,12 +619,12 @@ class AuditLogEntry(Hashable):
         del self._changes
         return obj
 
-    @utils.cached_property
+    @property
     def before(self) -> AuditLogDiff:
         """The target's prior state."""
         return self.changes.before
 
-    @utils.cached_property
+    @property
     def after(self) -> AuditLogDiff:
         """The target's subsequent state."""
         return self.changes.after

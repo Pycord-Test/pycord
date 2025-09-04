@@ -40,6 +40,7 @@ class AutoModRuleCreate(Event):
         self.rule = AutoModRule(state=state, data=data)
         return self
 
+
 class AutoModRuleUpdate(Event):
     __event_name__ = "AUTO_MODERATION_RULE_UPDATE"
 
@@ -51,6 +52,7 @@ class AutoModRuleUpdate(Event):
         self.rule = AutoModRule(state=state, data=data)
         return self
 
+
 class AutoModRuleDelete(Event):
     __event_name__ = "AUTO_MODERATION_RULE_DELETE"
 
@@ -61,6 +63,7 @@ class AutoModRuleDelete(Event):
         self = cls()
         self.rule = AutoModRule(state=state, data=data)
         return self
+
 
 class AutoModActionExecution(Event, AutoModActionExecutionEvent):
     """Represents the `AUTO_MODERATION_ACTION_EXECUTION` event"""

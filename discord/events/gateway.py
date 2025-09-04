@@ -36,7 +36,10 @@ from discord.user import ClientUser, User
 
 from ..app.state import ConnectionState
 from ..app.event_emitter import Event
-from ..types.interactions import ApplicationCommandPermissions as ApplicationCommandPermissionsPayload, GuildApplicationCommandPermissions
+from ..types.interactions import (
+    ApplicationCommandPermissions as ApplicationCommandPermissionsPayload,
+    GuildApplicationCommandPermissions,
+)
 from ..types.guild import Guild as GuildPayload
 from ..enums import ApplicationCommandPermissionType
 
@@ -74,7 +77,7 @@ class Ready(Event):
             except KeyError:
                 pass
             else:
-                self.application_id = utils._get_as_snowflake(application, "id") # type: ignore
+                self.application_id = utils._get_as_snowflake(application, "id")  # type: ignore
                 # flags will always be present here
                 self.application_flags = ApplicationFlags._from_value(application["flags"])  # type: ignore
                 state.application_id = self.application_id
@@ -91,6 +94,7 @@ class Ready(Event):
 
         return self
 
+
 class _CacheAppEmojis(Event):
     __event_name__ = "CACHE_APP_EMOJIS"
 
@@ -100,6 +104,7 @@ class _CacheAppEmojis(Event):
             data = await state.http.get_all_application_emojis(state.application_id)
             for e in data.get("items", []):
                 await state.maybe_store_app_emoji(state.application_id, e)
+
 
 class GuildCreate(Event, Guild):
     """An event which represents a guild becoming available via the gateway. Trickles down to the more distinct :class:`.GuildJoin` and :class:`.GuildAvailable` events."""
@@ -128,6 +133,7 @@ class GuildCreate(Event, Guild):
             await state.emitter.emit("GUILD_AVAILABLE", guild)
         return self
 
+
 class GuildJoin(Event, Guild):
     """An event which represents joining a new guild."""
 
@@ -144,6 +150,7 @@ class GuildJoin(Event, Guild):
         self.guild = data
         self.__dict__.update(self.guild.__dict__)
         return self
+
 
 class GuildAvailable(Event, Guild):
     """An event which represents a guild previously joined becoming available."""
@@ -162,6 +169,7 @@ class GuildAvailable(Event, Guild):
         self.__dict__.update(self.guild.__dict__)
         return self
 
+
 class ApplicationCommandPermission:
     def __init__(self, data: ApplicationCommandPermissionsPayload) -> None:
         self.id = int(data["id"])
@@ -170,6 +178,7 @@ class ApplicationCommandPermission:
         """Represents what this permission affects"""
         self.permission = data["permission"]
         """Represents whether the permission is allowed or denied"""
+
 
 class ApplicationCommandPermissionsUpdate(Event):
     """Represents an Application Command having permissions updated in a guild"""
@@ -193,6 +202,7 @@ class ApplicationCommandPermissionsUpdate(Event):
         self.guild_id = int(data["guild_id"])
         self.permissions = [ApplicationCommandPermission(data) for data in data["permissions"]]
         return self
+
 
 class PresenceUpdate(Event):
     __event_name__ = "PRESENCE_UPDATE"
@@ -218,13 +228,13 @@ class PresenceUpdate(Event):
         self.new = member
         user_update = member._presence_update(data=data, user=user)
 
+
 class UserUpdate(Event, User):
     __event_name__ = "USER_UPDATE"
 
     old: User
 
-    def __init__(self) -> None:
-        ...
+    def __init__(self) -> None: ...
 
     @classmethod
     async def __load__(cls, data: tuple[User, User] | Any, state: ConnectionState) -> Self | None:
@@ -235,7 +245,7 @@ class UserUpdate(Event, User):
             return self
         else:
             user = cast(ClientUser, state.user)
-            await user._update(data) # type: ignore
+            await user._update(data)  # type: ignore
             ref = await state.cache.get_user(user.id)
             if ref is not None:
                 await ref._update(data)

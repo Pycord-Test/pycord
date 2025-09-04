@@ -34,8 +34,7 @@ from discord.types.invite import GatewayInvite, Invite as InvitePayload, VanityI
 class InviteCreate(Event, Invite):
     __event_name__ = "INVITE_CREATE"
 
-    def __init__(self) -> None:
-        ...
+    def __init__(self) -> None: ...
 
     @classmethod
     async def __load__(cls, data: GatewayInvite, state: ConnectionState) -> Self | None:
@@ -43,11 +42,11 @@ class InviteCreate(Event, Invite):
         self = cls()
         self.__dict__.update(invite.__dict__)
 
+
 class InviteDelete(Event, Invite):
     __event_name__ = "INVITE_DELETE"
 
-    def __init__(self) -> None:
-        ...
+    def __init__(self) -> None: ...
 
     @classmethod
     async def __load__(cls, data: GatewayInvite, state: ConnectionState) -> Self | None:

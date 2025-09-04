@@ -35,13 +35,14 @@ import time
 import traceback
 import zlib
 from collections import deque, namedtuple
+from typing import TYPE_CHECKING
 
 import aiohttp
 
-from . import utils
 from .activity import BaseActivity
 from .enums import SpeakingState
 from .errors import ConnectionClosed, InvalidArgument
+from .utils.private import from_json, to_json
 
 _log = logging.getLogger(__name__)
 
@@ -200,6 +201,9 @@ class KeepAliveHandler(threading.Thread):
 
 
 class VoiceKeepAliveHandler(KeepAliveHandler):
+    if TYPE_CHECKING:
+        ws: DiscordVoiceWebSocket
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.recent_ack_latencies = deque(maxlen=20)
@@ -208,7 +212,10 @@ class VoiceKeepAliveHandler(KeepAliveHandler):
         self.behind_msg = "High socket latency, shard ID %s heartbeat is %.1fs behind"
 
     def get_payload(self):
-        return {"op": self.ws.HEARTBEAT, "d": int(time.time() * 1000)}
+        return {
+            "op": self.ws.HEARTBEAT,
+            "d": {"t": int(time.time() * 1000), "seq_ack": self.ws.seq_ack},
+        }
 
     def ack(self):
         ack_time = time.perf_counter()
@@ -445,7 +452,7 @@ class DiscordWebSocket:
             self._buffer = bytearray()
 
         await self.log_receive(msg)
-        msg = utils._from_json(msg)
+        msg = from_json(msg)
 
         _log.debug("For Shard ID %s: WebSocket Event: %s", self.shard_id, msg)
         event = msg.get("t")
@@ -627,7 +634,7 @@ class DiscordWebSocket:
 
     async def send_as_json(self, data):
         try:
-            await self.send(utils._to_json(data))
+            await self.send(to_json(data))
         except RuntimeError as exc:
             if not self._can_handle_close():
                 raise ConnectionClosed(self.socket, shard_id=self.shard_id) from exc
@@ -635,7 +642,7 @@ class DiscordWebSocket:
     async def send_heartbeat(self, data):
         # This bypasses the rate limit handling code since it has a higher priority
         try:
-            await self.socket.send_str(utils._to_json(data))
+            await self.socket.send_str(to_json(data))
         except RuntimeError as exc:
             if not self._can_handle_close():
                 raise ConnectionClosed(self.socket, shard_id=self.shard_id) from exc
@@ -661,7 +668,7 @@ class DiscordWebSocket:
             },
         }
 
-        sent = utils._to_json(payload)
+        sent = to_json(payload)
         _log.debug('Sending "%s" to change status', sent)
         await self.send(sent)
 
@@ -756,6 +763,7 @@ class DiscordVoiceWebSocket:
         self._close_code = None
         self.secret_key = None
         self.ssrc_map = {}
+        self.seq_ack: int = -1
         if hook:
             self._hook = hook
 
@@ -764,7 +772,7 @@ class DiscordVoiceWebSocket:
 
     async def send_as_json(self, data):
         _log.debug("Sending voice websocket frame: %s.", data)
-        await self.ws.send_str(utils._to_json(data))
+        await self.ws.send_str(to_json(data))
 
     send_heartbeat = send_as_json
 
@@ -776,6 +784,9 @@ class DiscordVoiceWebSocket:
                 "token": state.token,
                 "server_id": str(state.server_id),
                 "session_id": state.session_id,
+                # this seq_ack will allow for us to do buffered resume, which is, receive the
+                # lost voice packets while trying to resume the reconnection
+                "seq_ack": self.seq_ack,
             },
         }
         await self.send_as_json(payload)
@@ -796,7 +807,7 @@ class DiscordVoiceWebSocket:
     @classmethod
     async def from_client(cls, client, *, resume=False, hook=None):
         """Creates a voice websocket for the :class:`VoiceClient`."""
-        gateway = f"wss://{client.endpoint}/?v=4"
+        gateway = f"wss://{client.endpoint}/?v=8"
         http = client._state.http
         socket = await http.ws_connect(gateway, compress=15)
         ws = cls(socket, loop=client.loop, hook=hook)
@@ -832,7 +843,13 @@ class DiscordVoiceWebSocket:
         await self.send_as_json(payload)
 
     async def speak(self, state=SpeakingState.voice):
-        payload = {"op": self.SPEAKING, "d": {"speaking": int(state), "delay": 0}}
+        payload = {
+            "op": self.SPEAKING,
+            "d": {
+                "speaking": int(state),
+                "delay": 0,
+            },
+        }
 
         await self.send_as_json(payload)
 
@@ -840,6 +857,7 @@ class DiscordVoiceWebSocket:
         _log.debug("Voice websocket frame received: %s", msg)
         op = msg["op"]
         data = msg.get("d")
+        self.seq_ack = data.get("seq", self.seq_ack)
 
         if op == self.READY:
             await self.initial_connection(data)
@@ -921,7 +939,7 @@ class DiscordVoiceWebSocket:
         # This exception is handled up the chain
         msg = await asyncio.wait_for(self.ws.receive(), timeout=30.0)
         if msg.type is aiohttp.WSMsgType.TEXT:
-            await self.received_message(utils._from_json(msg.data))
+            await self.received_message(from_json(msg.data))
         elif msg.type is aiohttp.WSMsgType.ERROR:
             _log.debug("Received %s", msg)
             raise ConnectionClosed(self.ws, shard_id=None) from msg.data

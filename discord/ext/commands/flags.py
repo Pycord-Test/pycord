@@ -32,7 +32,8 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Iterator, Literal, Pattern, TypeVar, Union
 
 from discord import utils
-from discord.utils import MISSING, Undefined, maybe_coroutine, resolve_annotation
+from discord.utils import MISSING, Undefined
+from discord.utils.private import resolve_annotation, maybe_awaitable
 
 from .converter import run_converters
 from .errors import (
@@ -53,6 +54,10 @@ __all__ = (
 
 if TYPE_CHECKING:
     from .context import Context
+
+
+def _missing_field_factory() -> field:
+    return field(default_factory=lambda: MISSING)
 
 
 @dataclass
@@ -82,13 +87,13 @@ class Flag:
         Whether multiple given values overrides the previous value.
     """
 
-    name: str | Undefined = MISSING
+    name: str | Undefined = _missing_field_factory()  # noqa: RUF009
     aliases: list[str] = field(default_factory=list)
-    attribute: str | Undefined = MISSING
-    annotation: Any | Undefined = MISSING
-    default: Any | Undefined = MISSING
-    max_args: int | Undefined = MISSING
-    override: bool | Undefined = MISSING
+    attribute: str | Undefined = _missing_field_factory()  # noqa: RUF009
+    annotation: Any | Undefined = _missing_field_factory()  # noqa: RUF009
+    default: Any | Undefined = _missing_field_factory()  # noqa: RUF009
+    max_args: int | Undefined = _missing_field_factory()  # noqa: RUF009
+    override: bool | Undefined = _missing_field_factory()  # noqa: RUF009
     cast_to_dict: bool = False
 
     @property
@@ -485,7 +490,7 @@ class FlagConverter(metaclass=FlagsMeta):
         flags = cls.__commands_flags__
         for flag in flags.values():
             if callable(flag.default):
-                default = await maybe_coroutine(flag.default, ctx)
+                default = await maybe_awaitable(flag.default, ctx)
                 setattr(self, flag.attribute, default)
             else:
                 setattr(self, flag.attribute, flag.default)
@@ -584,7 +589,7 @@ class FlagConverter(metaclass=FlagsMeta):
                     raise MissingRequiredFlag(flag)
                 else:
                     if callable(flag.default):
-                        default = await maybe_coroutine(flag.default, ctx)
+                        default = await maybe_awaitable(flag.default, ctx)
                         setattr(self, flag.attribute, default)
                     else:
                         setattr(self, flag.attribute, flag.default)

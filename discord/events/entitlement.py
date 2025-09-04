@@ -22,7 +22,6 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
 
-
 from typing import Any, Self
 
 from discord.types.monetization import Entitlement as EntitlementPayload
@@ -70,4 +69,3 @@ class EntitlementDelete(Event, Entitlement):
         self = cls()
         self.__dict__.update(Entitlement(data=data, state=state).__dict__)
         return self
-

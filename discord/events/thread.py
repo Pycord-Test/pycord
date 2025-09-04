@@ -11,8 +11,7 @@ from discord.types.raw_models import ThreadDeleteEvent, ThreadUpdateEvent
 class ThreadCreate(Event, Thread):
     __event_name__ = "THREAD_CREATE"
 
-    def __init__(self) -> None:
-        ...
+    def __init__(self) -> None: ...
 
     just_joined: bool
 
@@ -26,7 +25,7 @@ class ThreadCreate(Event, Thread):
         cached_thread = guild.get_thread(int(data["id"]))
         self = cls()
         if not cached_thread:
-            thread = Thread(guild=guild, state=guild._state, data=data) # type: ignore
+            thread = Thread(guild=guild, state=guild._state, data=data)  # type: ignore
             guild._add_thread(thread)
             if data.get("newly_created"):
                 thread._add_member(
@@ -35,9 +34,7 @@ class ThreadCreate(Event, Thread):
                         {
                             "id": thread.id,
                             "user_id": data["owner_id"],
-                            "join_timestamp": data["thread_metadata"][
-                                "create_timestamp"
-                            ],
+                            "join_timestamp": data["thread_metadata"]["create_timestamp"],
                             "flags": utils.MISSING,
                         },
                     )
@@ -50,11 +47,11 @@ class ThreadCreate(Event, Thread):
 
         return self
 
+
 class ThreadUpdate(Event, Thread):
     __event_name__ = "THREAD_UPDATE"
 
-    def __init__(self) -> None:
-        ...
+    def __init__(self) -> None: ...
 
     old: Thread
 
@@ -75,18 +72,18 @@ class ThreadUpdate(Event, Thread):
             if thread.archived:
                 guild._remove_thread(cast(Snowflake, raw.thread_id))
         else:
-            thread = Thread(guild=guild, state=guild._state, data=data) # type: ignore
+            thread = Thread(guild=guild, state=guild._state, data=data)  # type: ignore
             if not thread.archived:
                 guild._add_thread(thread)
 
         self.__dict__.update(thread.__dict__)
         return self
 
+
 class ThreadDelete(Event, Thread):
     __event_name__ = "THREAD_DELETE"
 
-    def __init__(self) -> None:
-        ...
+    def __init__(self) -> None: ...
 
     @classmethod
     async def __load__(cls, data: ThreadDeleteEvent, state: ConnectionState) -> Self | None:
@@ -101,6 +98,6 @@ class ThreadDelete(Event, Thread):
         if thread:
             guild._remove_thread(cast(Snowflake, thread.id))
             if (msg := await thread.get_starting_message()) is not None:
-                msg.thread = None # type: ignore
+                msg.thread = None  # type: ignore
 
         return cast(Self, thread)

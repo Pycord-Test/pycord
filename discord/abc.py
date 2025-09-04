@@ -41,6 +41,7 @@ from typing import (
     runtime_checkable,
 )
 
+from .utils.private import warn_deprecated
 from . import utils
 from .context_managers import Typing
 from .enums import ChannelType
@@ -723,7 +724,7 @@ class GuildChannel:
             if obj.is_default():
                 return base
 
-            overwrite = utils.get(self._overwrites, type=_Overwrites.ROLE, id=obj.id)
+            overwrite = utils.find(lambda o: o.type == _Overwrites.ROLE and o.id == obj.id, self._overwrites)
             if overwrite is not None:
                 base.handle_overwrite(overwrite.allow, overwrite.deny)
 
@@ -1525,10 +1526,10 @@ class Messageable:
         if reference is not None:
             try:
                 _reference = reference.to_message_reference_dict()
-                from .message import MessageReference
+                from .message import MessageReference  # noqa: PLC0415
 
                 if not isinstance(reference, MessageReference):
-                    utils.warn_deprecated(
+                    warn_deprecated(
                         f"Passing {type(reference).__name__} to reference",
                         "MessageReference",
                         "2.7",
@@ -1544,6 +1545,10 @@ class Messageable:
                 raise InvalidArgument(f"view parameter must be View not {view.__class__!r}")
 
             components = view.to_components()
+            if view.is_components_v2():
+                if embeds or content:
+                    raise TypeError("cannot send embeds or content with a view using v2 component logic")
+                flags.is_components_v2 = True
         else:
             components = None
 
@@ -1604,8 +1609,10 @@ class Messageable:
 
         ret = state.create_message(channel=channel, data=data)
         if view:
-            await state.store_view(view, ret.id)
+            if view.is_dispatchable():
+                await state.store_view(view, ret.id)
             view.message = ret
+            view.refresh(ret.components)
 
         if delete_after is not None:
             await ret.delete(delay=delete_after)

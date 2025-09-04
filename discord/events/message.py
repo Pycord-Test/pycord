@@ -31,7 +31,15 @@ from discord.guild import Guild
 from discord.member import Member
 from discord.partial_emoji import PartialEmoji
 from discord.poll import Poll, PollAnswer, PollAnswerCount
-from discord.raw_models import RawBulkMessageDeleteEvent, RawMessageDeleteEvent, RawMessagePollVoteEvent, RawMessageUpdateEvent, RawReactionActionEvent, RawReactionClearEmojiEvent, RawReactionClearEvent
+from discord.raw_models import (
+    RawBulkMessageDeleteEvent,
+    RawMessageDeleteEvent,
+    RawMessagePollVoteEvent,
+    RawMessageUpdateEvent,
+    RawReactionActionEvent,
+    RawReactionClearEmojiEvent,
+    RawReactionClearEvent,
+)
 from discord.reaction import Reaction
 from discord.threads import Thread
 from discord.types.message import Reaction as ReactionPayload
@@ -96,7 +104,7 @@ class MessageDeleteBulk(Event):
     messages: list[Message]
 
     @classmethod
-    async def __load__(cls, data: Any, state: ConnectionState) -> Self :
+    async def __load__(cls, data: Any, state: ConnectionState) -> Self:
         self = cls()
         raw = RawBulkMessageDeleteEvent(data)
         messages = await state.cache.get_all_messages()
@@ -130,7 +138,10 @@ class MessageUpdate(Event, Message):
             self.old = utils.MISSING
             if poll_data := data.get("poll"):
                 channel = await state.get_channel(raw.channel_id)
-                await state.store_poll(Poll.from_dict(poll_data, PartialMessage(channel=channel, id=raw.message_id)), message_id=raw.message_id)
+                await state.store_poll(
+                    Poll.from_dict(poll_data, PartialMessage(channel=channel, id=raw.message_id)),
+                    message_id=raw.message_id,
+                )
 
         return self
 
@@ -147,9 +158,7 @@ class ReactionAdd(Event):
         self = cls()
         emoji = data["emoji"]
         emoji_id = utils._get_as_snowflake(emoji, "id")
-        emoji = PartialEmoji.with_state(
-            state, id=emoji_id, animated=emoji.get("animated", False), name=emoji["name"]
-        )
+        emoji = PartialEmoji.with_state(state, id=emoji_id, animated=emoji.get("animated", False), name=emoji["name"])
         raw = RawReactionActionEvent(data, emoji, "REACTION_ADD")
 
         member_data = data.get("member")
@@ -176,6 +185,7 @@ class ReactionAdd(Event):
 
         return self
 
+
 class ReactionClear(Event):
     __event_name__ = "MESSAGE_REACTION_REMOVE_ALL"
 
@@ -198,6 +208,7 @@ class ReactionClear(Event):
             self.old_reactions = utils.MISSING
         return self
 
+
 class ReactionRemove(Event):
     __event_name__ = "MESSAGE_REACTION_REMOVE"
 
@@ -210,9 +221,7 @@ class ReactionRemove(Event):
         self = cls()
         emoji = data["emoji"]
         emoji_id = utils._get_as_snowflake(emoji, "id")
-        emoji = PartialEmoji.with_state(
-            state, id=emoji_id, animated=emoji.get("animated", False), name=emoji["name"]
-        )
+        emoji = PartialEmoji.with_state(state, id=emoji_id, animated=emoji.get("animated", False), name=emoji["name"])
         raw = RawReactionActionEvent(data, emoji, "REACTION_ADD")
 
         member_data = data.get("member")
@@ -261,7 +270,7 @@ class ReactionRemoveEmoji(Event, Reaction):
             try:
                 reaction = message._clear_emoji(emoji)
                 await state.cache.upsert_message(message)
-            except (AttributeError, ValueError): # evetnaul consistency
+            except (AttributeError, ValueError):  # evetnaul consistency
                 pass
             else:
                 if reaction:
@@ -297,15 +306,14 @@ class PollVoteAdd(Event):
                 if answer.id in counts:
                     counts[answer.id].count += 1
                 else:
-                    counts[answer.id] = PollAnswerCount(
-                        {"id": answer.id, "count": 1, "me_voted": False}
-                    )
+                    counts[answer.id] = PollAnswerCount({"id": answer.id, "count": 1, "me_voted": False})
         if poll is not None and self.user is not None:
             answer = poll.get_answer(raw.answer_id)
             if answer is not None:
                 self.poll = poll
                 self.answer = answer
                 return self
+
 
 class PollVoteRemove(Event):
     __event_name__ = "MESSAGE_POLL_VOTE_REMOVE"
@@ -334,9 +342,7 @@ class PollVoteRemove(Event):
                 if answer.id in counts:
                     counts[answer.id].count += 1
                 else:
-                    counts[answer.id] = PollAnswerCount(
-                        {"id": answer.id, "count": 1, "me_voted": False}
-                    )
+                    counts[answer.id] = PollAnswerCount({"id": answer.id, "count": 1, "me_voted": False})
         if poll is not None and self.user is not None:
             answer = poll.get_answer(raw.answer_id)
             if answer is not None:

@@ -27,10 +27,20 @@ from __future__ import annotations
 
 import asyncio
 import datetime
-from typing import TYPE_CHECKING, Any, Callable, Iterable, Mapping, TypeVar, overload
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Iterable,
+    Mapping,
+    Sequence,
+    TypeVar,
+    overload,
+)
 
 import discord.abc
 
+from .utils.private import bytes_to_base64_data, get_as_snowflake, copy_doc
 from . import utils
 from .asset import Asset
 from .emoji import GuildEmoji
@@ -46,7 +56,7 @@ from .enums import (
 )
 from .errors import ClientException, InvalidArgument
 from .file import File
-from .flags import ChannelFlags
+from .flags import ChannelFlags, MessageFlags
 from .invite import Invite
 from .iterators import ArchivedThreadIterator
 from .mixins import Hashable
@@ -72,12 +82,15 @@ __all__ = (
 
 if TYPE_CHECKING:
     from .abc import Snowflake, SnowflakeTime
+    from .embeds import Embed
     from .guild import Guild
     from .guild import GuildChannel as GuildChannelType
     from .member import Member, VoiceState
+    from .mentions import AllowedMentions
     from .message import EmojiInputType, Message, PartialMessage
     from .role import Role
     from .app.state import ConnectionState
+    from .sticker import GuildSticker, StickerItem
     from .types.channel import CategoryChannel as CategoryChannelPayload
     from .types.channel import DMChannel as DMChannelPayload
     from .types.channel import ForumChannel as ForumChannelPayload
@@ -88,6 +101,7 @@ if TYPE_CHECKING:
     from .types.channel import VoiceChannel as VoiceChannelPayload
     from .types.snowflake import SnowflakeList
     from .types.threads import ThreadArchiveDuration
+    from .ui.view import View
     from .user import BaseUser, ClientUser, User
     from .webhook import Webhook
 
@@ -158,7 +172,7 @@ class ForumTag(Hashable):
         self.moderated = data.get("moderated", False)
 
         emoji_name = data["emoji_name"] or ""
-        emoji_id = utils._get_as_snowflake(data, "emoji_id") or None
+        emoji_id = get_as_snowflake(data, "emoji_id") or None
         self.emoji = PartialEmoji.with_state(state=state, name=emoji_name, id=emoji_id)
         return self
 
@@ -216,12 +230,10 @@ class _TextChannel(discord.abc.GuildChannel, Hashable):
         joined = " ".join("%s=%r" % t for t in attrs)
         return f"<{self.__class__.__name__} {joined}>"
 
-    async def _update(
-        self, data: TextChannelPayload | ForumChannelPayload
-    ) -> None:
+    async def _update(self, data: TextChannelPayload | ForumChannelPayload) -> None:
         # This data will always exist
         self.name: str = data["name"]
-        self.category_id: int | None = utils._get_as_snowflake(data, "parent_id")
+        self.category_id: int | None = get_as_snowflake(data, "parent_id")
         self._type: int = data["type"]
         # This data may be missing depending on how this object is being created/updated
         if not data.pop("_invoke_flag", False):
@@ -232,7 +244,7 @@ class _TextChannel(discord.abc.GuildChannel, Hashable):
             self.slowmode_delay: int = data.get("rate_limit_per_user", 0)
             self.default_auto_archive_duration: ThreadArchiveDuration = data.get("default_auto_archive_duration", 1440)
             self.default_thread_slowmode_delay: int | None = data.get("default_thread_rate_limit_per_user")
-            self.last_message_id: int | None = utils._get_as_snowflake(data, "last_message_id")
+            self.last_message_id: int | None = get_as_snowflake(data, "last_message_id")
             self.flags: ChannelFlags = ChannelFlags._from_value(data.get("flags", 0))
             self._fill_overwrites(data)
 
@@ -245,7 +257,7 @@ class _TextChannel(discord.abc.GuildChannel, Hashable):
     def _sorting_bucket(self) -> int:
         return ChannelType.text.value
 
-    @utils.copy_doc(discord.abc.GuildChannel.permissions_for)
+    @copy_doc(discord.abc.GuildChannel.permissions_for)
     def permissions_for(self, obj: Member | Role, /) -> Permissions:
         base = super().permissions_for(obj)
 
@@ -289,17 +301,13 @@ class _TextChannel(discord.abc.GuildChannel, Hashable):
         Optional[:class:`Message`]
             The last message in this channel or ``None`` if not found.
         """
-        return (
-            await self._state._get_message(self.last_message_id)
-            if self.last_message_id
-            else None
-        )
+        return await self._state._get_message(self.last_message_id) if self.last_message_id else None
 
     async def edit(self, **options) -> _TextChannel:
         """Edits the channel."""
         raise NotImplementedError
 
-    @utils.copy_doc(discord.abc.GuildChannel.clone)
+    @copy_doc(discord.abc.GuildChannel.clone)
     async def clone(self, *, name: str | None = None, reason: str | None = None) -> TextChannel:
         return await self._clone_impl(
             {
@@ -462,7 +470,7 @@ class _TextChannel(discord.abc.GuildChannel, Hashable):
             You don't have permissions to get the webhooks.
         """
 
-        from .webhook import Webhook
+        from .webhook import Webhook  # noqa: PLC0415
 
         data = await self._state.http.channel_webhooks(self.id)
         return [Webhook.from_state(d, state=self._state) for d in data]
@@ -500,10 +508,10 @@ class _TextChannel(discord.abc.GuildChannel, Hashable):
             You do not have permissions to create a webhook.
         """
 
-        from .webhook import Webhook
+        from .webhook import Webhook  # noqa: PLC0415
 
         if avatar is not None:
-            avatar = utils._bytes_to_base64_data(avatar)  # type: ignore
+            avatar = bytes_to_base64_data(avatar)  # type: ignore
 
         data = await self._state.http.create_webhook(self.id, name=str(name), avatar=avatar, reason=reason)
         return Webhook.from_state(data, state=self._state)
@@ -549,7 +557,7 @@ class _TextChannel(discord.abc.GuildChannel, Hashable):
         if not isinstance(destination, TextChannel):
             raise InvalidArgument(f"Expected TextChannel received {destination.__class__.__name__}")
 
-        from .webhook import Webhook
+        from .webhook import Webhook  # noqa: PLC0415
 
         data = await self._state.http.follow_webhook(self.id, webhook_channel_id=destination.id, reason=reason)
         return Webhook._as_follower(data, channel=destination, user=self._state.user)
@@ -573,7 +581,7 @@ class _TextChannel(discord.abc.GuildChannel, Hashable):
             The partial message.
         """
 
-        from .message import PartialMessage
+        from .message import PartialMessage  # noqa: PLC0415
 
         return PartialMessage(channel=self, id=message_id)
 
@@ -1007,7 +1015,7 @@ class ForumChannel(_TextChannel):
                 self.default_reaction_emoji = reaction_emoji_ctx["emoji_name"]
             else:
                 self.default_reaction_emoji = await self._state.get_emoji(
-                    utils._get_as_snowflake(reaction_emoji_ctx, "emoji_id")
+                    get_as_snowflake(reaction_emoji_ctx, "emoji_id")
                 )
 
     @property
@@ -1031,7 +1039,7 @@ class ForumChannel(_TextChannel):
 
         .. versionadded:: 2.3
         """
-        return utils.get(self.available_tags, id=id)
+        return utils.find(lambda t: t.id == id, self.available_tags)
 
     @overload
     async def edit(
@@ -1142,18 +1150,20 @@ class ForumChannel(_TextChannel):
     async def create_thread(
         self,
         name: str,
-        content=None,
+        content: str | None = None,
         *,
-        embed=None,
-        embeds=None,
-        file=None,
-        files=None,
-        stickers=None,
-        delete_message_after=None,
-        nonce=None,
-        allowed_mentions=None,
-        view=None,
-        applied_tags=None,
+        embed: Embed | None = None,
+        embeds: list[Embed] | None = None,
+        file: File | None = None,
+        files: list[File] | None = None,
+        stickers: Sequence[GuildSticker | StickerItem] | None = None,
+        delete_message_after: float | None = None,
+        nonce: int | str | None = None,
+        allowed_mentions: AllowedMentions | None = None,
+        view: View | None = None,
+        applied_tags: list[ForumTag] | None = None,
+        suppress: bool = False,
+        silent: bool = False,
         auto_archive_duration: ThreadArchiveDuration | utils.Undefined = MISSING,
         slowmode_delay: int | utils.Undefined = MISSING,
         reason: str | None = None,
@@ -1247,11 +1257,20 @@ class ForumChannel(_TextChannel):
         else:
             allowed_mentions = allowed_mentions.to_dict()
 
+        flags = MessageFlags(
+            suppress_embeds=bool(suppress),
+            suppress_notifications=bool(silent),
+        )
+
         if view:
             if not hasattr(view, "__discord_ui_view__"):
                 raise InvalidArgument(f"view parameter must be View not {view.__class__!r}")
 
             components = view.to_components()
+            if view.is_components_v2():
+                if embeds or content:
+                    raise TypeError("cannot send embeds or content with a view using v2 component logic")
+                flags.is_components_v2 = True
         else:
             components = None
 
@@ -1287,6 +1306,7 @@ class ForumChannel(_TextChannel):
                 auto_archive_duration=auto_archive_duration or self.default_auto_archive_duration,
                 rate_limit_per_user=slowmode_delay or self.slowmode_delay,
                 applied_tags=applied_tags,
+                flags=flags.value,
                 reason=reason,
             )
         finally:
@@ -1296,7 +1316,7 @@ class ForumChannel(_TextChannel):
 
         ret = Thread(guild=self.guild, state=self._state, data=data)
         msg = ret.get_partial_message(int(data["last_message_id"]))
-        if view:
+        if view and view.is_dispatchable():
             await state.store_view(view, msg.id)
 
         if delete_message_after is not None:
@@ -1531,19 +1551,17 @@ class VocalGuildChannel(discord.abc.Connectable, discord.abc.GuildChannel, Hasha
     def _get_voice_state_pair(self) -> tuple[int, int]:
         return self.guild.id, self.id
 
-    async def _update(
-        self, data: VoiceChannelPayload | StageChannelPayload
-    ) -> None:
+    async def _update(self, data: VoiceChannelPayload | StageChannelPayload) -> None:
         # This data will always exist
         self.name: str = data["name"]
-        self.category_id: int | None = utils._get_as_snowflake(data, "parent_id")
+        self.category_id: int | None = get_as_snowflake(data, "parent_id")
 
         # This data may be missing depending on how this object is being created/updated
         if not data.pop("_invoke_flag", False):
             rtc = data.get("rtc_region")
             self.rtc_region: VoiceRegion | None = try_enum(VoiceRegion, rtc) if rtc is not None else None
             self.video_quality_mode: VideoQualityMode = try_enum(VideoQualityMode, data.get("video_quality_mode", 1))
-            self.last_message_id: int | None = utils._get_as_snowflake(data, "last_message_id")
+            self.last_message_id: int | None = get_as_snowflake(data, "last_message_id")
             self.position: int = data.get("position")
             self.slowmode_delay = data.get("rate_limit_per_user", 0)
             self.bitrate: int = data.get("bitrate")
@@ -1588,7 +1606,7 @@ class VocalGuildChannel(discord.abc.Connectable, discord.abc.GuildChannel, Hasha
             if value.channel and value.channel.id == self.id
         }
 
-    @utils.copy_doc(discord.abc.GuildChannel.permissions_for)
+    @copy_doc(discord.abc.GuildChannel.permissions_for)
     def permissions_for(self, obj: Member | Role, /) -> Permissions:
         base = super().permissions_for(obj)
 
@@ -1724,11 +1742,7 @@ class VoiceChannel(discord.abc.Messageable, VocalGuildChannel):
         Optional[:class:`Message`]
             The last message in this channel or ``None`` if not found.
         """
-        return (
-            await self._state._get_message(self.last_message_id)
-            if self.last_message_id
-            else None
-        )
+        return await self._state._get_message(self.last_message_id) if self.last_message_id else None
 
     def get_partial_message(self, message_id: int, /) -> PartialMessage:
         """Creates a :class:`PartialMessage` from the message ID.
@@ -1749,7 +1763,7 @@ class VoiceChannel(discord.abc.Messageable, VocalGuildChannel):
             The partial message.
         """
 
-        from .message import PartialMessage
+        from .message import PartialMessage  # noqa: PLC0415
 
         return PartialMessage(channel=self, id=message_id)
 
@@ -1904,7 +1918,7 @@ class VoiceChannel(discord.abc.Messageable, VocalGuildChannel):
             You don't have permissions to get the webhooks.
         """
 
-        from .webhook import Webhook
+        from .webhook import Webhook  # noqa: PLC0415
 
         data = await self._state.http.channel_webhooks(self.id)
         return [Webhook.from_state(d, state=self._state) for d in data]
@@ -1942,10 +1956,10 @@ class VoiceChannel(discord.abc.Messageable, VocalGuildChannel):
             You do not have permissions to create a webhook.
         """
 
-        from .webhook import Webhook
+        from .webhook import Webhook  # noqa: PLC0415
 
         if avatar is not None:
-            avatar = utils._bytes_to_base64_data(avatar)  # type: ignore
+            avatar = bytes_to_base64_data(avatar)  # type: ignore
 
         data = await self._state.http.create_webhook(self.id, name=str(name), avatar=avatar, reason=reason)
         return Webhook.from_state(data, state=self._state)
@@ -1955,7 +1969,7 @@ class VoiceChannel(discord.abc.Messageable, VocalGuildChannel):
         """The channel's Discord type."""
         return ChannelType.voice
 
-    @utils.copy_doc(discord.abc.GuildChannel.clone)
+    @copy_doc(discord.abc.GuildChannel.clone)
     async def clone(self, *, name: str | None = None, reason: str | None = None) -> VoiceChannel:
         return await self._clone_impl(
             {"bitrate": self.bitrate, "user_limit": self.user_limit},
@@ -2254,11 +2268,7 @@ class StageChannel(discord.abc.Messageable, VocalGuildChannel):
         Optional[:class:`Message`]
             The last message in this channel or ``None`` if not found.
         """
-        return (
-            await self._state._get_message(self.last_message_id)
-            if self.last_message_id
-            else None
-        )
+        return await self._state._get_message(self.last_message_id) if self.last_message_id else None
 
     def get_partial_message(self, message_id: int, /) -> PartialMessage:
         """Creates a :class:`PartialMessage` from the message ID.
@@ -2279,7 +2289,7 @@ class StageChannel(discord.abc.Messageable, VocalGuildChannel):
             The partial message.
         """
 
-        from .message import PartialMessage
+        from .message import PartialMessage  # noqa: PLC0415
 
         return PartialMessage(channel=self, id=message_id)
 
@@ -2434,7 +2444,7 @@ class StageChannel(discord.abc.Messageable, VocalGuildChannel):
             You don't have permissions to get the webhooks.
         """
 
-        from .webhook import Webhook
+        from .webhook import Webhook  # noqa: PLC0415
 
         data = await self._state.http.channel_webhooks(self.id)
         return [Webhook.from_state(d, state=self._state) for d in data]
@@ -2472,10 +2482,10 @@ class StageChannel(discord.abc.Messageable, VocalGuildChannel):
             You do not have permissions to create a webhook.
         """
 
-        from .webhook import Webhook
+        from .webhook import Webhook  # noqa: PLC0415
 
         if avatar is not None:
-            avatar = utils._bytes_to_base64_data(avatar)  # type: ignore
+            avatar = bytes_to_base64_data(avatar)  # type: ignore
 
         data = await self._state.http.create_webhook(self.id, name=str(name), avatar=avatar, reason=reason)
         return Webhook.from_state(data, state=self._state)
@@ -2494,7 +2504,7 @@ class StageChannel(discord.abc.Messageable, VocalGuildChannel):
         """The channel's Discord type."""
         return ChannelType.stage_voice
 
-    @utils.copy_doc(discord.abc.GuildChannel.clone)
+    @copy_doc(discord.abc.GuildChannel.clone)
     async def clone(self, *, name: str | None = None, reason: str | None = None) -> StageChannel:
         return await self._clone_impl({}, name=name, reason=reason)
 
@@ -2504,7 +2514,7 @@ class StageChannel(discord.abc.Messageable, VocalGuildChannel):
 
         .. versionadded:: 2.0
         """
-        return utils.get(self.guild.stage_instances, channel_id=self.id)
+        return utils.find(lambda s: s.channel_id == self.id, self.guild.stage_instances)
 
     async def create_instance(
         self,
@@ -2735,7 +2745,7 @@ class CategoryChannel(discord.abc.GuildChannel, Hashable):
     async def _update(self, data: CategoryChannelPayload) -> None:
         # This data will always exist
         self.name: str = data["name"]
-        self.category_id: int | None = utils._get_as_snowflake(data, "parent_id")
+        self.category_id: int | None = get_as_snowflake(data, "parent_id")
 
         # This data may be missing depending on how this object is being created/updated
         if not data.pop("_invoke_flag", False):
@@ -2757,7 +2767,7 @@ class CategoryChannel(discord.abc.GuildChannel, Hashable):
         """Checks if the category is NSFW."""
         return self.nsfw
 
-    @utils.copy_doc(discord.abc.GuildChannel.clone)
+    @copy_doc(discord.abc.GuildChannel.clone)
     async def clone(self, *, name: str | None = None, reason: str | None = None) -> CategoryChannel:
         return await self._clone_impl({"nsfw": self.nsfw}, name=name, reason=reason)
 
@@ -2823,7 +2833,7 @@ class CategoryChannel(discord.abc.GuildChannel, Hashable):
             # the payload will always be the proper channel payload
             return self.__class__(state=self._state, guild=self.guild, data=payload)  # type: ignore
 
-    @utils.copy_doc(discord.abc.GuildChannel.move)
+    @copy_doc(discord.abc.GuildChannel.move)
     async def move(self, **kwargs):
         kwargs.pop("category", None)
         await super().move(**kwargs)
@@ -3069,7 +3079,7 @@ class DMChannel(discord.abc.Messageable, Hashable):
             The partial message.
         """
 
-        from .message import PartialMessage
+        from .message import PartialMessage  # noqa: PLC0415
 
         return PartialMessage(channel=self, id=message_id)
 
@@ -3134,12 +3144,10 @@ class GroupChannel(discord.abc.Messageable, Hashable):
     async def _update_group(self, data: dict[str, Any] | None = None) -> None:
         if data:
             self._data = data
-        self.owner_id: int | None = utils._get_as_snowflake(self._data, "owner_id")
+        self.owner_id: int | None = get_as_snowflake(self._data, "owner_id")
         self._icon: str | None = self._data.get("icon")
         self.name: str | None = self._data.get("name")
-        self.recipients: list[User] = [
-            await self._state.store_user(u) for u in self._data.get("recipients", [])
-        ]
+        self.recipients: list[User] = [await self._state.store_user(u) for u in self._data.get("recipients", [])]
 
         self.owner: BaseUser | None
         if self.owner_id == self.me.id:
@@ -3297,7 +3305,7 @@ class PartialMessageable(discord.abc.Messageable, Hashable):
             The partial message.
         """
 
-        from .message import PartialMessage
+        from .message import PartialMessage  # noqa: PLC0415
 
         return PartialMessage(channel=self, id=message_id)
 

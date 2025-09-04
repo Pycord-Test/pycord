@@ -33,13 +33,13 @@ from discord.channel import GroupChannel, _channel_factory
 from discord.enums import ChannelType, try_enum
 from discord.threads import Thread
 
-T = TypeVar('T')
+T = TypeVar("T")
+
 
 class ChannelCreate(Event, GuildChannel):
     __event_name__ = "CHANNEL_CREATE"
 
-    def __init__(self) -> None:
-        ...
+    def __init__(self) -> None: ...
 
     @classmethod
     async def __load__(cls, data: dict[str, Any], state: ConnectionState) -> Self | None:
@@ -59,13 +59,13 @@ class ChannelCreate(Event, GuildChannel):
         else:
             return
 
+
 class PrivateChannelUpdate(Event, PrivateChannel):
     __event_name__ = "PRIVATE_CHANNEL_UPDATE"
 
     old: PrivateChannel | None
 
-    def __init__(self) -> None:
-        ...
+    def __init__(self) -> None: ...
 
     @classmethod
     async def __load__(cls, data: tuple[PrivateChannel | None, PrivateChannel], _: ConnectionState) -> Self | None:
@@ -74,13 +74,13 @@ class PrivateChannelUpdate(Event, PrivateChannel):
         self.__dict__.update(data[1].__dict__)
         return self
 
+
 class GuildChannelUpdate(Event, PrivateChannel):
     __event_name__ = "GUILD_CHANNEL_UPDATE"
 
     old: GuildChannel | None
 
-    def __init__(self) -> None:
-        ...
+    def __init__(self) -> None: ...
 
     @classmethod
     async def __load__(cls, data: tuple[GuildChannel | None, GuildChannel], _: ConnectionState) -> Self | None:
@@ -89,11 +89,11 @@ class GuildChannelUpdate(Event, PrivateChannel):
         self.__dict__.update(data[1].__dict__)
         return self
 
+
 class ChannelUpdate(Event, GuildChannel):
     __event_name__ = "CHANNEL_UPDATE"
 
-    def __init__(self) -> None:
-        ...
+    def __init__(self) -> None: ...
 
     @classmethod
     async def __load__(cls, data: dict[str, Any], state: ConnectionState) -> Self | None:
@@ -113,14 +113,14 @@ class ChannelUpdate(Event, GuildChannel):
             channel = guild.get_channel(channel_id)
             if channel is not None:
                 old_channel = copy.copy(channel)
-                await channel._update(data) # type: ignore
+                await channel._update(data)  # type: ignore
                 await state.emitter.emit("GUILD_CHANNEL_UPDATE", (old_channel, channel))
+
 
 class ChannelDelete(Event, GuildChannel):
     __event_name__ = "CHANNEL_DELETE"
 
-    def __init__(self) -> None:
-        ...
+    def __init__(self) -> None: ...
 
     @classmethod
     async def __load__(cls, data: dict[str, Any], state: ConnectionState) -> Self | None:
@@ -133,6 +133,7 @@ class ChannelDelete(Event, GuildChannel):
                 self = cls()
                 self.__dict__.update(channel.__dict__)
                 return self
+
 
 class ChannelPinsUpdate(Event):
     channel: PrivateChannel | GuildChannel | Thread
@@ -154,9 +155,5 @@ class ChannelPinsUpdate(Event):
 
         self = cls()
         self.channel = channel
-        self.last_pin = (
-            utils.parse_time(data["last_pin_timestamp"])
-            if data["last_pin_timestamp"]
-            else None
-        )
+        self.last_pin = utils.parse_time(data["last_pin_timestamp"]) if data["last_pin_timestamp"] else None
         return self

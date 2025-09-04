@@ -30,7 +30,7 @@ from typing import Any, Callable, Self, TypeVar
 
 from .state import ConnectionState
 
-T = TypeVar('T', bound='Event')
+T = TypeVar("T", bound="Event")
 
 
 class Event(ABC):
@@ -38,8 +38,7 @@ class Event(ABC):
 
     @classmethod
     @abstractmethod
-    async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
-        ...
+    async def __load__(cls, data: Any, state: ConnectionState) -> Self | None: ...
 
 
 class EventEmitter:

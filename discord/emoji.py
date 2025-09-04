@@ -30,7 +30,8 @@ from typing import TYPE_CHECKING, Any, Iterator
 from .asset import Asset, AssetMixin
 from .partial_emoji import PartialEmoji, _EmojiTag
 from .user import User
-from .utils import MISSING, SnowflakeList, Undefined, snowflake_time
+from .utils import MISSING, Undefined, snowflake_time
+from .utils.private import SnowflakeList
 
 __all__ = (
     "Emoji",
@@ -402,7 +403,5 @@ class AppEmoji(BaseEmoji):
         if name is not MISSING:
             payload["name"] = name
 
-        data = await self._state.http.edit_application_emoji(
-            self.application_id, self.id, payload=payload
-        )
+        data = await self._state.http.edit_application_emoji(self.application_id, self.id, payload=payload)
         return await self._state.maybe_store_app_emoji(self.application_id, data)

@@ -41,6 +41,7 @@ from typing import TYPE_CHECKING, Any, Literal, overload
 from urllib.parse import quote as urlquote
 
 from .. import utils
+from ..utils.private import parse_ratelimit_header, bytes_to_base64_data, to_json
 from ..channel import PartialMessageable
 from ..errors import (
     DiscordServerError,
@@ -124,7 +125,7 @@ class WebhookAdapter:
 
         if payload is not None:
             headers["Content-Type"] = "application/json"
-            to_send = utils._to_json(payload)
+            to_send = to_json(payload)
 
         if auth_token is not None:
             headers["Authorization"] = f"Bot {auth_token}"
@@ -183,7 +184,7 @@ class WebhookAdapter:
 
                         remaining = response.headers.get("X-Ratelimit-Remaining")
                         if remaining == "0" and response.status_code != 429:
-                            delta = utils._parse_ratelimit_header(response)
+                            delta = parse_ratelimit_header(response)
                             _log.debug(
                                 ("Webhook ID %s has been pre-emptively rate limited, waiting %.2f seconds"),
                                 webhook_id,
@@ -297,15 +298,11 @@ class WebhookAdapter:
         multipart: list[dict[str, Any]] | None = None,
         files: list[File] | None = None,
         thread_id: int | None = None,
-        thread_name: str | None = None,
         wait: bool = False,
     ):
         params = {"wait": int(wait)}
         if thread_id:
             params["thread_id"] = thread_id
-
-        if thread_name:
-            payload["thread_name"] = thread_name
 
         route = Route(
             "POST",
@@ -669,7 +666,7 @@ class SyncWebhook(BaseWebhook):
             "type": 1,
             "token": token,
         }
-        import requests
+        import requests  # noqa: PLC0415
 
         if session is MISSING:
             session = requests  # type: ignore
@@ -716,7 +713,7 @@ class SyncWebhook(BaseWebhook):
 
         data: dict[str, Any] = m.groupdict()
         data["type"] = 1
-        import requests
+        import requests  # noqa: PLC0415
 
         if session is MISSING:
             session = requests  # type: ignore
@@ -850,7 +847,7 @@ class SyncWebhook(BaseWebhook):
             payload["name"] = str(name) if name is not None else None
 
         if avatar is not MISSING:
-            payload["avatar"] = utils._bytes_to_base64_data(avatar) if avatar is not None else None
+            payload["avatar"] = bytes_to_base64_data(avatar) if avatar is not None else None
 
         adapter: WebhookAdapter = _get_webhook_adapter()
 
@@ -1050,6 +1047,7 @@ class SyncWebhook(BaseWebhook):
             allowed_mentions=allowed_mentions,
             previous_allowed_mentions=previous_mentions,
             suppress=suppress,
+            thread_name=thread_name,
         )
         adapter: WebhookAdapter = _get_webhook_adapter()
         thread_id: int | None = None
@@ -1064,7 +1062,6 @@ class SyncWebhook(BaseWebhook):
             multipart=params.multipart,
             files=params.files,
             thread_id=thread_id,
-            thread_name=thread_name,
             wait=wait,
         )
         if wait:

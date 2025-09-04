@@ -38,6 +38,7 @@ import aiohttp
 from discord.banners import print_banner, start_logging
 
 from . import utils
+from .utils.private import resolve_invite, resolve_template, bytes_to_base64_data, SequenceProxy
 from .activity import ActivityTypes, BaseActivity, create_activity
 from .appinfo import AppInfo, PartialAppInfo
 from .application_role_connection import ApplicationRoleConnectionMetadata
@@ -70,9 +71,11 @@ from .widget import Widget
 if TYPE_CHECKING:
     from .abc import GuildChannel, PrivateChannel, Snowflake, SnowflakeTime
     from .channel import DMChannel
+    from .interaction import Interaction
     from .member import Member
     from .message import Message
     from .poll import Poll
+    from .ui.item import Item
     from .voice_client import VoiceProtocol
 
 __all__ = ("Client",)
@@ -377,7 +380,7 @@ class Client:
 
         .. versionadded:: 1.1
         """
-        return utils.SequenceProxy(await self._connection.cache.get_all_messages())
+        return SequenceProxy(await self._connection.cache.get_all_messages())
 
     async def get_private_channels(self) -> list[PrivateChannel]:
         """The private channels that the connected client is participating on.
@@ -529,6 +532,32 @@ class Client:
         """
         print(f"Ignoring exception in {event_method}", file=sys.stderr)
         traceback.print_exc()
+
+    async def on_view_error(self, error: Exception, item: Item, interaction: Interaction) -> None:
+        """|coro|
+
+        The default view error handler provided by the client.
+
+        This only fires for a view if you did not define its :func:`~discord.ui.View.on_error`.
+        """
+
+        print(
+            f"Ignoring exception in view {interaction.view} for item {item}:",
+            file=sys.stderr,
+        )
+        traceback.print_exception(error.__class__, error, error.__traceback__, file=sys.stderr)
+
+    async def on_modal_error(self, error: Exception, interaction: Interaction) -> None:
+        """|coro|
+
+        The default modal error handler provided by the client.
+        The default implementation prints the traceback to stderr.
+
+        This only fires for a modal if you did not define its :func:`~discord.ui.Modal.on_error`.
+        """
+
+        print(f"Ignoring exception in modal {interaction.modal}:", file=sys.stderr)
+        traceback.print_exception(error.__class__, error, error.__traceback__, file=sys.stderr)
 
     # hooks
 
@@ -967,7 +996,7 @@ class Client:
         Optional[:class:`.StageInstance`]
             The stage instance or ``None`` if not found.
         """
-        from .channel import StageChannel
+        from .channel import StageChannel  # noqa: PLC0415
 
         channel = await self._connection.get_channel(id)
 
@@ -1535,7 +1564,7 @@ class Client:
         :exc:`HTTPException`
             Getting the template failed.
         """
-        code = utils.resolve_template(code)
+        code = resolve_template(code)
         data = await self.http.get_template(code)
         return await Template.from_data(data=data, state=self._connection)  # type: ignore
 
@@ -1619,7 +1648,7 @@ class Client:
             Invalid icon image format given. Must be PNG or JPG.
         """
         if icon is not MISSING:
-            icon_base64 = utils._bytes_to_base64_data(icon)
+            icon_base64 = bytes_to_base64_data(icon)
         else:
             icon_base64 = None
 
@@ -1711,7 +1740,7 @@ class Client:
             Getting the invite failed.
         """
 
-        invite_id = utils.resolve_invite(url)
+        invite_id = resolve_invite(url)
         data = await self.http.get_invite(
             invite_id,
             with_counts=with_counts,
@@ -1743,7 +1772,7 @@ class Client:
             Revoking the invite failed.
         """
 
-        invite_id = utils.resolve_invite(invite)
+        invite_id = resolve_invite(invite)
         await self.http.delete_invite(invite_id)
 
     # Miscellaneous stuff
@@ -2159,13 +2188,8 @@ class Client:
         List[:class:`AppEmoji`]
             The retrieved emojis.
         """
-        data = await self._connection.http.get_all_application_emojis(
-            self.application_id
-        )
-        return [
-            await self._connection.maybe_store_app_emoji(self.application_id, d)
-            for d in data["items"]
-        ]
+        data = await self._connection.http.get_all_application_emojis(self.application_id)
+        return [await self._connection.maybe_store_app_emoji(self.application_id, d) for d in data["items"]]
 
     async def fetch_emoji(self, emoji_id: int, /) -> AppEmoji:
         """|coro|
@@ -2189,9 +2213,7 @@ class Client:
         HTTPException
             An error occurred fetching the emoji.
         """
-        data = await self._connection.http.get_application_emoji(
-            self.application_id, emoji_id
-        )
+        data = await self._connection.http.get_application_emoji(self.application_id, emoji_id)
         return await self._connection.maybe_store_app_emoji(self.application_id, data)
 
     async def create_emoji(
@@ -2225,10 +2247,8 @@ class Client:
             The created emoji.
         """
 
-        img = utils._bytes_to_base64_data(image)
-        data = await self._connection.http.create_application_emoji(
-            self.application_id, name, img
-        )
+        img = bytes_to_base64_data(image)
+        data = await self._connection.http.create_application_emoji(self.application_id, name, img)
         return await self._connection.maybe_store_app_emoji(self.application_id, data)
 
     async def delete_emoji(self, emoji: Snowflake) -> None:
@@ -2247,8 +2267,6 @@ class Client:
             An error occurred deleting the emoji.
         """
 
-        await self._connection.http.delete_application_emoji(
-            self.application_id, emoji.id
-        )
+        await self._connection.http.delete_application_emoji(self.application_id, emoji.id)
         if self._connection.cache_app_emojis and await self._connection.get_emoji(emoji.id):
             await self._connection._remove_emoji(emoji)

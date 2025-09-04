@@ -26,8 +26,10 @@ DEALINGS IN THE SOFTWARE.
 from __future__ import annotations
 
 import asyncio
+import datetime
 from typing import TYPE_CHECKING, Any, Coroutine, Union
 
+from .utils.private import get_as_snowflake, deprecated, delay_task, cached_slot_property
 from . import utils
 from .channel import ChannelType, PartialMessageable, _threaded_channel_factory
 from .enums import (
@@ -75,7 +77,7 @@ if TYPE_CHECKING:
         VoiceChannel,
     )
     from .client import Client
-    from .commands import OptionChoice
+    from .commands import ApplicationCommand, OptionChoice
     from .embeds import Embed
     from .mentions import AllowedMentions
     from .poll import Poll
@@ -152,6 +154,22 @@ class Interaction:
         The context in which this command was executed.
 
         .. versionadded:: 2.6
+    command: Optional[:class:`ApplicationCommand`]
+        The command that this interaction belongs to.
+
+        .. versionadded:: 2.7
+    view: Optional[:class:`View`]
+        The view that this interaction belongs to.
+
+        .. versionadded:: 2.7
+    modal: Optional[:class:`Modal`]
+        The modal that this interaction belongs to.
+
+        .. versionadded:: 2.7
+    attachment_size_limit: :class:`int`
+        The attachment size limit.
+
+        .. versionadded:: 2.7
     """
 
     __slots__: tuple[str, ...] = (
@@ -172,6 +190,11 @@ class Interaction:
         "entitlements",
         "context",
         "authorizing_integration_owners",
+        "command",
+        "view",
+        "modal",
+        "_data",
+        "attachment_size_limit",
         "_channel_data",
         "_message_data",
         "_guild_data",
@@ -201,8 +224,8 @@ class Interaction:
         self.data: InteractionData | None = data.get("data")
         self.token: str = data["token"]
         self.version: int = data["version"]
-        self.channel_id: int | None = utils._get_as_snowflake(data, "channel_id")
-        self.guild_id: int | None = utils._get_as_snowflake(data, "guild_id")
+        self.channel_id: int | None = get_as_snowflake(data, "channel_id")
+        self.guild_id: int | None = get_as_snowflake(data, "guild_id")
         self.application_id: int = int(data["application_id"])
         self.locale: str | None = data.get("locale")
         self.guild_locale: str | None = data.get("guild_locale")
@@ -220,6 +243,11 @@ class Interaction:
             try_enum(InteractionContextType, data["context"]) if "context" in data else None
         )
 
+        self.command: ApplicationCommand | None = None
+        self.view: View | None = None
+        self.modal: Modal | None = None
+        self.attachment_size_limit: int = data.get("attachment_size_limit")
+
         self.message: Message | None = None
         self.channel = None
 
@@ -233,11 +261,7 @@ class Interaction:
 
         # TODO: there's a potential data loss here
         if self.guild_id:
-            guild = (
-                self.guild
-                or await self._state._get_guild(self.guild_id)
-                or Object(id=self.guild_id)
-            )
+            guild = self.guild or await self._state._get_guild(self.guild_id) or Object(id=self.guild_id)
             try:
                 member = data["member"]  # type: ignore
             except KeyError:
@@ -246,9 +270,7 @@ class Interaction:
                 self._permissions = int(member.get("permissions", 0))
                 if not isinstance(guild, Object):
                     cache_flag = self._state.member_cache_flags.interaction
-                    self.user = await guild._get_and_update_member(
-                        member, int(member["user"]["id"]), cache_flag
-                    )
+                    self.user = await guild._get_and_update_member(member, int(member["user"]["id"]), cache_flag)
                 else:
                     self.user = await Member._from_data(state=self._state, data=member, guild=guild)
         else:
@@ -274,9 +296,7 @@ class Interaction:
         self._channel_data = channel
 
         if message_data := data.get("message"):
-            self.message = await Message._from_data(
-                state=self._state, channel=self.channel, data=message_data
-            )
+            self.message = await Message._from_data(state=self._state, channel=self.channel, data=message_data)
 
         self._message_data = message_data
 
@@ -291,6 +311,11 @@ class Interaction:
             return self._guild
         return self._state and await self._state._get_guild(self.guild_id)
 
+    @property
+    def created_at(self) -> datetime.datetime:
+        """Returns the interaction's creation time in UTC."""
+        return utils.snowflake_time(self.id)
+
     def is_command(self) -> bool:
         """Indicates whether the interaction is an application command."""
         return self.type == InteractionType.application_command
@@ -299,8 +324,8 @@ class Interaction:
         """Indicates whether the interaction is a message component."""
         return self.type == InteractionType.component
 
-    @utils.cached_slot_property("_cs_channel")
-    @utils.deprecated("Interaction.channel", "2.7", stacklevel=4)
+    @cached_slot_property("_cs_channel")
+    @deprecated("Interaction.channel", "2.7", stacklevel=4)
     def cached_channel(self) -> InteractionChannel | None:
         """The cached channel from which the interaction was sent.
         DM channels are not resolved. These are :class:`PartialMessageable` instead.
@@ -324,12 +349,12 @@ class Interaction:
         """
         return Permissions(self._permissions)
 
-    @utils.cached_slot_property("_cs_app_permissions")
+    @cached_slot_property("_cs_app_permissions")
     def app_permissions(self) -> Permissions:
         """The resolved permissions of the application in the channel, including overwrites."""
         return Permissions(self._app_permissions)
 
-    @utils.cached_slot_property("_cs_response")
+    @cached_slot_property("_cs_response")
     def response(self) -> InteractionResponse:
         """Returns an object responsible for handling responding to the interaction.
 
@@ -338,7 +363,7 @@ class Interaction:
         """
         return InteractionResponse(self)
 
-    @utils.cached_slot_property("_cs_followup")
+    @cached_slot_property("_cs_followup")
     def followup(self) -> Webhook:
         """Returns the followup webhook for followup interactions."""
         payload = {
@@ -436,7 +461,7 @@ class Interaction:
         self._original_response = message
         return message
 
-    @utils.deprecated("Interaction.original_response", "2.2")
+    @deprecated("Interaction.original_response", "2.2")
     async def original_message(self):
         """An alias for :meth:`original_response`.
 
@@ -556,14 +581,16 @@ class Interaction:
         message = InteractionMessage(state=state, channel=self.channel, data=data)  # type: ignore
         if view and not view.is_finished():
             view.message = message
-            await self._state.store_view(view, message.id)
+            view.refresh(message.components)
+            if view.is_dispatchable():
+                await self._state.store_view(view, message.id)
 
         if delete_after is not None:
             await self.delete_original_response(delay=delete_after)
 
         return message
 
-    @utils.deprecated("Interaction.edit_original_response", "2.2")
+    @deprecated("Interaction.edit_original_response", "2.2")
     async def edit_original_message(self, **kwargs):
         """An alias for :meth:`edit_original_response`.
 
@@ -617,11 +644,11 @@ class Interaction:
         )
 
         if delay is not None:
-            utils.delay_task(delay, func)
+            delay_task(delay, func)
         else:
             await func
 
-    @utils.deprecated("Interaction.delete_original_response", "2.2")
+    @deprecated("Interaction.delete_original_response", "2.2")
     async def delete_original_message(self, **kwargs):
         """An alias for :meth:`delete_original_response`.
 
@@ -911,7 +938,7 @@ class InteractionResponse:
         HTTPException
             Sending the message failed.
         TypeError
-            You specified both ``embed`` and ``embeds``.
+            You specified both ``embed`` and ``embeds``, or sent content or embeds with V2 components.
         ValueError
             The length of ``embeds`` was invalid.
         InteractionResponded
@@ -942,6 +969,10 @@ class InteractionResponse:
 
         if view is not None:
             payload["components"] = view.to_components()
+            if view.is_components_v2():
+                if embeds or content:
+                    raise TypeError("cannot send embeds or content with a view using v2 component logic")
+                flags.is_components_v2 = True
 
         if poll is not None:
             payload["poll"] = poll.to_dict()
@@ -1001,7 +1032,8 @@ class InteractionResponse:
                 view.timeout = 15 * 60.0
 
             view.parent = self._parent
-            self._parent._state.store_view(view)
+            if view.is_dispatchable():
+                self._parent._state.store_view(view)
 
         self._responded = True
         if delete_after is not None:
@@ -1244,10 +1276,10 @@ class InteractionResponse:
         )
         self._responded = True
         # _data should be present
-        await self._parent._state.store_modal(modal, int(self._parent._data["user"]["id"])) # type: ignore
+        await self._parent._state.store_modal(modal, int(self._parent._data["user"]["id"]))  # type: ignore
         return self._parent
 
-    @utils.deprecated("a button with type ButtonType.premium", "2.6")
+    @deprecated("a button with type ButtonType.premium", "2.6")
     async def premium_required(self) -> Interaction:
         """|coro|
 
@@ -1534,8 +1566,8 @@ class InteractionMetadata:
         self.authorizing_integration_owners: AuthorizingIntegrationOwners = AuthorizingIntegrationOwners(
             data["authorizing_integration_owners"], state
         )
-        self.original_response_message_id: int | None = utils._get_as_snowflake(data, "original_response_message_id")
-        self.interacted_message_id: int | None = utils._get_as_snowflake(data, "interacted_message_id")
+        self.original_response_message_id: int | None = get_as_snowflake(data, "original_response_message_id")
+        self.interacted_message_id: int | None = get_as_snowflake(data, "interacted_message_id")
         self.triggering_interaction_metadata: InteractionMetadata | None = None
         if tim := data.get("triggering_interaction_metadata"):
             self.triggering_interaction_metadata = InteractionMetadata(data=tim, state=state)

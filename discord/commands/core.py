@@ -68,14 +68,15 @@ from ..object import Object
 from ..role import Role
 from ..threads import Thread
 from ..user import User
-from ..utils import MISSING, async_all, find, maybe_coroutine, utcnow, warn_deprecated
+from ..utils import MISSING, find, utcnow
+from ..utils.private import warn_deprecated, async_all, maybe_awaitable
 from .context import ApplicationContext, AutocompleteContext
 from .options import Option, OptionChoice
 
 if sys.version_info >= (3, 11):
-    from typing import Annotated, get_args, get_origin
+    from typing import Annotated, Literal, get_args, get_origin
 else:
-    from typing_extensions import Annotated, get_args, get_origin
+    from typing_extensions import Annotated, Literal, get_args, get_origin
 
 __all__ = (
     "_BaseCommand",
@@ -110,7 +111,7 @@ else:
 
 
 def wrap_callback(coro):
-    from ..ext.commands.errors import CommandError
+    from ..ext.commands.errors import CommandError  # noqa: PLC0415
 
     @functools.wraps(coro)
     async def wrapped(*args, **kwargs):
@@ -130,7 +131,7 @@ def wrap_callback(coro):
 
 
 def hooked_wrapped_callback(command, ctx, coro):
-    from ..ext.commands.errors import CommandError
+    from ..ext.commands.errors import CommandError  # noqa: PLC0415
 
     @functools.wraps(coro)
     async def wrapped(arg):
@@ -187,7 +188,7 @@ class ApplicationCommand(_BaseCommand, Generic[CogT, P, T]):
     cog = None
 
     def __init__(self, func: Callable, **kwargs) -> None:
-        from ..ext.commands.cooldowns import BucketType, CooldownMapping, MaxConcurrency
+        from ..ext.commands.cooldowns import BucketType, CooldownMapping, MaxConcurrency  # noqa: PLC0415
 
         cooldown = getattr(func, "__commands_cooldown__", kwargs.get("cooldown"))
 
@@ -226,7 +227,7 @@ class ApplicationCommand(_BaseCommand, Generic[CogT, P, T]):
             "__default_member_permissions__",
             kwargs.get("default_member_permissions", None),
         )
-        self.nsfw: bool | None = getattr(func, "__nsfw__", kwargs.get("nsfw", None))
+        self.nsfw: bool | None = getattr(func, "__nsfw__", kwargs.get("nsfw", False))
 
         integration_types = getattr(func, "__integration_types__", kwargs.get("integration_types", None))
         contexts = getattr(func, "__contexts__", kwargs.get("contexts", None))
@@ -329,7 +330,7 @@ class ApplicationCommand(_BaseCommand, Generic[CogT, P, T]):
                 retry_after = bucket.update_rate_limit(current)
 
                 if retry_after:
-                    from ..ext.commands.errors import CommandOnCooldown
+                    from ..ext.commands.errors import CommandOnCooldown  # noqa: PLC0415
 
                     raise CommandOnCooldown(bucket, retry_after, self._buckets.type)  # type: ignore
 
@@ -432,7 +433,7 @@ class ApplicationCommand(_BaseCommand, Generic[CogT, P, T]):
         if cog is not None:
             local_check = cog._get_overridden_method(cog.cog_check)
             if local_check is not None:
-                ret = await maybe_coroutine(local_check, ctx)
+                ret = await maybe_awaitable(local_check, ctx)
                 if not ret:
                     return False
 
@@ -779,6 +780,20 @@ class SlashCommand(ApplicationCommand):
             if option == inspect.Parameter.empty:
                 option = str
 
+            if self._is_typing_literal(option):
+                literal_values = get_args(option)
+                if not all(isinstance(v, (str, int, float)) for v in literal_values):
+                    raise TypeError("Literal values for choices must be str, int, or float.")
+
+                value_type = type(literal_values[0])
+                if not all(isinstance(v, value_type) for v in literal_values):
+                    raise TypeError("All Literal values for choices must be of the same type.")
+
+                option = Option(
+                    value_type,
+                    choices=[OptionChoice(name=str(v), value=v) for v in literal_values],
+                )
+
             if self._is_typing_annotated(option):
                 type_hint = get_args(option)[0]
                 metadata = option.__metadata__
@@ -865,6 +880,9 @@ class SlashCommand(ApplicationCommand):
 
     def _is_typing_optional(self, annotation):
         return self._is_typing_union(annotation) and type(None) in annotation.__args__  # type: ignore
+
+    def _is_typing_literal(self, annotation):
+        return get_origin(annotation) is Literal
 
     def _is_typing_annotated(self, annotation):
         return get_origin(annotation) is Annotated
@@ -981,7 +999,7 @@ class SlashCommand(ApplicationCommand):
                     arg = Object(id=int(arg))
 
             elif op.input_type == SlashCommandOptionType.string and (converter := op.converter) is not None:
-                from discord.ext.commands import Converter
+                from discord.ext.commands import Converter  # noqa: PLC0415
 
                 if isinstance(converter, Converter):
                     if isinstance(converter, type):
@@ -1182,7 +1200,7 @@ class SlashCommandGroup(ApplicationCommand):
 
         # Permissions
         self.default_member_permissions: Permissions | None = kwargs.get("default_member_permissions", None)
-        self.nsfw: bool | None = kwargs.get("nsfw", None)
+        self.nsfw: bool | None = kwargs.get("nsfw", False)
 
         integration_types = kwargs.get("integration_types", None)
         contexts = kwargs.get("contexts", None)
@@ -1206,7 +1224,7 @@ class SlashCommandGroup(ApplicationCommand):
         self.description_localizations: dict[str, str] = kwargs.get("description_localizations", MISSING)
 
         # similar to ApplicationCommand
-        from ..ext.commands.cooldowns import BucketType, CooldownMapping, MaxConcurrency
+        from ..ext.commands.cooldowns import BucketType, CooldownMapping, MaxConcurrency  # noqa: PLC0415
 
         # no need to getattr, since slash cmds groups cant be created using a decorator
 

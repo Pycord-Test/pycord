@@ -43,6 +43,7 @@ from typing import (
 )
 from urllib.parse import parse_qs, urlparse
 
+from .utils.private import get_as_snowflake, parse_time, warn_deprecated, delay_task, cached_slot_property
 from . import utils
 from .channel import PartialMessageable
 from .components import _component_factory
@@ -147,7 +148,9 @@ class Attachment(Hashable):
 
         .. describe:: hash(x)
 
-            Returns the hash of the attachment.
+            Returns the attachment's unique identifier.
+
+            This is equivalent to :attr:`id`.
 
     .. versionchanged:: 1.7
         Attachment can now be cast to :class:`str` and is hashable.
@@ -539,9 +542,9 @@ class MessageReference:
     def with_state(cls: type[MR], state: ConnectionState, data: MessageReferencePayload) -> MR:
         self = cls.__new__(cls)
         self.type = try_enum(MessageReferenceType, data.get("type")) or MessageReferenceType.default
-        self.message_id = utils._get_as_snowflake(data, "message_id")
-        self.channel_id = utils._get_as_snowflake(data, "channel_id")
-        self.guild_id = utils._get_as_snowflake(data, "guild_id")
+        self.message_id = get_as_snowflake(data, "message_id")
+        self.channel_id = get_as_snowflake(data, "channel_id")
+        self.guild_id = get_as_snowflake(data, "guild_id")
         self.fail_if_not_exists = data.get("fail_if_not_exists", True)
         self._state = state
         self.resolved = None
@@ -631,7 +634,7 @@ class MessageCall:
     def __init__(self, state: ConnectionState, data: MessageCallPayload):
         self._state: ConnectionState = state
         self._participants: SnowflakeList = data.get("participants", [])
-        self._ended_timestamp: datetime.datetime | None = utils.parse_time(data["ended_timestamp"])
+        self._ended_timestamp: datetime.datetime | None = parse_time(data["ended_timestamp"])
 
     async def get_participants(self) -> list[User | Object]:
         """A list of :class:`User` that participated in this call.
@@ -706,7 +709,7 @@ class ForwardedMessage:
         self.flags: MessageFlags = MessageFlags._from_value(data.get("flags", 0))
         self.stickers: list[StickerItem] = [StickerItem(data=d, state=state) for d in data.get("sticker_items", [])]
         self.components: list[Component] = [_component_factory(d) for d in data.get("components", [])]
-        self._edited_timestamp: datetime.datetime | None = utils.parse_time(data["edited_timestamp"])
+        self._edited_timestamp: datetime.datetime | None = parse_time(data["edited_timestamp"])
 
     @property
     def created_at(self) -> datetime.datetime:
@@ -954,20 +957,14 @@ class Message(Hashable):
         self._state = state
         self._raw_data = data
         self.id = int(data["id"])
-        self.webhook_id = utils._get_as_snowflake(data, "webhook_id")
-        self.reactions = [
-            Reaction(message=self, data=d) for d in data.get("reactions", [])
-        ]
-        self.attachments = [
-            Attachment(data=a, state=self._state) for a in data["attachments"]
-        ]
+        self.webhook_id = get_as_snowflake(data, "webhook_id")
+        self.reactions = [Reaction(message=self, data=d) for d in data.get("reactions", [])]
+        self.attachments = [Attachment(data=a, state=self._state) for a in data["attachments"]]
         self.embeds = [Embed.from_dict(a) for a in data["embeds"]]
         self.application = data.get("application")
         self.activity = data.get("activity")
         self.channel = channel
-        self._edited_timestamp = utils.parse_time(
-            data["edited_timestamp"]
-        )
+        self._edited_timestamp = parse_time(data["edited_timestamp"])
         self.type = try_enum(MessageType, data["type"])
         self.pinned = data["pinned"]
         self.flags = MessageFlags._from_value(data.get("flags", 0))
@@ -975,18 +972,14 @@ class Message(Hashable):
         self.tts = data["tts"]
         self.content = data["content"]
         self.nonce = data.get("nonce")
-        self.stickers = [
-            StickerItem(data=d, state=state) for d in data.get("sticker_items", [])
-        ]
-        self.components = [
-            _component_factory(d) for d in data.get("components", [])
-        ]
+        self.stickers = [StickerItem(data=d, state=state) for d in data.get("sticker_items", [])]
+        self.components = [_component_factory(d, state=state) for d in data.get("components", [])]
 
         try:
             # if the channel doesn't have a guild attribute, we handle that
             self.guild = channel.guild  # type: ignore
         except AttributeError:
-            self.guild = await state._get_guild(utils._get_as_snowflake(data, "guild_id"))
+            self.guild = await state._get_guild(get_as_snowflake(data, "guild_id"))
 
         try:
             ref = data["message_reference"]
@@ -1006,9 +999,7 @@ class Message(Hashable):
                     if ref.channel_id == channel.id:
                         chan = channel
                     else:
-                        chan, _ = await state._get_guild_channel(
-                            resolved, guild_id=self.guild.id
-                        )
+                        chan, _ = await state._get_guild_channel(resolved, guild_id=self.guild.id)
 
                     # the channel will be the correct type here
                     ref.resolved = self.__class__(channel=chan, data=resolved, state=state)  # type: ignore
@@ -1026,7 +1017,7 @@ class Message(Hashable):
         except KeyError:
             self.snapshots = []
 
-        from .interactions import InteractionMetadata, MessageInteraction
+        from .interactions import InteractionMetadata, MessageInteraction  # noqa: PLC0415
 
         self._interaction: MessageInteraction | None
         try:
@@ -1155,15 +1146,13 @@ class Message(Hashable):
         del self.reactions[index]
         return reaction
 
-    def _rebind_cached_references(
-        self, new_guild: Guild, new_channel: TextChannel | Thread
-    ) -> None:
+    def _rebind_cached_references(self, new_guild: Guild, new_channel: TextChannel | Thread) -> None:
         self.guild = new_guild
         self.channel = new_channel
 
     @property
     def interaction(self) -> MessageInteraction | None:
-        utils.warn_deprecated(
+        warn_deprecated(
             "interaction",
             "interaction_metadata",
             "2.6",
@@ -1173,7 +1162,7 @@ class Message(Hashable):
 
     @interaction.setter
     def interaction(self, value: MessageInteraction | None) -> None:
-        utils.warn_deprecated(
+        warn_deprecated(
             "interaction",
             "interaction_metadata",
             "2.6",
@@ -1181,7 +1170,7 @@ class Message(Hashable):
         )
         self._interaction = value
 
-    @utils.cached_slot_property("_cs_raw_mentions")
+    @cached_slot_property("_cs_raw_mentions")
     def raw_mentions(self) -> list[int]:
         """A property that returns an array of user IDs matched with
         the syntax of ``<@user_id>`` in the message content.
@@ -1191,28 +1180,28 @@ class Message(Hashable):
         """
         return [int(x) for x in re.findall(r"<@!?([0-9]{15,20})>", self.content)]
 
-    @utils.cached_slot_property("_cs_raw_channel_mentions")
+    @cached_slot_property("_cs_raw_channel_mentions")
     def raw_channel_mentions(self) -> list[int]:
         """A property that returns an array of channel IDs matched with
         the syntax of ``<#channel_id>`` in the message content.
         """
         return [int(x) for x in re.findall(r"<#([0-9]{15,20})>", self.content)]
 
-    @utils.cached_slot_property("_cs_raw_role_mentions")
+    @cached_slot_property("_cs_raw_role_mentions")
     def raw_role_mentions(self) -> list[int]:
         """A property that returns an array of role IDs matched with
         the syntax of ``<@&role_id>`` in the message content.
         """
         return [int(x) for x in re.findall(r"<@&([0-9]{15,20})>", self.content)]
 
-    @utils.cached_slot_property("_cs_channel_mentions")
+    @cached_slot_property("_cs_channel_mentions")
     def channel_mentions(self) -> list[GuildChannel]:
         if self.guild is None:
             return []
         it = filter(None, map(self.guild.get_channel, self.raw_channel_mentions))
-        return utils._unique(it)
+        return list(dict.fromkeys(it))  # using dict.fromkeys and not set to preserve order
 
-    @utils.cached_slot_property("_cs_clean_content")
+    @cached_slot_property("_cs_clean_content")
     def clean_content(self) -> str:
         """A property that returns the content in a "cleaned up"
         manner. This basically means that mentions are transformed
@@ -1289,7 +1278,7 @@ class Message(Hashable):
             MessageType.thread_starter_message,
         )
 
-    @utils.cached_slot_property("_cs_system_content")
+    @cached_slot_property("_cs_system_content")
     def system_content(self) -> str:
         r"""A property that returns the content that is rendered
         regardless of the :attr:`Message.type`.
@@ -1457,7 +1446,7 @@ class Message(Hashable):
         """
         del_func = self._state.http.delete_message(self.channel.id, self.id, reason=reason)
         if delay is not None:
-            utils.delay_task(delay, del_func)
+            delay_task(delay, del_func)
         else:
             await del_func
 
@@ -1567,10 +1556,10 @@ class Message(Hashable):
         elif embeds is not MISSING:
             payload["embeds"] = [e.to_dict() for e in embeds]
 
+        flags = MessageFlags._from_value(self.flags.value)
+
         if suppress is not MISSING:
-            flags = MessageFlags._from_value(self.flags.value)
             flags.suppress_embeds = suppress
-            payload["flags"] = flags.value
 
         if allowed_mentions is MISSING:
             if self._state.allowed_mentions is not None and self.author.id == self._state.self_id:
@@ -1587,8 +1576,13 @@ class Message(Hashable):
         if view is not MISSING:
             await self._state.prevent_view_updates_for(self.id)
             payload["components"] = view.to_components() if view else []
+            if view and view.is_components_v2():
+                flags.is_components_v2 = True
         if file is not MISSING and files is not MISSING:
             raise InvalidArgument("cannot pass both file and files parameter to edit()")
+
+        if flags.value != self.flags.value:
+            payload["flags"] = flags.value
 
         if file is not MISSING or files is not MISSING:
             if file is not MISSING:
@@ -1615,14 +1609,14 @@ class Message(Hashable):
                 for f in files:
                     f.close()
         else:
-            data = await self._state.http.edit_message(
-                self.channel.id, self.id, **payload
-            )
+            data = await self._state.http.edit_message(self.channel.id, self.id, **payload)
         message = await Message._from_data(state=self._state, channel=self.channel, data=data)
 
         if view and not view.is_finished():
             view.message = message
-            await self._state.store_view(view, self.id)
+            view.refresh(message.components)
+            if view.is_dispatchable():
+                await self._state.store_view(view, self.id)
 
         if delete_after is not None:
             await self.delete(delay=delete_after)
@@ -2105,7 +2099,7 @@ class PartialMessage(Hashable):
     def poll(self) -> Poll | None:
         return self._state._polls.get(self.id)
 
-    @utils.cached_slot_property("_cs_guild")
+    @cached_slot_property("_cs_guild")
     def guild(self) -> Guild | None:
         """The guild that the partial message belongs to, if applicable."""
         return getattr(self.channel, "guild", None)
@@ -2242,7 +2236,9 @@ class PartialMessage(Hashable):
             msg = self._state.create_message(channel=self.channel, data=data)  # type: ignore
             if view and not view.is_finished():
                 view.message = msg
-                await self._state.store_view(view, self.id)
+                view.refresh(msg.components)
+                if view.is_dispatchable():
+                    await self._state.store_view(view, self.id)
             return msg
 
     async def end_poll(self) -> Message:

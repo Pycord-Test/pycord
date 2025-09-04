@@ -41,7 +41,8 @@ from typing import (
 from .audit_logs import AuditLogEntry
 from .errors import NoMoreItems
 from .object import Object
-from .utils import maybe_coroutine, snowflake_time, time_snowflake
+from .utils import generate_snowflake, snowflake_time
+from .utils.private import maybe_awaitable
 
 __all__ = (
     "ReactionIterator",
@@ -84,20 +85,6 @@ class _AsyncIterator(AsyncIterator[T]):
     async def next(self) -> T:
         raise NotImplementedError
 
-    def get(self, **attrs: Any) -> Awaitable[T | None]:
-        def predicate(elem: T):
-            for attr, val in attrs.items():
-                nested = attr.split("__")
-                obj = elem
-                for attribute in nested:
-                    obj = getattr(obj, attribute)
-
-                if obj != val:
-                    return False
-            return True
-
-        return self.find(predicate)
-
     async def find(self, predicate: _Func[T, bool]) -> T | None:
         while True:
             try:
@@ -105,7 +92,7 @@ class _AsyncIterator(AsyncIterator[T]):
             except NoMoreItems:
                 return None
 
-            ret = await maybe_coroutine(predicate, elem)
+            ret = await maybe_awaitable(predicate, elem)
             if ret:
                 return elem
 
@@ -163,7 +150,7 @@ class _MappedAsyncIterator(_AsyncIterator[T]):
     async def next(self) -> T:
         # this raises NoMoreItems and will propagate appropriately
         item = await self.iterator.next()
-        return await maybe_coroutine(self.func, item)
+        return await maybe_awaitable(self.func, item)
 
 
 class _FilteredAsyncIterator(_AsyncIterator[T]):
@@ -181,7 +168,7 @@ class _FilteredAsyncIterator(_AsyncIterator[T]):
         while True:
             # propagate NoMoreItems similar to _MappedAsyncIterator
             item = await getter()
-            ret = await maybe_coroutine(pred, item)
+            ret = await maybe_awaitable(pred, item)
             if ret:
                 return item
 
@@ -211,7 +198,7 @@ class ReactionIterator(_AsyncIterator[Union["User", "Member"]]):
 
     async def fill_users(self):
         # this is a hack because >circular imports<
-        from .user import User
+        from .user import User  # noqa: PLC0415
 
         if self.limit > 0:
             retrieve = min(self.limit, 100)
@@ -266,7 +253,7 @@ class VoteIterator(_AsyncIterator[Union["User", "Member"]]):
 
     async def fill_users(self):
         # import here to prevent circular imports
-        from .user import User
+        from .user import User  # noqa: PLC0415
 
         if self.limit > 0:
             retrieve = min(self.limit, 100)
@@ -341,11 +328,11 @@ class HistoryIterator(_AsyncIterator["Message"]):
         oldest_first=None,
     ):
         if isinstance(before, datetime.datetime):
-            before = Object(id=time_snowflake(before, high=False))
+            before = Object(id=generate_snowflake(before, high=False))
         if isinstance(after, datetime.datetime):
-            after = Object(id=time_snowflake(after, high=True))
+            after = Object(id=generate_snowflake(after, high=True))
         if isinstance(around, datetime.datetime):
-            around = Object(id=time_snowflake(around))
+            around = Object(id=generate_snowflake(around))
 
         self.reverse = after is not None if oldest_first is None else oldest_first
         self.messageable = messageable
@@ -467,9 +454,9 @@ class AuditLogIterator(_AsyncIterator["AuditLogEntry"]):
         action_type=None,
     ):
         if isinstance(before, datetime.datetime):
-            before = Object(id=time_snowflake(before, high=False))
+            before = Object(id=generate_snowflake(before, high=False))
         if isinstance(after, datetime.datetime):
-            after = Object(id=time_snowflake(after, high=True))
+            after = Object(id=generate_snowflake(after, high=True))
 
         self.guild = guild
         self.loop = guild._state.loop
@@ -527,7 +514,7 @@ class AuditLogIterator(_AsyncIterator["AuditLogEntry"]):
         return r > 0
 
     async def _fill(self):
-        from .user import User
+        from .user import User  # noqa: PLC0415
 
         if self._get_retrieve():
             users, data = await self._retrieve_entries(self.retrieve)
@@ -578,9 +565,9 @@ class GuildIterator(_AsyncIterator["Guild"]):
 
     def __init__(self, bot, limit, before=None, after=None, with_counts=True):
         if isinstance(before, datetime.datetime):
-            before = Object(id=time_snowflake(before, high=False))
+            before = Object(id=generate_snowflake(before, high=False))
         if isinstance(after, datetime.datetime):
-            after = Object(id=time_snowflake(after, high=True))
+            after = Object(id=generate_snowflake(after, high=True))
 
         self.bot = bot
         self.limit = limit
@@ -621,7 +608,7 @@ class GuildIterator(_AsyncIterator["Guild"]):
         return r > 0
 
     async def create_guild(self, data):
-        from .guild import Guild
+        from .guild import Guild  # noqa: PLC0415
 
         return await Guild._from_data(state=self.state, data=data)
 
@@ -665,7 +652,7 @@ class GuildIterator(_AsyncIterator["Guild"]):
 class MemberIterator(_AsyncIterator["Member"]):
     def __init__(self, guild, limit=1000, after=None):
         if isinstance(after, datetime.datetime):
-            after = Object(id=time_snowflake(after, high=True))
+            after = Object(id=generate_snowflake(after, high=True))
 
         self.guild = guild
         self.limit = limit
@@ -711,7 +698,7 @@ class MemberIterator(_AsyncIterator["Member"]):
             await self.members.put(await self.create_member(element))
 
     async def create_member(self, data):
-        from .member import Member
+        from .member import Member  # noqa: PLC0415
 
         return await Member._from_data(data=data, guild=self.guild, state=self.state)
 
@@ -766,8 +753,8 @@ class BanIterator(_AsyncIterator["BanEntry"]):
             await self.bans.put(self.create_ban(element))
 
     def create_ban(self, data):
-        from .guild import BanEntry
-        from .user import User
+        from .guild import BanEntry  # noqa: PLC0415
+        from .user import User  # noqa: PLC0415
 
         return BanEntry(reason=data["reason"], user=User(state=self.state, data=data["user"]))
 
@@ -797,7 +784,7 @@ class ArchivedThreadIterator(_AsyncIterator["Thread"]):
             self.before = None
         elif isinstance(before, datetime.datetime):
             if joined:
-                self.before = str(time_snowflake(before, high=False))
+                self.before = str(generate_snowflake(before, high=False))
             else:
                 self.before = before.isoformat()
         else:
@@ -858,7 +845,7 @@ class ArchivedThreadIterator(_AsyncIterator["Thread"]):
             self.before = self.update_before(threads[-1])
 
     def create_thread(self, data: ThreadPayload) -> Thread:
-        from .threads import Thread
+        from .threads import Thread  # noqa: PLC0415
 
         return Thread(guild=self.guild, state=self.guild._state, data=data)
 
@@ -873,9 +860,9 @@ class ScheduledEventSubscribersIterator(_AsyncIterator[Union["User", "Member"]])
         after: datetime.datetime | int | None = None,
     ):
         if isinstance(before, datetime.datetime):
-            before = Object(id=time_snowflake(before, high=False))
+            before = Object(id=generate_snowflake(before, high=False))
         if isinstance(after, datetime.datetime):
-            after = Object(id=time_snowflake(after, high=True))
+            after = Object(id=generate_snowflake(after, high=True))
 
         self.event = event
         self.limit = limit
@@ -905,7 +892,7 @@ class ScheduledEventSubscribersIterator(_AsyncIterator[Union["User", "Member"]])
         return r > 0
 
     async def member_from_payload(self, data):
-        from .member import Member
+        from .member import Member  # noqa: PLC0415
 
         user = data.pop("user")
 
@@ -915,7 +902,7 @@ class ScheduledEventSubscribersIterator(_AsyncIterator[Union["User", "Member"]])
         return await Member._from_data(data=member, guild=self.event.guild, state=self.event._state)
 
     def user_from_payload(self, data):
-        from .user import User
+        from .user import User  # noqa: PLC0415
 
         user = data.pop("user")
 
@@ -967,9 +954,9 @@ class EntitlementIterator(_AsyncIterator["Entitlement"]):
         self.sku_ids = sku_ids
 
         if isinstance(before, datetime.datetime):
-            before = Object(id=time_snowflake(before, high=False))
+            before = Object(id=generate_snowflake(before, high=False))
         if isinstance(after, datetime.datetime):
-            after = Object(id=time_snowflake(after, high=True))
+            after = Object(id=generate_snowflake(after, high=True))
 
         self.before = before
         self.after = after
@@ -1010,7 +997,7 @@ class EntitlementIterator(_AsyncIterator["Entitlement"]):
         return r > 0
 
     def create_entitlement(self, data) -> Entitlement:
-        from .monetization import Entitlement
+        from .monetization import Entitlement  # noqa: PLC0415
 
         return Entitlement(data=data, state=self.state)
 
@@ -1081,9 +1068,9 @@ class SubscriptionIterator(_AsyncIterator["Subscription"]):
         user_id: int | None = None,
     ):
         if isinstance(before, datetime.datetime):
-            before = Object(id=time_snowflake(before, high=False))
+            before = Object(id=generate_snowflake(before, high=False))
         if isinstance(after, datetime.datetime):
-            after = Object(id=time_snowflake(after, high=True))
+            after = Object(id=generate_snowflake(after, high=True))
 
         self.state = state
         self.sku_id = sku_id
@@ -1124,7 +1111,7 @@ class SubscriptionIterator(_AsyncIterator["Subscription"]):
         return r > 0
 
     def create_subscription(self, data) -> Subscription:
-        from .monetization import Subscription
+        from .monetization import Subscription  # noqa: PLC0415
 
         return Subscription(state=self.state, data=data)
 

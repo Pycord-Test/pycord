@@ -30,8 +30,9 @@ import re
 from typing import TYPE_CHECKING, Any, Generic, TypeVar, Union
 
 import discord.abc
-import discord.utils
 from discord.message import Message
+from discord.utils.private import copy_doc
+from discord.utils import Undefined, MISSING
 
 if TYPE_CHECKING:
     from typing_extensions import ParamSpec
@@ -49,8 +50,6 @@ if TYPE_CHECKING:
     from .view import StringView
 
 __all__ = ("Context",)
-
-MISSING: Any = discord.utils.MISSING
 
 
 T = TypeVar("T")
@@ -125,12 +124,12 @@ class Context(discord.abc.Messageable, Generic[BotT]):
         message: Message,
         bot: BotT,
         view: StringView,
-        args: list[Any] | discord.utils.Undefined = MISSING,
-        kwargs: dict[str, Any] | discord.utils.Undefined = MISSING,
+        args: list[Any] | Undefined = MISSING,
+        kwargs: dict[str, Any] | Undefined = MISSING,
         prefix: str | None = None,
         command: Command | None = None,
         invoked_with: str | None = None,
-        invoked_parents: list[str] | discord.utils.Undefined = MISSING,
+        invoked_parents: list[str] | Undefined = MISSING,
         invoked_subcommand: Command | None = None,
         subcommand_passed: str | None = None,
         command_failed: bool = False,
@@ -281,28 +280,28 @@ class Context(discord.abc.Messageable, Generic[BotT]):
             return None
         return self.command.cog
 
-    @discord.utils.cached_property
+    @property
     def guild(self) -> Guild | None:
         """Returns the guild associated with this context's command.
         None if not available.
         """
         return self.message.guild
 
-    @discord.utils.cached_property
+    @property
     def channel(self) -> MessageableChannel:
         """Returns the channel associated with this context's command.
         Shorthand for :attr:`.Message.channel`.
         """
         return self.message.channel
 
-    @discord.utils.cached_property
+    @property
     def author(self) -> User | Member:
         """Union[:class:`~discord.User`, :class:`.Member`]:
         Returns the author associated with this context's command. Shorthand for :attr:`.Message.author`
         """
         return self.message.author
 
-    @discord.utils.cached_property
+    @property
     def me(self) -> Member | ClientUser:
         """Union[:class:`.Member`, :class:`.ClientUser`]:
         Similar to :attr:`.Guild.me` except it may return the :class:`.ClientUser` in private message
@@ -347,8 +346,8 @@ class Context(discord.abc.Messageable, Generic[BotT]):
         Any
             The result of the help command, if any.
         """
-        from .core import Command, Group, wrap_callback
-        from .errors import CommandError
+        from .core import Command, Group, wrap_callback  # noqa: PLC0415
+        from .errors import CommandError  # noqa: PLC0415
 
         bot = self.bot
         cmd = bot.help_command
@@ -398,10 +397,10 @@ class Context(discord.abc.Messageable, Generic[BotT]):
         except CommandError as e:
             await cmd.on_help_command_error(self, e)
 
-    @discord.utils.copy_doc(Message.reply)
+    @copy_doc(Message.reply)
     async def reply(self, content: str | None = None, **kwargs: Any) -> Message:
         return await self.message.reply(content, **kwargs)
 
-    @discord.utils.copy_doc(Message.forward_to)
+    @copy_doc(Message.forward_to)
     async def forward_to(self, channel: discord.abc.Messageable, **kwargs: Any) -> Message:
         return await self.message.forward_to(channel, **kwargs)

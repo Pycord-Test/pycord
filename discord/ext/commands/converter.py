@@ -41,6 +41,7 @@ from typing import (
 )
 
 import discord
+from discord.utils import UNICODE_EMOJIS
 
 from .errors import *
 
@@ -89,7 +90,6 @@ async def _get_from_guilds(bot, getter, argument):
     return result
 
 
-_utils_get = discord.utils.get
 T = TypeVar("T")
 T_co = TypeVar("T_co", covariant=True)
 CT = TypeVar("CT", bound=discord.abc.GuildChannel)
@@ -194,7 +194,7 @@ class MemberConverter(IDConverter[discord.Member]):
         if len(argument) > 5 and argument[-5] == "#":
             username, _, discriminator = argument.rpartition("#")
             members = await guild.query_members(username, limit=100, cache=cache)
-            return discord.utils.get(members, name=username, discriminator=discriminator)
+            return discord.utils.find(lambda m: m.name == username and m.discriminator == discriminator, members)
         members = await guild.query_members(argument, limit=100, cache=cache)
         return discord.utils.find(
             lambda m: argument in (m.nick, m.name, m.global_name),
@@ -239,7 +239,7 @@ class MemberConverter(IDConverter[discord.Member]):
             if guild:
                 result = await guild.get_member(user_id)
                 if ctx.message is not None and result is None:
-                    result = _utils_get(ctx.message.mentions, id=user_id)
+                    result = discord.utils.find(lambda e: e.id == user_id, ctx.message.mentions)
             else:
                 result = await _get_from_guilds(bot, "get_member", user_id)
 
@@ -287,7 +287,7 @@ class UserConverter(IDConverter[discord.User]):
             user_id = int(match.group(1))
             result = await ctx.bot.get_user(user_id)
             if ctx.message is not None and result is None:
-                result = _utils_get(ctx.message.mentions, id=user_id)
+                result = discord.utils.find(lambda e: e.id == user_id, ctx.message.mentions)
             if result is None:
                 try:
                     result = await ctx.bot.fetch_user(user_id)
@@ -396,9 +396,7 @@ class MessageConverter(IDConverter[discord.Message]):
     """
 
     async def convert(self, ctx: Context, argument: str) -> discord.Message:
-        guild_id, message_id, channel_id = PartialMessageConverter._get_id_matches(
-            ctx, argument
-        )
+        guild_id, message_id, channel_id = PartialMessageConverter._get_id_matches(ctx, argument)
         message = await ctx.bot._connection._get_message(message_id)
         if message:
             return message
@@ -429,14 +427,10 @@ class GuildChannelConverter(IDConverter[discord.abc.GuildChannel]):
     """
 
     async def convert(self, ctx: Context, argument: str) -> discord.abc.GuildChannel:
-        return await self._resolve_channel(
-            ctx, argument, "channels", discord.abc.GuildChannel
-        )
+        return await self._resolve_channel(ctx, argument, "channels", discord.abc.GuildChannel)
 
     @staticmethod
-    async def _resolve_channel(
-        ctx: Context, argument: str, attribute: str, type: type[CT]
-    ) -> CT:
+    async def _resolve_channel(ctx: Context, argument: str, attribute: str, type: type[CT]) -> CT:
         bot = ctx.bot
 
         match = IDConverter._get_id_match(argument) or re.match(r"<#([0-9]{15,20})>$", argument)
@@ -447,7 +441,7 @@ class GuildChannelConverter(IDConverter[discord.abc.GuildChannel]):
             # not a mention
             if guild:
                 iterable: Iterable[CT] = getattr(guild, attribute)
-                result: CT | None = discord.utils.get(iterable, name=argument)
+                result: CT | None = discord.utils.find(lambda e: e.name == argument, iterable)
             else:
 
                 def check(c):
@@ -476,7 +470,7 @@ class GuildChannelConverter(IDConverter[discord.abc.GuildChannel]):
             # not a mention
             if guild:
                 iterable: Iterable[TT] = getattr(guild, attribute)
-                result: TT | None = discord.utils.get(iterable, name=argument)
+                result: TT | None = discord.utils.find(lambda e: e.name == argument, iterable)
         else:
             thread_id = int(match.group(1))
             if guild:
@@ -715,7 +709,7 @@ class RoleConverter(IDConverter[discord.Role]):
         if match:
             result = guild.get_role(int(match.group(1)))
         else:
-            result = discord.utils.get(guild._roles.values(), name=argument)
+            result = discord.utils.find(lambda e: e.name == argument, guild._roles.values())
 
         if result is None:
             raise RoleNotFound(argument)
@@ -766,7 +760,7 @@ class GuildConverter(IDConverter[discord.Guild]):
             result = ctx.bot.get_guild(guild_id)
 
         if result is None:
-            result = discord.utils.get(await ctx.bot.get_guilds(), name=argument)
+            result = discord.utils.find(lambda e: e.name == argument, await ctx.bot.get_guilds())
 
             if result is None:
                 raise GuildNotFound(argument)
@@ -798,10 +792,10 @@ class EmojiConverter(IDConverter[discord.GuildEmoji]):
         if match is None:
             # Try to get the emoji by name. Try local guild first.
             if guild:
-                result = discord.utils.get(guild.emojis, name=argument)
+                result = discord.utils.find(lambda e: e.name == argument, guild.emojis)
 
             if result is None:
-                result = discord.utils.get(await bot.get_emojis(), name=argument)
+                result = discord.utils.find(lambda e: e.name == argument, await bot.get_emojis())
         else:
             emoji_id = int(match.group(1))
 
@@ -817,7 +811,8 @@ class EmojiConverter(IDConverter[discord.GuildEmoji]):
 class PartialEmojiConverter(Converter[discord.PartialEmoji]):
     """Converts to a :class:`~discord.PartialEmoji`.
 
-    This is done by extracting the animated flag, name and ID from the emoji.
+    This is done by extracting the animated flag, name, and ID for custom emojis,
+    or by using the standard Unicode emojis supported by Discord.
 
     .. versionchanged:: 1.5
          Raise :exc:`.PartialEmojiConversionFailure` instead of generic :exc:`.BadArgument`
@@ -836,6 +831,14 @@ class PartialEmojiConverter(Converter[discord.PartialEmoji]):
                 animated=emoji_animated,
                 name=emoji_name,
                 id=emoji_id,
+            )
+
+        if argument in UNICODE_EMOJIS:
+            return discord.PartialEmoji.with_state(
+                ctx.bot._connection,
+                animated=False,
+                name=argument,
+                id=None,
             )
 
         raise PartialEmojiConversionFailure(argument)
@@ -864,10 +867,10 @@ class GuildStickerConverter(IDConverter[discord.GuildSticker]):
         if match is None:
             # Try to get the sticker by name. Try local guild first.
             if guild:
-                result = discord.utils.get(guild.stickers, name=argument)
+                result = discord.utils.find(lambda s: s.name == argument, guild.stickers)
 
             if result is None:
-                result = discord.utils.get(await bot.get_stickers(), name=argument)
+                result = discord.utils.find(lambda s: s.name == argument, await bot.get_stickers())
         else:
             sticker_id = int(match.group(1))
 
@@ -919,11 +922,15 @@ class clean_content(Converter[str]):
         if ctx.guild:
 
             def resolve_member(id: int) -> str:
-                m = (None if msg is None else _utils_get(msg.mentions, id=id)) or ctx.guild.get_member(id)
+                m = (
+                    None if msg is None else discord.utils.find(lambda e: e.id == id, msg.mentions)
+                ) or ctx.guild.get_member(id)
                 return f"@{m.display_name if self.use_nicknames else m.name}" if m else "@deleted-user"
 
             def resolve_role(id: int) -> str:
-                r = (None if msg is None else _utils_get(msg.mentions, id=id)) or ctx.guild.get_role(id)
+                r = (
+                    None if msg is None else discord.utils.find(lambda e: e.id == id, msg.mentions)
+                ) or ctx.guild.get_role(id)
                 return f"@{r.name}" if r else "@deleted-role"
 
         else:
@@ -931,7 +938,7 @@ class clean_content(Converter[str]):
             def resolve_member(id: int) -> str:
                 # TODO: how tf to fix this???
                 m = (
-                    None if msg is None else _utils_get(msg.mentions, id=id)
+                    None if msg is None else discord.utils.find(lambda e: e.id == id, msg.mentions)
                 ) or ctx.bot.get_user(id)
                 return f"@{m.name}" if m else "@deleted-user"
 

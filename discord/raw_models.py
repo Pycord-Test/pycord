@@ -685,12 +685,8 @@ class AutoModActionExecutionEvent:
             self.message: Message | None = None
 
         try:
-            self.alert_system_message_id: int | None = int(
-                data["alert_system_message_id"]
-            )
-            self.alert_system_message: Message | None = await state._get_message(
-                self.alert_system_message_id
-            )
+            self.alert_system_message_id: int | None = int(data["alert_system_message_id"])
+            self.alert_system_message: Message | None = await state._get_message(self.alert_system_message_id)
         except KeyError:
             self.alert_system_message_id: int | None = None
             self.alert_system_message: Message | None = None

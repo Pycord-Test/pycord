@@ -4,19 +4,18 @@ import asyncio
 import os
 import sys
 import time
-import traceback
 from functools import partial
 from itertools import groupby
 from typing import TYPE_CHECKING, Any, Callable
 
 from .input_text import InputText
 
-__all__ = (
-    "Modal"
-)
+__all__ = ("Modal",)
 
 
 if TYPE_CHECKING:
+    from typing_extensions import Self
+
     from ..interactions import Interaction
     from ..app.state import ConnectionState
 
@@ -43,6 +42,12 @@ class Modal:
         If ``None`` then there is no timeout.
     """
 
+    __item_repr_attributes__: tuple[str, ...] = (
+        "title",
+        "children",
+        "timeout",
+    )
+
     def __init__(
         self,
         *children: InputText,
@@ -65,6 +70,10 @@ class Modal:
         self.__timeout_expiry: float | None = None
         self.__timeout_task: asyncio.Task[None] | None = None
         self.loop = asyncio.get_event_loop()
+
+    def __repr__(self) -> str:
+        attrs = " ".join(f"{key}={getattr(self, key)!r}" for key in self.__item_repr_attributes__)
+        return f"<{self.__class__.__name__} {attrs}>"
 
     async def __timeout_task_impl(self) -> None:
         while True:
@@ -168,7 +177,7 @@ class Modal:
 
         return components
 
-    def add_item(self, item: InputText):
+    def add_item(self, item: InputText) -> Self:
         """Adds an InputText component to the modal dialog.
 
         Parameters
@@ -185,8 +194,9 @@ class Modal:
 
         self._weights.add_item(item)
         self._children.append(item)
+        return self
 
-    def remove_item(self, item: InputText):
+    def remove_item(self, item: InputText) -> Self:
         """Removes an InputText component from the modal dialog.
 
         Parameters
@@ -198,6 +208,7 @@ class Modal:
             self._children.remove(item)
         except ValueError:
             pass
+        return self
 
     def stop(self) -> None:
         """Stops listening to interaction events from the modal dialog."""
@@ -233,8 +244,7 @@ class Modal:
         interaction: :class:`~discord.Interaction`
             The interaction that led to the failure.
         """
-        print(f"Ignoring exception in modal {self}:", file=sys.stderr)
-        traceback.print_exception(error.__class__, error, error.__traceback__, file=sys.stderr)
+        interaction.client.dispatch("modal_error", error, interaction)
 
     async def on_timeout(self) -> None:
         """|coro|
