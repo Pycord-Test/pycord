@@ -3240,6 +3240,48 @@ class GroupChannel(discord.abc.Messageable, Hashable):
 
         await self._state.http.leave_group(self.id)
 
+    @overload
+    async def edit(
+        self,
+        *,
+        name: str = ...,
+        icon: bytes | None = ...,
+    ) -> GroupChannel: ...
+
+    @overload
+    async def edit(self) -> GroupChannel: ...
+
+    async def edit(self, *, reason=None, **options):
+        """|coro|
+
+        Edits this group DM channel.
+
+        .. versionadded:: 3.0
+
+        Parameters
+        ----------
+        name: :class:`str`
+            The new channel name.
+        icon: :class:`bytes`
+            A :term:`py:bytes-like object` representing the icon. Only PNG/JPEG is supported.
+            Could be ``None`` to denote removal of the icon.
+
+        Returns
+        -------
+        :class:`.GroupChannel`
+            The newly edited text channel.
+
+        Raises
+        ------
+        Forbidden
+            You do not have permissions to edit the channel.
+        HTTPException
+            Editing the channel failed.
+        """
+        payload = await self._edit(options, reason=reason)
+        if payload is not None:
+            return self.__class__(state=self._state, guild=self.guild, data=payload)  # type: ignore
+
 
 class PartialMessageable(discord.abc.Messageable, Hashable):
     """Represents a partial messageable to aid with working messageable channels when

@@ -43,6 +43,7 @@ from . import utils
 from .activity import BaseActivity
 from .enums import SpeakingState
 from .errors import ConnectionClosed, InvalidArgument
+from .http import API_VERSION
 
 _log = logging.getLogger(__name__)
 
@@ -334,7 +335,9 @@ class DiscordWebSocket:
 
         This is for internal use only.
         """
-        gateway = gateway or await client.http.get_gateway()
+        if not gateway:
+            data = await client.http.get_gateway()
+            gateway = f"{data['url']}?encoding=json&v={API_VERSION}"
         socket = await client.http.ws_connect(gateway)
         ws = cls(socket, loop=client.loop)
 
