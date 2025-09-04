@@ -101,6 +101,7 @@ if TYPE_CHECKING:
     from .types.channel import VoiceChannel as VoiceChannelPayload
     from .types.snowflake import SnowflakeList
     from .types.threads import ThreadArchiveDuration
+    from .ui.view import View
     from .user import BaseUser, ClientUser, User
     from .webhook import Webhook
 
@@ -1163,7 +1164,7 @@ class ForumChannel(_TextChannel):
         applied_tags: list[ForumTag] | None = None,
         suppress: bool = False,
         silent: bool = False,
-        auto_archive_duration: ThreadArchiveDuration = MISSING,
+        auto_archive_duration: ThreadArchiveDuration | utils.Undefined = MISSING,
         slowmode_delay: int | utils.Undefined = MISSING,
         reason: str | None = None,
     ) -> Thread:

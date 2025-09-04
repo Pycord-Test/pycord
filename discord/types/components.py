@@ -45,6 +45,11 @@ class BaseComponent(TypedDict):
     id: NotRequired[int]
 
 
+class BaseComponent(TypedDict):
+    type: ComponentType
+    id: NotRequired[int]
+
+
 class ButtonComponent(BaseComponent):
     type: Literal[2]  # pyright: ignore[reportIncompatibleVariableOverride]
     style: ButtonStyle
@@ -256,3 +261,13 @@ class Modal(TypedDict):
     title: str
     custom_id: str
     components: list[AllowedModalComponents]
+
+
+AllowedContainerComponents = Union[
+    ActionRow,
+    TextDisplayComponent,
+    MediaGalleryComponent,
+    FileComponent,
+    SeparatorComponent,
+    SectionComponent,
+]

@@ -221,6 +221,11 @@ Role
 .. autoclass:: RoleTags()
     :members:
 
+.. attributetable:: RoleColours
+
+.. autoclass:: RoleColours
+    :members:
+
 Scheduled Event
 ~~~~~~~~~~~~~~~
 
@@ -581,3 +586,13 @@ Webhooks
 
 .. autoclass:: PartialWebhookChannel()
     :members:
+
+
+
+Collectibles
+------------
+
+.. attributetable:: Nameplate
+
+.. autoclass:: Nameplate()
+    :undoc-members:

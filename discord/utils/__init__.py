@@ -27,17 +27,12 @@ from __future__ import annotations
 
 from typing import (
     Any,
-    AsyncIterator,
-    Iterator,
-    Mapping,
-    Protocol,
-    TypeVar,
-    Union,
 )
 
 from ..errors import HTTPException
 from .public import (
     MISSING,
+    UNICODE_EMOJIS,
     Undefined,
     basic_autocomplete,
     escape_markdown,
@@ -74,6 +69,7 @@ __all__ = (
     "basic_autocomplete",
     "Undefined",
     "MISSING",
+    "UNICODE_EMOJIS",
 )
 
 

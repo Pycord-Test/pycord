@@ -109,7 +109,6 @@ if TYPE_CHECKING:
 MISSING: Any = utils.MISSING
 
 
-
 class Interaction:
     """Represents a Discord interaction.
 
@@ -163,8 +162,8 @@ class Interaction:
         The command that this interaction belongs to.
 
         .. versionadded:: 2.7
-    modal: Optional[:class:`Modal`]
-        The modal that this interaction belongs to.
+    attachment_size_limit: :class:`int`
+        The attachment size limit.
 
         .. versionadded:: 2.7
     """
@@ -188,6 +187,7 @@ class Interaction:
         "context",
         "authorizing_integration_owners",
         "command",
+        "attachment_size_limit",
         "_channel_data",
         "_message_data",
         "_guild_data",
@@ -235,6 +235,7 @@ class Interaction:
         )
 
         self.command: ApplicationCommand | None = None
+        self.attachment_size_limit: int = data.get("attachment_size_limit")
 
         self.message: Message | None = None
         self.channel = None
@@ -658,13 +659,13 @@ class Interaction:
 
         return data
 
-Components_t = TypeVarTuple(
-    "Components_t", default="Unpack[tuple[AnyTopLevelModalInteractionComponent, ...]]"
-)
+
+Components_t = TypeVarTuple("Components_t", default="Unpack[tuple[AnyTopLevelModalInteractionComponent, ...]]")
 
 
 class ModalInteraction(Interaction, Generic[Unpack[Components_t]]):
     __slots__ = ("_components",)
+
     @cached_slot_property("_components")
     def components(self) -> ComponentsHolder[Unpack[Components_t]]:
         if not self.type == InteractionType.modal_submit:
@@ -675,10 +676,13 @@ class ModalInteraction(Interaction, Generic[Unpack[Components_t]]):
 
         return ComponentsHolder(*(_interaction_component_factory(component) for component in components_payload))  # pyright: ignore[reportReturnType]
 
+
 Component_t = TypeVar("Component_t", bound="AnyMessageInteractionComponent", default="AnyMessageInteractionComponent")
+
 
 class ComponentInteraction(Generic[Component_t], Interaction):
     __slots__ = ("_component",)
+
     @cached_slot_property("_component")
     def component(self) -> Component_t:
         if not self.type == InteractionType.component:

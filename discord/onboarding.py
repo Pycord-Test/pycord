@@ -27,8 +27,7 @@ from __future__ import annotations
 from functools import cached_property
 from typing import TYPE_CHECKING, Any
 
-from discord import utils
-
+from . import utils
 from .enums import OnboardingMode, PromptType, try_enum
 from .partial_emoji import PartialEmoji
 from .utils import MISSING, find, generate_snowflake
