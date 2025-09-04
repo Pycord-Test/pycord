@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: "PR Message"
-        uses: peter-evans/create-or-update-comment@v3
+        uses: peter-evans/create-or-update-comment@f7c845d742ddcc26436b9547b75f949bdcd3012a
         with:
           issue-number: ${{ github.event.pull_request.number }}
           body: |
