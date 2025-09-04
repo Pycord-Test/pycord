@@ -23,10 +23,9 @@ DEALINGS IN THE SOFTWARE.
 """
 
 from typing import Any, Self
-from discord import utils
+from discord.utils import private as utils, MISSING
 from discord.app.state import ConnectionState
 from discord.channel import StageChannel, TextChannel, VoiceChannel
-from discord.emoji import AppEmoji, GuildEmoji
 from discord.guild import Guild
 from discord.member import Member
 from discord.partial_emoji import PartialEmoji
@@ -135,7 +134,7 @@ class MessageUpdate(Event, Message):
             self.old.author = new_msg.author
             self.__dict__.update(new_msg.__dict__)
         else:
-            self.old = utils.MISSING
+            self.old = MISSING
             if poll_data := data.get("poll"):
                 channel = await state.get_channel(raw.channel_id)
                 await state.store_poll(
@@ -157,7 +156,7 @@ class ReactionAdd(Event):
     async def __load__(cls, data: ReactionActionEvent, state: ConnectionState) -> Self:
         self = cls()
         emoji = data["emoji"]
-        emoji_id = utils._get_as_snowflake(emoji, "id")
+        emoji_id = utils.get_as_snowflake(emoji, "id")
         emoji = PartialEmoji.with_state(state, id=emoji_id, animated=emoji.get("animated", False), name=emoji["name"])
         raw = RawReactionActionEvent(data, emoji, "REACTION_ADD")
 
@@ -181,7 +180,7 @@ class ReactionAdd(Event):
             if user:
                 self.user = user
             else:
-                self.user = utils.MISSING
+                self.user = MISSING
 
         return self
 
@@ -204,8 +203,8 @@ class ReactionClear(Event):
             self.message = message
             self.old_reactions = old_reactions
         else:
-            self.message = utils.MISSING
-            self.old_reactions = utils.MISSING
+            self.message = MISSING
+            self.old_reactions = MISSING
         return self
 
 
@@ -220,7 +219,7 @@ class ReactionRemove(Event):
     async def __load__(cls, data: ReactionActionEvent, state: ConnectionState) -> Self:
         self = cls()
         emoji = data["emoji"]
-        emoji_id = utils._get_as_snowflake(emoji, "id")
+        emoji_id = utils.get_as_snowflake(emoji, "id")
         emoji = PartialEmoji.with_state(state, id=emoji_id, animated=emoji.get("animated", False), name=emoji["name"])
         raw = RawReactionActionEvent(data, emoji, "REACTION_ADD")
 
@@ -247,7 +246,7 @@ class ReactionRemove(Event):
                 if user:
                     self.user = user
                 else:
-                    self.user = utils.MISSING
+                    self.user = MISSING
 
         return self
 
@@ -261,7 +260,7 @@ class ReactionRemoveEmoji(Event, Reaction):
     @classmethod
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         emoji = data["emoji"]
-        emoji_id = utils._get_as_snowflake(emoji, "id")
+        emoji_id = utils.get_as_snowflake(emoji, "id")
         emoji = PartialEmoji.with_state(self, id=emoji_id, name=emoji["name"])
         raw = RawReactionClearEmojiEvent(data, emoji)
 

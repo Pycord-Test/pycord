@@ -24,7 +24,7 @@ DEALINGS IN THE SOFTWARE.
 
 from typing import Any, Self, cast
 
-from discord import utils
+from discord.utils.private import get_as_snowflake
 from discord.emoji import Emoji
 from discord.flags import ApplicationFlags
 from discord.guild import Guild, GuildChannel
@@ -77,7 +77,7 @@ class Ready(Event):
             except KeyError:
                 pass
             else:
-                self.application_id = utils._get_as_snowflake(application, "id")  # type: ignore
+                self.application_id = get_as_snowflake(application, "id")  # type: ignore
                 # flags will always be present here
                 self.application_flags = ApplicationFlags._from_value(application["flags"])  # type: ignore
                 state.application_id = self.application_id
@@ -213,7 +213,7 @@ class PresenceUpdate(Event):
     @classmethod
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         self = cls()
-        guild_id = utils._get_as_snowflake(data, "guild_id")
+        guild_id = get_as_snowflake(data, "guild_id")
         guild = await state._get_guild(guild_id)
         if guild is None:
             return

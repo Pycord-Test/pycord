@@ -1,12 +1,59 @@
+import logging
 from typing import Any, Self, cast
 from discord import utils
 from discord.abc import Snowflake
 from discord.app.event_emitter import Event
 from discord.app.state import ConnectionState
-from discord.raw_models import RawThreadDeleteEvent, RawThreadUpdateEvent
+from discord.raw_models import RawThreadDeleteEvent, RawThreadMembersUpdateEvent, RawThreadUpdateEvent
 from discord.threads import Thread, ThreadMember
 from discord.types.raw_models import ThreadDeleteEvent, ThreadUpdateEvent
+from discord.types.threads import ThreadMember as ThreadMemberPayload
 
+_log = logging.getLogger(__name__)
+
+class ThreadMemberJoin(Event, ThreadMember):
+    __event_name__ = "THREAD_MEMBER_JOIN"
+
+    def __init__(self) -> None: ...
+
+    @classmethod
+    async def __load__(cls, data: ThreadMember, _: ConnectionState) -> Self:
+        self = cls()
+        self.__dict__.update(data.__dict__)
+        return self
+
+class ThreadJoin(Event, Thread):
+    __event_name__ = "THREAD_JOIN"
+
+    def __init__(self) -> None: ...
+
+    @classmethod
+    async def __load__(cls, data: Thread, _: ConnectionState) -> Self:
+        self = cls()
+        self.__dict__.update(data.__dict__)
+        return self
+
+class ThreadMemberRemove(Event, ThreadMember):
+    __event_name__ = "THREAD_MEMBER_REMOVE"
+
+    def __init__(self) -> None: ...
+
+    @classmethod
+    async def __load__(cls, data: ThreadMember, _: ConnectionState) -> Self:
+        self = cls()
+        self.__dict__.update(data.__dict__)
+        return self
+
+class ThreadRemove(Event, Thread):
+    __event_name__ = "THREAD_REMOVE"
+
+    def __init__(self) -> None: ...
+
+    @classmethod
+    async def __load__(cls, data: Thread, _: ConnectionState) -> Self:
+        self = cls()
+        self.__dict__.update(data.__dict__)
+        return self
 
 class ThreadCreate(Event, Thread):
     __event_name__ = "THREAD_CREATE"
@@ -45,7 +92,10 @@ class ThreadCreate(Event, Thread):
             self.__dict__.update(cached_thread.__dict__)
             self.just_joined = True
 
-        return self
+        if self.just_joined:
+            await state.emitter.emit("THREAD_JOIN", self)
+        else:
+            return self
 
 
 class ThreadUpdate(Event, Thread):
@@ -101,3 +151,121 @@ class ThreadDelete(Event, Thread):
                 msg.thread = None  # type: ignore
 
         return cast(Self, thread)
+
+class ThreadListSync(Event):
+    __event_name__ = "THREAD_LIST_SYNC"
+
+    @classmethod
+    async def __load__(cls, data: dict[str, Any], state) -> Self | None:
+        guild_id = int(data["guild_id"])
+        guild = await state._get_guild(guild_id)
+        if guild is None:
+            _log.debug(
+                "THREAD_LIST_SYNC referencing an unknown guild ID: %s. Discarding",
+                guild_id,
+            )
+            return
+
+        try:
+            channel_ids = set(data["channel_ids"])
+        except KeyError:
+            # If not provided, then the entire guild is being synced
+            # So all previous thread data should be overwritten
+            previous_threads = guild._threads.copy()
+            guild._clear_threads()
+        else:
+            previous_threads = guild._filter_threads(channel_ids)
+
+        threads = {d["id"]: guild._store_thread(d) for d in data.get("threads", [])}
+
+        for member in data.get("members", []):
+            try:
+                # note: member['id'] is the thread_id
+                thread = threads[member["id"]]
+            except KeyError:
+                continue
+            else:
+                thread._add_member(ThreadMember(thread, member))
+
+        for thread in threads.values():
+            old = previous_threads.pop(thread.id, None)
+            if old is None:
+                await state.emitter.emit("THREAD_JOIN", thread)
+
+        for thread in previous_threads.values():
+            await state.emitter.emit("THREAD_REMOVE", thread)
+
+class ThreadMemberUpdate(Event, ThreadMember):
+    __event_name__ = "THREAD_MEMBER_UPDATE"
+    def __init__(self): ...
+
+    @classmethod
+    async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
+        guild_id = int(data["guild_id"])
+        guild = await state._get_guild(guild_id)
+        if guild is None:
+            _log.debug(
+                "THREAD_MEMBER_UPDATE referencing an unknown guild ID: %s. Discarding",
+                guild_id,
+            )
+            return
+
+        thread_id = int(data["id"])
+        thread: Thread | None = guild.get_thread(thread_id)
+        if thread is None:
+            _log.debug(
+                "THREAD_MEMBER_UPDATE referencing an unknown thread ID: %s. Discarding",
+                thread_id,
+            )
+            return
+
+        member = ThreadMember(thread, data)
+        thread.me = member
+        thread._add_member(member)
+        self = cls()
+        self.__dict__.update(member.__dict__)
+
+        return self
+
+class BulkThreadMemberUpdate(Event):
+    @classmethod
+    async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
+        guild_id = int(data["guild_id"])
+        guild = await state._get_guild(guild_id)
+        if guild is None:
+            _log.debug(
+                "THREAD_MEMBERS_UPDATE referencing an unknown guild ID: %s. Discarding",
+                guild_id,
+            )
+            return
+
+        thread_id = int(data["id"])
+        thread: Thread | None = guild.get_thread(thread_id)
+        raw = RawThreadMembersUpdateEvent(data)
+        if thread is None:
+            _log.debug(
+                ("THREAD_MEMBERS_UPDATE referencing an unknown thread ID: %s. Discarding"),
+                thread_id,
+            )
+            return
+
+        added_members = [ThreadMember(thread, d) for d in data.get("added_members", [])]
+        removed_member_ids = [int(x) for x in data.get("removed_member_ids", [])]
+        self_id = state.self_id
+        for member in added_members:
+            thread._add_member(member)
+            if member.id != self_id:
+                await state.emitter.emit("THREAD_MEMBER_JOIN", member)
+            else:
+                thread.me = member
+                await state.emitter.emit("THREAD_JOIN", thread)
+
+        for member_id in removed_member_ids:
+            member = thread._pop_member(member_id)
+            if member_id != self_id:
+                if member is not None:
+                    await state.emitter.emit("thread_member_remove", member)
+            else:
+                thread.me = None
+                await state.emitter.emit("thread_remove", thread)
+

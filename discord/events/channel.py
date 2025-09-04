@@ -25,7 +25,7 @@ DEALINGS IN THE SOFTWARE.
 from datetime import datetime
 from copy import copy
 from typing import Any, Self, TypeVar, cast
-from discord import utils
+from discord.utils.private import get_as_snowflake, parse_time
 from discord.abc import GuildChannel, PrivateChannel
 from discord.app.event_emitter import Event
 from discord.app.state import ConnectionState
@@ -47,7 +47,7 @@ class ChannelCreate(Event, GuildChannel):
         if factory is None:
             return
 
-        guild_id = utils._get_as_snowflake(data, "guild_id")
+        guild_id = get_as_snowflake(data, "guild_id")
         guild = await state._get_guild(guild_id)
         if guild is not None:
             # the factory can't be a DMChannel or GroupChannel here
@@ -107,7 +107,7 @@ class ChannelUpdate(Event, GuildChannel):
             await state.emitter.emit("PRIVATE_CHANNEL_UPDATE", (old_channel, channel))
             return
 
-        guild_id = utils._get_as_snowflake(data, "guild_id")
+        guild_id = get_as_snowflake(data, "guild_id")
         guild = await state._get_guild(guild_id)
         if guild is not None:
             channel = guild.get_channel(channel_id)
@@ -124,7 +124,7 @@ class ChannelDelete(Event, GuildChannel):
 
     @classmethod
     async def __load__(cls, data: dict[str, Any], state: ConnectionState) -> Self | None:
-        guild = await state._get_guild(utils._get_as_snowflake(data, "guild_id"))
+        guild = await state._get_guild(get_as_snowflake(data, "guild_id"))
         channel_id = int(data["id"])
         if guild is not None:
             channel = guild.get_channel(channel_id)
@@ -155,5 +155,5 @@ class ChannelPinsUpdate(Event):
 
         self = cls()
         self.channel = channel
-        self.last_pin = utils.parse_time(data["last_pin_timestamp"]) if data["last_pin_timestamp"] else None
+        self.last_pin = parse_time(data["last_pin_timestamp"]) if data["last_pin_timestamp"] else None
         return self
