@@ -31,23 +31,23 @@ from .unknown_component import UnknownComponent
 from .user_select_menu import UserSelect
 
 AnyComponent: TypeAlias = (
-        ActionRow
-        | Button
-        | StringSelect
-        | TextInput
-        | UserSelect
-        | RoleSelect
-        | MentionableSelect
-        | ChannelSelect
-        | Section
-        | TextDisplay
-        | Thumbnail
-        | MediaGallery
-        | FileComponent
-        | Separator
-        | Container
-        | Label
-        | UnknownComponent
+    ActionRow
+    | Button
+    | StringSelect
+    | TextInput
+    | UserSelect
+    | RoleSelect
+    | MentionableSelect
+    | ChannelSelect
+    | Section
+    | TextDisplay
+    | Thumbnail
+    | MediaGallery
+    | FileComponent
+    | Separator
+    | Container
+    | Label
+    | UnknownComponent
 )
 
 AnyTopLevelMessageComponent: TypeAlias = (
@@ -57,16 +57,16 @@ AnyTopLevelMessageComponent: TypeAlias = (
 AnyTopLevelModalComponent: TypeAlias = TextDisplay | Label
 
 AnyInteractionComponent: TypeAlias = (
-        InteractionLabel
-        | InteractionTextInput
-        | InteractionStringSelect
-        | InteractionTextDisplay
-        | InteractionUserSelect
-        | InteractionRoleSelect
-        | InteractionMentionableSelect
-        | InteractionChannelSelect
-        | UnknownInteractionComponent
-        | InteractionButton
+    InteractionLabel
+    | InteractionTextInput
+    | InteractionStringSelect
+    | InteractionTextDisplay
+    | InteractionUserSelect
+    | InteractionRoleSelect
+    | InteractionMentionableSelect
+    | InteractionChannelSelect
+    | UnknownInteractionComponent
+    | InteractionButton
 )
 
 AnyTopLevelModalInteractionComponent: TypeAlias = (
@@ -74,13 +74,13 @@ AnyTopLevelModalInteractionComponent: TypeAlias = (
 )
 
 AnyMessageInteractionComponent: TypeAlias = (
-        InteractionStringSelect
-        | InteractionUserSelect
-        | InteractionRoleSelect
-        | InteractionMentionableSelect
-        | InteractionButton
-        | InteractionChannelSelect
-        | UnknownInteractionComponent
+    InteractionStringSelect
+    | InteractionUserSelect
+    | InteractionRoleSelect
+    | InteractionMentionableSelect
+    | InteractionButton
+    | InteractionChannelSelect
+    | UnknownInteractionComponent
 )
 
 __all__ = ("AnyComponent",)

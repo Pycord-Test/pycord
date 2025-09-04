@@ -44,7 +44,9 @@ if TYPE_CHECKING:
     from .string_select_menu import StringSelect
     from .user_select_menu import UserSelect
 
-AllowedActionRowComponents: TypeAlias = "Button | TextInput | StringSelect | UserSelect | RoleSelect | MentionableSelect | ChannelSelect"
+AllowedActionRowComponents: TypeAlias = (
+    "Button | TextInput | StringSelect | UserSelect | RoleSelect | MentionableSelect | ChannelSelect"
+)
 
 
 class ActionRow(WalkableComponent["ActionRowPayload", "AllowedActionRowComponents"]):
