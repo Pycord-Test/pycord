@@ -34,7 +34,6 @@ from urllib.parse import quote as _uriquote
 
 import aiohttp
 
-from .utils.private import get_mime_type_for_image, to_json, from_json
 from . import __version__, utils
 from .errors import (
     DiscordServerError,

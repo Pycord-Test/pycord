@@ -40,7 +40,6 @@ from typing import (
     overload,
 )
 
-from .utils.private import get_as_snowflake, bytes_to_base64_data
 from . import abc, utils
 from .asset import Asset
 from .automod import AutoModAction, AutoModRule, AutoModTriggerMetadata

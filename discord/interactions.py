@@ -32,7 +32,6 @@ from typing import TYPE_CHECKING, Any, Coroutine, Generic, Union, Unpack, cast
 
 from typing_extensions import TypeVar, TypeVarTuple
 
-from .utils.private import get_as_snowflake, deprecated, delay_task, cached_slot_property
 from . import utils
 from .channel import PartialMessageable, _threaded_channel_factory
 from .components import ComponentsHolder, _interaction_component_factory
@@ -47,7 +46,7 @@ from .monetization import Entitlement
 from .object import Object
 from .permissions import Permissions
 from .user import User
-from .utils.private import cached_slot_property, delay_task, get_as_snowflake
+from .utils.private import cached_slot_property, delay_task, deprecated, get_as_snowflake
 from .webhook.async_ import (
     Webhook,
     WebhookMessage,

@@ -16,24 +16,23 @@ from inspect import isawaitable, signature
 from typing import (
     TYPE_CHECKING,
     Any,
-    overload,
+    Awaitable,
     Callable,
-    TypeVar,
-    ParamSpec,
+    Coroutine,
+    ForwardRef,
+    Generic,
     Iterable,
     Iterator,
     Literal,
-    ForwardRef,
-    Union,
-    Coroutine,
-    Awaitable,
-    reveal_type,
-    Generic,
+    ParamSpec,
     Sequence,
-    Iterator,
+    TypeVar,
+    Union,
+    overload,
+    reveal_type,
 )
 
-from ..errors import InvalidArgument, HTTPException
+from ..errors import HTTPException, InvalidArgument
 
 if TYPE_CHECKING:
     from ..invite import Invite

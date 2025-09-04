@@ -39,7 +39,6 @@ from typing import (
 
 import discord.abc
 
-from .utils.private import bytes_to_base64_data, get_as_snowflake, copy_doc
 from . import utils
 from .asset import Asset
 from .components import AnyComponent

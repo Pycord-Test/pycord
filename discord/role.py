@@ -37,8 +37,7 @@ from .flags import RoleFlags
 from .mixins import Hashable
 from .permissions import Permissions
 from .utils import MISSING, snowflake_time
-from .utils.private import get_as_snowflake, bytes_to_base64_data, deprecated, warn_deprecated
-
+from .utils.private import bytes_to_base64_data, deprecated, get_as_snowflake, warn_deprecated
 
 __all__ = ("RoleTags", "Role", "RoleColours")
 

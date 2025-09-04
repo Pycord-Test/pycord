@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import asyncio
-import re
 import datetime
 import importlib.resources
-import json
 import itertools
+import json
+import re
 from collections.abc import Awaitable, Callable, Iterable
 from enum import Enum, auto
 from typing import TYPE_CHECKING, Any, Literal, TypeVar

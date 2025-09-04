@@ -38,7 +38,6 @@ import aiohttp
 from discord.banners import print_banner, start_logging
 
 from . import utils
-from .utils.private import resolve_invite, resolve_template, bytes_to_base64_data, SequenceProxy
 from .activity import ActivityTypes, BaseActivity, create_activity
 from .appinfo import AppInfo, PartialAppInfo
 from .application_role_connection import ApplicationRoleConnectionMetadata

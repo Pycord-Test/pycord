@@ -66,7 +66,7 @@ from .shard import AutoShardedClient
 from .types import interactions
 from .user import User
 from .utils import MISSING, find
-from .utils.private import async_all
+from .utils.private import async_all, maybe_awaitable
 
 if TYPE_CHECKING:
     from .member import Member

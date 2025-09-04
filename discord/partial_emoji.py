@@ -29,7 +29,6 @@ import re
 from typing import TYPE_CHECKING, Any, TypedDict, TypeVar
 
 from . import utils
-from .utils.private import get_as_snowflake
 from .asset import Asset, AssetMixin
 from .errors import InvalidArgument
 from .utils.private import get_as_snowflake
