@@ -1,0 +1,32 @@
+name: "Pull Request Message"
+
+on:
+  pull_request_target:
+    types: [opened]
+
+permissions:
+  pull-requests: write
+  issues: write
+
+jobs:
+  pr-message:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "PR Message"
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            Thanks for opening this pull request!
+            Please make sure you have read the [Contributing Guidelines](https://github.com/Pycord-Development/pycord-next?tab=coc-ov-file) and [Code of Conduct](https://github.com/Pycord-Development/pycord-next?tab=contributing-ov-file).
+            
+            This pull request can be checked-out with:
+            ```bash
+            git fetch origin pull/${{ github.event.pull_request.number }}/head:pr-${{ github.event.pull_request.number }}
+            git checkout pr-${{ github.event.pull_request.number }}
+            ```
+            
+            This pull request can be installed with:
+            ```bash
+            pip install git+https://github.com/Pycord-Development/pycord-next@refs/pull/${{ github.event.pull_request.number }}/head
+            ```
