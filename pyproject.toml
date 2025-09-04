@@ -69,9 +69,9 @@ docs = [
 dev = [
     "codespell==2.4.1",
     "coverage~=7.8",
-    "mypy~=1.15.0",
+    "mypy~=1.17.1",
     "pre-commit==4.2.0",
-    "ruff>=0.11.9",
+    "python-dotenv>=1.1.1",
     "tox>=4.27.0",
     "tox-gh>=1.5.0",
     "tox-uv>=1.26.1",
@@ -80,7 +80,6 @@ dev = [
 test = [# Not in `dev` becuase we use tox for testing. Tox will install these dependencies.
     "pytest~=8.3.5",
     "pytest-asyncio~=0.24.0",
-    "ruff>=0.11.9",
 ]
 ci = [
     "pygithub>=2.7.0",
