@@ -227,6 +227,8 @@ class PresenceUpdate(Event):
         self.old = Member._copy(member)
         self.new = member
         user_update = member._presence_update(data=data, user=user)
+        await state.emitter.emit("USER_UPDATE", user_update)
+        return self
 
 
 class UserUpdate(Event, User):
