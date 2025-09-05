@@ -272,6 +272,7 @@ class AuditLogChanges:
         "exempt_channels": (None, _transform_channels),
     }
 
+    @staticmethod
     async def _maybe_await(func: Any) -> Any:
         if isawaitable(func):
             return await func

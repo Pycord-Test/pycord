@@ -31,6 +31,7 @@ from ..app.event_emitter import Event
 
 class AutoModRuleCreate(Event):
     __event_name__ = "AUTO_MODERATION_RULE_CREATE"
+    __slots__ = ("rule")
 
     rule: AutoModRule
 
@@ -43,6 +44,7 @@ class AutoModRuleCreate(Event):
 
 class AutoModRuleUpdate(Event):
     __event_name__ = "AUTO_MODERATION_RULE_UPDATE"
+    __slots__ = ("rule")
 
     rule: AutoModRule
 
@@ -55,6 +57,7 @@ class AutoModRuleUpdate(Event):
 
 class AutoModRuleDelete(Event):
     __event_name__ = "AUTO_MODERATION_RULE_DELETE"
+    __slots__ = ("rule")
 
     rule: AutoModRule
 
