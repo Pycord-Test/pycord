@@ -737,9 +737,9 @@ class CogMixin:
 
         try:
             setup = lib.setup
-        except AttributeError:
+        except AttributeError as e:
             del sys.modules[key]
-            raise errors.NoEntryPointError(key)
+            raise errors.NoEntryPointError(key) from e
 
         try:
             setup(self)
@@ -754,8 +754,8 @@ class CogMixin:
     def _resolve_name(self, name: str, package: str | None) -> str:
         try:
             return importlib.util.resolve_name(name, package)
-        except ImportError:
-            raise errors.ExtensionNotFound(name)
+        except ImportError as e:
+            raise errors.ExtensionNotFound(name) from e
 
     @overload
     def load_extension(

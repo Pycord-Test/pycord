@@ -741,13 +741,15 @@ class Command(_BaseCommand, Generic[CogT, P, T]):
             try:
                 next(iterator)
             except StopIteration:
-                raise discord.ClientException(f'Callback for {self.name} command is missing "self" parameter.')
+                raise discord.ClientException(
+                    f'Callback for {self.name} command is missing "self" parameter.'
+                ) from None
 
         # next we have the 'ctx' as the next parameter
         try:
             next(iterator)
         except StopIteration:
-            raise discord.ClientException(f'Callback for {self.name} command is missing "ctx" parameter.')
+            raise discord.ClientException(f'Callback for {self.name} command is missing "ctx" parameter.') from None
 
         for name, param in iterator:
             ctx.current_parameter = param

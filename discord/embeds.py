@@ -999,8 +999,8 @@ class Embed:
 
         try:
             field = self._fields[index]
-        except (TypeError, IndexError):
-            raise IndexError("field index out of range")
+        except (TypeError, IndexError) as e:
+            raise IndexError("field index out of range") from e
 
         field.name = str(name)
         field.value = str(value)

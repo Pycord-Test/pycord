@@ -763,8 +763,8 @@ class SlashCommand(ApplicationCommand):
         for p in required_params:
             try:
                 next(params)
-            except StopIteration:
-                raise ClientException(f'Callback for {self.name} command is missing "{p}" parameter.')
+            except StopIteration as e:
+                raise ClientException(f'Callback for {self.name} command is missing "{p}" parameter.') from e
 
         return params
 
@@ -858,8 +858,8 @@ class SlashCommand(ApplicationCommand):
             _validate_descriptions(o)
             try:
                 p_name, p_obj = next(params)
-            except StopIteration:  # not enough params for all the options
-                raise ClientException("Too many arguments passed to the options kwarg.")
+            except StopIteration as e:  # not enough params for all the options
+                raise ClientException("Too many arguments passed to the options kwarg.") from e
             p_obj = p_obj.annotation
 
             if not any(check(o, p_obj) for check in check_annotations):
@@ -1590,15 +1590,15 @@ class ContextMenuCommand(ApplicationCommand):
         # next we have the 'ctx' as the next parameter
         try:
             next(params)
-        except StopIteration:
-            raise ClientException(f'Callback for {self.name} command is missing "ctx" parameter.')
+        except StopIteration as e:
+            raise ClientException(f'Callback for {self.name} command is missing "ctx" parameter.') from e
 
         # next we have the 'user/message' as the next parameter
         try:
             next(params)
-        except StopIteration:
+        except StopIteration as e:
             cmd = "user" if type(self) == UserCommand else "message"
-            raise ClientException(f'Callback for {self.name} command is missing "{cmd}" parameter.')
+            raise ClientException(f'Callback for {self.name} command is missing "{cmd}" parameter.') from e
 
         # next there should be no more parameters
         try:

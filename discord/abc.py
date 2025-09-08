@@ -912,8 +912,8 @@ class GuildChannel:
                 raise InvalidArgument("No overwrite provided.")
             try:
                 overwrite = PermissionOverwrite(**permissions)
-            except (ValueError, TypeError):
-                raise InvalidArgument("Invalid permissions given to keyword arguments.")
+            except (ValueError, TypeError) as e:
+                raise InvalidArgument("Invalid permissions given to keyword arguments.") from e
         elif len(permissions) > 0:
             raise InvalidArgument("Cannot mix overwrite and keyword arguments.")
 
@@ -1753,8 +1753,8 @@ class Messageable:
                     if obj.guild_id == channel.guild.id:
                         continue
 
-            except (KeyError, AttributeError):
-                raise TypeError(f"The object {obj} is of an invalid type.")
+            except (KeyError, AttributeError) as e:
+                raise TypeError(f"The object {obj} is of an invalid type.") from e
 
             if not getattr(channel.permissions_for(channel.guild.me), permission):
                 return False
