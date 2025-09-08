@@ -624,7 +624,7 @@ class ApplicationCommandMixin(ABC):
         force: bool = False,
         guild_ids: list[int] | None = None,
         register_guild_commands: bool = True,
-        check_guilds: list[int] | None = [],
+        check_guilds: list[int] | None = None,
         delete_existing: bool = True,
     ) -> None:
         """|coro|
