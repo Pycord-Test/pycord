@@ -724,7 +724,10 @@ def handle_message_parameters(
     return ExecuteWebhookParameters(payload=payload, multipart=multipart, files=files)
 
 
-async_context: ContextVar[AsyncWebhookAdapter] = ContextVar("async_webhook_context", default=AsyncWebhookAdapter())
+async_context: ContextVar[AsyncWebhookAdapter] = ContextVar(
+    "async_webhook_context",
+    default=AsyncWebhookAdapter(),  # noqa: B039 # TODO: replace with immutable default
+)
 
 
 class PartialWebhookChannel(Hashable):
