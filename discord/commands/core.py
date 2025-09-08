@@ -1155,7 +1155,7 @@ class SlashCommandGroup(ApplicationCommand):
         self.__original_kwargs__ = kwargs.copy()
 
         self.__initial_commands__ = []
-        for i, c in cls.__dict__.items():
+        for _, c in cls.__dict__.items():
             if isinstance(c, type) and SlashCommandGroup in c.__bases__:
                 c = c(
                     c.__name__,

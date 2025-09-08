@@ -1121,7 +1121,7 @@ class Message(Hashable):
 
     def _clear_emoji(self, emoji) -> Reaction | None:
         to_check = str(emoji)
-        for index, reaction in enumerate(self.reactions):
+        for index, reaction in enumerate(self.reactions):  # noqa: B007
             if str(reaction.emoji) == to_check:
                 break
         else:

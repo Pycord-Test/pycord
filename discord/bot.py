@@ -265,7 +265,7 @@ class ApplicationCommandMixin(ABC):
             if isinstance(cmd, SlashCommandGroup):
                 if len(cmd.subcommands) != len(match.get("options", [])):
                     return True
-                for i, subcommand in enumerate(cmd.subcommands):
+                for subcommand in cmd.subcommands:
                     match_ = next(
                         (data for data in match["options"] if data["name"] == subcommand.name),
                         MISSING,
@@ -357,7 +357,7 @@ class ApplicationCommandMixin(ABC):
                 return_value.append({"command": cmd, "action": None, "id": int(match["id"])})
 
         # Now let's see if there are any commands on discord that we need to delete
-        for cmd, value_ in registered_commands_dict.items():
+        for _, value_ in registered_commands_dict.items():
             match = find(lambda c: c.name == value_["name"], pending)
             if match is None:
                 # We have this command registered but not in our list
