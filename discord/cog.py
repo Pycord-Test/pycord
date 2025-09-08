@@ -186,14 +186,12 @@ class CogMeta(type):
                         commands[f"ext_{cmd.ext_variant.qualified_name}"] = cmd.ext_variant
 
                 if inspect.iscoroutinefunction(value):
-                    try:
-                        getattr(value, "__cog_listener__")
-                    except AttributeError:
-                        continue
-                    else:
+                    if hasattr(value, "__cog_listener__"):
                         if elem.startswith(("cog_", "bot_")):
                             raise TypeError(no_bot_cog.format(base, elem))
                         listeners[elem] = value
+                    else:
+                        continue
 
         new_cls.__cog_commands__ = list(commands.values())
 
@@ -711,7 +709,7 @@ class CogMixin:
 
     def _call_module_finalizers(self, lib: types.ModuleType, key: str) -> None:
         try:
-            func = getattr(lib, "teardown")
+            func = lib.teardown
         except AttributeError:
             pass
         else:
@@ -738,7 +736,7 @@ class CogMixin:
             raise errors.ExtensionFailed(key, e) from e
 
         try:
-            setup = getattr(lib, "setup")
+            setup = lib.setup
         except AttributeError:
             del sys.modules[key]
             raise errors.NoEntryPointError(key)

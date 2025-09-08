@@ -111,7 +111,7 @@ class ApplicationCommandMixin(ABC):
     def commands(self) -> list[ApplicationCommand | Any]:
         commands = self.application_commands
         if self._bot._supports_prefixed_commands and hasattr(self._bot, "prefixed_commands"):
-            commands += getattr(self._bot, "prefixed_commands")
+            commands += self._bot.prefixed_commands
         return commands
 
     @property
