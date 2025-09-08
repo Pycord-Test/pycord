@@ -936,7 +936,8 @@ class SlashCommand(ApplicationCommand):
         # TODO: Parse the args better
         kwargs = {}
         for arg in ctx.interaction.data.get("options", []):
-            op = find(lambda x: x.name == arg["name"], self.options)
+            # name is used because loop variables leak in surrounding scope
+            op = find(lambda x, name=arg["name"]: x.name == name, self.options)
             if op is None:
                 continue
             arg = arg["value"]
@@ -1021,7 +1022,8 @@ class SlashCommand(ApplicationCommand):
                         arg = op._raw_type(int(arg))
                     except ValueError:
                         arg = op._raw_type(arg)
-                elif choice := find(lambda c: c.value == arg, op.choices):
+                # _arg is used because loop variables leak in surrounding scope
+                elif choice := find(lambda c, _arg=arg: c.value == _arg, op.choices):
                     arg = getattr(op._raw_type, choice.name)
 
             kwargs[op._parameter_name] = arg
@@ -1042,7 +1044,8 @@ class SlashCommand(ApplicationCommand):
 
         for op in ctx.interaction.data.get("options", []):
             if op.get("focused", False):
-                option = find(lambda o: o.name == op["name"], self.options)
+                # op_name is used because loop variables leak in surrounding scope
+                option = find(lambda o, op_name=op["name"]: o.name == op_name, self.options)
                 values.update({i["name"]: i["value"] for i in ctx.interaction.data["options"]})
                 ctx.command = self
                 ctx.focused = option

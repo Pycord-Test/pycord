@@ -358,7 +358,8 @@ class ApplicationCommandMixin(ABC):
 
         # Now let's see if there are any commands on discord that we need to delete
         for _, value_ in registered_commands_dict.items():
-            match = find(lambda c: c.name == value_["name"], pending)
+            # name default arg is used because loop variables leak in surrounding scope
+            match = find(lambda c, name=value_["name"]: c.name == name, pending)
             if match is None:
                 # We have this command registered but not in our list
                 return_value.append(
@@ -517,7 +518,11 @@ class ApplicationCommandMixin(ABC):
                     )
                     continue
                 # We can assume the command item is a command, since it's only a string if action is delete
-                match = find(lambda c: c.name == cmd["command"].name and c.type == cmd["command"].type, pending)
+                wanted = cmd["command"]
+                name = wanted.name
+                type_ = wanted.type
+
+                match = next((c for c in pending if c.name == name and c.type == type_), None)
                 if match is None:
                     continue
                 if cmd["action"] == "edit":
@@ -606,8 +611,10 @@ class ApplicationCommandMixin(ABC):
             registered = await register("bulk", data, guild_id=guild_id)
 
         for i in registered:
+            type_ = i.get("type")
+            # name, type_ default args are used because loop variables leak in surrounding scope
             cmd = find(
-                lambda c: c.name == i["name"] and c.type == i.get("type"),
+                lambda c, name=i["name"], type_=type_: c.name == name and c.type == type_,
                 self.pending_application_commands,
             )
             if not cmd:
@@ -711,25 +718,37 @@ class ApplicationCommandMixin(ABC):
                 )
                 registered_guild_commands[guild_id] = app_cmds
 
-        for i in registered_commands:
+        for item in registered_commands:
+            type_ = item.get("type")
+            # name, type_ default args are used because loop variables leak in surrounding scope
             cmd = find(
-                lambda c: c.name == i["name"] and c.guild_ids is None and c.type == i.get("type"),
+                lambda c, name=item["name"], type_=type_: (c.name == name and c.guild_ids is None and c.type == type_),
                 self.pending_application_commands,
             )
             if cmd:
-                cmd.id = i["id"]
+                cmd.id = item["id"]
                 self._application_commands[cmd.id] = cmd
 
         if register_guild_commands and registered_guild_commands:
             for guild_id, guild_cmds in registered_guild_commands.items():
                 for i in guild_cmds:
-                    cmd = find(
-                        lambda cmd: cmd.name == i["name"]
-                        and cmd.type == i.get("type")
-                        and cmd.guild_ids is not None
-                        and (guild_id := i.get("guild_id"))
-                        and guild_id in cmd.guild_ids,
-                        self.pending_application_commands,
+                    name = i["name"]
+                    type_ = i.get("type")
+                    target_gid = i.get("guild_id")
+                    if target_gid is None:
+                        continue
+
+                    cmd = next(
+                        (
+                            c
+                            for c in self.pending_application_commands
+                            if c.name == name
+                            and c.type == type_
+                            and c.guild_ids is not None
+                            and target_gid == guild_id
+                            and target_gid in c.guild_ids
+                        ),
+                        None,
                     )
                     if not cmd:
                         # command has not been added yet

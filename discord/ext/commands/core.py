@@ -1912,16 +1912,13 @@ def has_any_role(*items: int | str) -> Callable[[T], T]:
             raise NoPrivateMessage()
 
         # ctx.guild is None doesn't narrow ctx.author to Member
-        getter = functools.partial(discord.utils.find, seq=ctx.author.roles)  # type: ignore
-        if any(
-            (
-                getter(lambda e: e.id == item) is not None
-                if isinstance(item, int)
-                else getter(lambda e: e.name == item) is not None
-            )
-            for item in items
-        ):
-            return True
+        for item in items:
+            if isinstance(item, int):
+                if any(role.id == item for role in ctx.author.roles):
+                    return True
+            else:
+                if any(role.name == item for role in ctx.author.roles):
+                    return True
         raise MissingAnyRole(list(items))
 
     return check(predicate)
@@ -1976,16 +1973,14 @@ def bot_has_any_role(*items: int) -> Callable[[T], T]:
             raise NoPrivateMessage()
 
         me = ctx.me
-        getter = functools.partial(discord.utils.find, seq=me.roles)
-        if any(
-            (
-                getter(lambda e: e.id == item) is not None
-                if isinstance(item, int)
-                else getter(lambda e: e.name == item) is not None
-            )
-            for item in items
-        ):
-            return True
+        for item in items:
+            if isinstance(item, int):
+                if any(role.id == item for role in me.roles):
+                    return True
+            else:
+                if any(role.name == item for role in me.roles):
+                    return True
+
         raise BotMissingAnyRole(list(items))
 
     return check(predicate)
