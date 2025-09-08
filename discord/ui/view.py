@@ -33,19 +33,17 @@ from functools import partial
 from itertools import groupby
 from typing import TYPE_CHECKING, Any, Callable, ClassVar, Iterator, Sequence, TypeVar
 
+from .. import utils
 from ..components import ActionRow as ActionRowComponent
 from ..components import Button as ButtonComponent
-from ..components import Component
+from ..components import Component, FileComponent, _component_factory
 from ..components import Container as ContainerComponent
-from ..components import FileComponent
 from ..components import MediaGallery as MediaGalleryComponent
 from ..components import Section as SectionComponent
 from ..components import SelectMenu as SelectComponent
 from ..components import Separator as SeparatorComponent
 from ..components import TextDisplay as TextDisplayComponent
 from ..components import Thumbnail as ThumbnailComponent
-from ..components import _component_factory
-from .. import utils
 from .item import Item, ItemCallbackType
 
 __all__ = ("View", "_component_to_item", "_walk_all_components")

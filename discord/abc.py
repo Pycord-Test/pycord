@@ -41,7 +41,6 @@ from typing import (
     runtime_checkable,
 )
 
-from .utils.private import warn_deprecated
 from . import utils
 from .context_managers import Typing
 from .enums import ChannelType
@@ -56,6 +55,7 @@ from .permissions import PermissionOverwrite, Permissions
 from .role import Role
 from .scheduled_events import ScheduledEvent
 from .sticker import GuildSticker, StickerItem
+from .utils.private import warn_deprecated
 from .voice_client import VoiceClient, VoiceProtocol
 
 __all__ = (
@@ -99,9 +99,9 @@ if TYPE_CHECKING:
     from .ui.view import View
     from .user import ClientUser
 
-    PartialMessageableChannel = Union[TextChannel, VoiceChannel, StageChannel, Thread, DMChannel, PartialMessageable]
-    MessageableChannel = Union[PartialMessageableChannel, GroupChannel]
-    SnowflakeTime = Union["Snowflake", datetime]
+    PartialMessageableChannel = TextChannel | VoiceChannel | StageChannel | Thread | DMChannel | PartialMessageable
+    MessageableChannel = PartialMessageableChannel | GroupChannel
+    SnowflakeTime = "Snowflake" | datetime
 
 MISSING = utils.MISSING
 

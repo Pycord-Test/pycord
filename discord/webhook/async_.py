@@ -36,7 +36,6 @@ from urllib.parse import quote as urlquote
 
 import aiohttp
 
-from ..utils.private import bytes_to_base64_data, get_as_snowflake, parse_ratelimit_header, to_json
 from .. import utils
 from ..asset import Asset
 from ..channel import ForumChannel, PartialMessageable
@@ -56,6 +55,7 @@ from ..mixins import Hashable
 from ..object import Object
 from ..threads import Thread
 from ..user import BaseUser, User
+from ..utils.private import bytes_to_base64_data, get_as_snowflake, parse_ratelimit_header, to_json
 
 __all__ = (
     "Webhook",
