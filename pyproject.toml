@@ -137,7 +137,6 @@ extend-ignore = [
     "ARG004",
     "ARG005",
     "ASYNC230",
-    "B034",
     "B039",
     "B904",
     "BLE001",
