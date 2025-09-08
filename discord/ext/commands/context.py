@@ -374,9 +374,8 @@ class Context(discord.abc.Messageable, Generic[BotT]):
         if entity is None:
             return None
 
-        try:
-            entity.qualified_name
-        except AttributeError:
+        if not hasattr(entity, "qualified_name"):
+            # TODO: this is ugly shit please make it better like isinstance idk
             # if we're here then it's not a cog, group, or command.
             return None
 
