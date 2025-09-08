@@ -383,7 +383,7 @@ class AuditLogChanges:
         elem: list[RolePayload],
     ) -> None:
         if not hasattr(first, "roles"):
-            setattr(first, "roles", [])
+            first.roles = []
 
         data = []
         g: Guild = entry.guild  # type: ignore
@@ -398,7 +398,7 @@ class AuditLogChanges:
 
             data.append(role)
 
-        setattr(second, "roles", data)
+        second.roles = data
 
     def _handle_trigger_metadata(
         self,
@@ -409,13 +409,13 @@ class AuditLogChanges:
         attr: str,
     ) -> None:
         if not hasattr(first, "trigger_metadata"):
-            setattr(first, "trigger_metadata", None)
+            first.trigger_metadata = None
 
         key = attr.split("_", 1)[-1]
         data = {key: elem}
         tm = AutoModTriggerMetadata.from_dict(data)
 
-        setattr(second, "trigger_metadata", tm)
+        second.trigger_metadata = tm
 
 
 class _AuditLogProxyMemberPrune:
