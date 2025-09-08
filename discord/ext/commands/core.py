@@ -1370,7 +1370,7 @@ class GroupMixin(Generic[CogT]):
 
         def decorator(func: Callable[Concatenate[ContextT, P], Coro[Any]]) -> CommandT:
             kwargs.setdefault("parent", self)
-            result = command(name=name, cls=cls, *args, **kwargs)(func)
+            result = command(name=name, cls=cls, *args, **kwargs)(func)  # noqa: B026
             self.add_command(result)
             return result
 
@@ -1415,7 +1415,7 @@ class GroupMixin(Generic[CogT]):
 
         def decorator(func: Callable[Concatenate[ContextT, P], Coro[Any]]) -> GroupT:
             kwargs.setdefault("parent", self)
-            result = group(name=name, cls=cls, *args, **kwargs)(func)
+            result = group(name=name, cls=cls, *args, **kwargs)(func)  # noqa: B026
             self.add_command(result)
             return result
 
