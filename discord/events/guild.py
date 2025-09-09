@@ -25,7 +25,8 @@ DEALINGS IN THE SOFTWARE.
 import asyncio
 import copy
 import logging
-from typing import Any, Self
+from typing import TYPE_CHECKING, Any, Self
+from discord import Role
 from discord.app.event_emitter import Event
 from discord.app.state import ConnectionState
 from discord.emoji import Emoji
@@ -34,7 +35,11 @@ from discord.member import Member
 from discord.raw_models import RawMemberRemoveEvent
 from discord.sticker import Sticker
 
+if TYPE_CHECKING:
+    from ..types.member import MemberWithUser
+
 _log = logging.getLogger(__name__)
+
 
 class GuildMemberJoin(Event, Member):
     __event_name__ = "GUILD_MEMBER_JOIN"
@@ -61,6 +66,7 @@ class GuildMemberJoin(Event, Member):
         self = cls()
         self.__dict__.update(member.__dict__)
         return self
+
 
 class GuildMemberRemove(Event, Member):
     __event_name__ = "GUILD_MEMBER_REMOVE"
@@ -89,6 +95,7 @@ class GuildMemberRemove(Event, Member):
                 "GUILD_MEMBER_REMOVE referencing an unknown guild ID: %s. Discarding.",
                 data["guild_id"],
             )
+
 
 class GuildMemberUpdate(Event, Member):
     __event_name__ = "GUILD_MEMBER_UPDATE"
@@ -136,6 +143,7 @@ class GuildMemberUpdate(Event, Member):
                 user_id,
             )
 
+
 class GuildEmojisUpdate(Event):
     __event_name__ = "GUILD_EMOJIS_UPDATE"
     guild: Guild
@@ -165,6 +173,7 @@ class GuildEmojisUpdate(Event):
         self.old_emojis = guild.emojis
         self.emojis = emojis
 
+
 class GuildStickersUpdate(Event):
     __event_name__ = "GUILD_STICKERS_UPDATE"
 
@@ -177,7 +186,9 @@ class GuildStickersUpdate(Event):
         guild = await state._get_guild(int(data["guild_id"]))
         if guild is None:
             _log.debug(
-                ("GUILD_STICKERS_UPDATE referencing an unknown guild ID: %s. Discarding."),
+                (
+                    "GUILD_STICKERS_UPDATE referencing an unknown guild ID: %s. Discarding."
+                ),
                 data["guild_id"],
             )
             return
@@ -195,6 +206,7 @@ class GuildStickersUpdate(Event):
         self.stickers = stickers
         self.guild = guild
 
+
 class GuildAvailable(Event, Guild):
     __event_name__ = "GUILD_AVAILABLE"
 
@@ -205,6 +217,7 @@ class GuildAvailable(Event, Guild):
         self = cls()
         self.__dict__.update(data.__dict__)
         return self
+
 
 class GuildUnavailable(Event, Guild):
     __event_name__ = "GUILD_UNAVAILABLE"
@@ -217,6 +230,7 @@ class GuildUnavailable(Event, Guild):
         self.__dict__.update(data.__dict__)
         return self
 
+
 class GuildJoin(Event, Guild):
     __event_name__ = "GUILD_JOIN"
 
@@ -227,6 +241,7 @@ class GuildJoin(Event, Guild):
         self = cls()
         self.__dict__.update(data.__dict__)
         return self
+
 
 class GuildCreate(Event, Guild):
     __event_name__ = "GUILD_CREATE"
@@ -244,7 +259,7 @@ class GuildCreate(Event, Guild):
 
         try:
             # Notify the on_ready state, if any, that this guild is complete.
-            state._ready_state.put_nowait(guild) # type: ignore
+            state._ready_state.put_nowait(guild)  # type: ignore
         except AttributeError:
             pass
         else:
@@ -265,6 +280,7 @@ class GuildCreate(Event, Guild):
         self = cls()
         self.__dict__.update(data.__dict__)
         return self
+
 
 class GuildUpdate(Event, Guild):
     __event_name__ = "GUILD_UPDATE"
@@ -288,6 +304,7 @@ class GuildUpdate(Event, Guild):
                 "GUILD_UPDATE referencing an unknown guild ID: %s. Discarding.",
                 data["id"],
             )
+
 
 class GuildDelete(Event, Guild):
     __event_name__ = "GUILD_DELETE"
@@ -315,9 +332,162 @@ class GuildDelete(Event, Guild):
 
         # do a cleanup of the messages cache
         messages = await state.cache.get_all_messages()
-        await asyncio.gather(*[state.cache.delete_message(message.id) for message in messages])
+        await asyncio.gather(
+            *[state.cache.delete_message(message.id) for message in messages]
+        )
 
         await state._remove_guild(guild)
         self = cls()
         self.__dict__.update(guild.__dict__)
+        return self
+
+
+class GuildBanAdd(Event, Member):
+    __event_name__ = "GUILD_BAN_ADD"
+
+    def __init__(self) -> None: ...
+
+    @classmethod
+    async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
+        guild = await state._get_guild(int(data["guild_id"]))
+        if guild is None:
+            _log.debug(
+                "GUILD_BAN_ADD referencing an unknown guild ID: %s. Discarding.",
+                data["guild_id"],
+            )
+            return
+
+        member = await guild.get_member(int(data["user"]["id"]))
+        if member is None:
+            fake_data: MemberWithUser = {
+                "user": data["user"],
+                "roles": [],
+                "joined_at": None,
+                "deaf": False,
+                "mute": False,
+            }
+            member = Member(guild=guild, data=fake_data, state=state)
+
+        self = cls()
+        self.__dict__.update(member.__dict__)
+        return self
+
+
+class GuildBanRemove(Event, Member):
+    __event_name__ = "GUILD_BAN_REMOVE"
+
+    def __init__(self) -> None: ...
+
+    @classmethod
+    async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
+        guild = await state._get_guild(int(data["guild_id"]))
+        if guild is None:
+            _log.debug(
+                "GUILD_BAN_ADD referencing an unknown guild ID: %s. Discarding.",
+                data["guild_id"],
+            )
+            return
+
+        member = await guild.get_member(int(data["user"]["id"]))
+        if member is None:
+            fake_data: MemberWithUser = {
+                "user": data["user"],
+                "roles": [],
+                "joined_at": None,
+                "deaf": False,
+                "mute": False,
+            }
+            member = Member(guild=guild, data=fake_data, state=state)
+
+        self = cls()
+        self.__dict__.update(member.__dict__)
+        return self
+
+
+class GuildRoleCreate(Event, Role):
+    __event_name__ = "GUILD_ROLE_CREATE"
+
+    def __init__(self) -> None: ...
+
+    @classmethod
+    async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
+        guild = await state._get_guild(int(data["guild_id"]))
+        if guild is None:
+            _log.debug(
+                "GUILD_ROLE_CREATE referencing an unknown guild ID: %s. Discarding.",
+                data["guild_id"],
+            )
+            return
+
+        role = Role(guild=guild, data=data["role"], state=state)
+        guild._add_role(role)
+
+        self = cls()
+        self.__dict__.update(role.__dict__)
+        return self
+
+
+class GuildRoleUpdate(Event, Role):
+    __event_name__ = "GUILD_ROLE_UPDATE"
+
+    old: Role
+
+    def __init__(self) -> None: ...
+
+    @classmethod
+    async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
+        guild = await state._get_guild(int(data["guild_id"]))
+        if guild is None:
+            _log.debug(
+                "GUILD_ROLE_UPDATE referencing an unknown guild ID: %s. Discarding.",
+                data["guild_id"],
+            )
+            return
+
+        role_id: int = int(data["role"]["id"])
+        role = guild.get_role(role_id)
+        if role is None:
+            _log.debug(
+                "GUILD_ROLE_UPDATE referencing an unknown role ID: %s. Discarding.",
+                data["role"]["id"],
+            )
+            return
+
+        old_role = copy.copy(role)
+        await role._update(data["role"])
+
+        self = cls()
+        self.__dict__.update(role.__dict__)
+        self.old = old_role
+        return self
+
+
+class GuildRoleDelete(Event, Role):
+    __event_name__ = "GUILD_ROLE_DELETE"
+
+    def __init__(self) -> None: ...
+
+    @classmethod
+    async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
+        guild = await state._get_guild(int(data["guild_id"]))
+        if guild is None:
+            _log.debug(
+                "GUILD_ROLE_DELETE referencing an unknown guild ID: %s. Discarding.",
+                data["guild_id"],
+            )
+            return
+
+        role_id: int = int(data["role_id"])
+        role = guild.get_role(role_id)
+        if role is None:
+            _log.debug(
+                "GUILD_ROLE_DELETE referencing an unknown role ID: %s. Discarding.",
+                data["role_id"],
+            )
+            return
+
+        guild._remove_role(role_id)
+
+        self = cls()
+        self.__dict__.update(role.__dict__)
         return self
