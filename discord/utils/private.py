@@ -325,9 +325,7 @@ def evaluate_annotation(
         args = tp.__args__
         if not hasattr(tp, "__origin__"):
             if PY_310 and tp.__class__ is types.UnionType:
-                converted = args[0]
-                for arg in args[1:]:
-                    converted = converted | arg
+                converted = Union[args]  # noqa: UP007
                 return evaluate_annotation(converted, globals, locals, cache)
 
             return tp
