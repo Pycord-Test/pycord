@@ -36,73 +36,73 @@ TextInputStyle = Literal[1, 2]
 SeparatorSpacingSize = Literal[1, 2]
 
 
-class BaseInteractionComponent(TypedDict):
+class BasePartialComponent(TypedDict):
     type: ComponentType
     id: int
 
 
-class InteractionButton(BaseInteractionComponent):
+class PartialButton(BasePartialComponent):
     type: Literal[2]  # pyright: ignore[reportIncompatibleVariableOverride]
     custom_id: str | None
 
 
-class InteractionStringSelectMenu(BaseInteractionComponent):
+class PartialStringSelectMenu(BasePartialComponent):
     type: Literal[3]  # pyright: ignore[reportIncompatibleVariableOverride]
     values: list[str]
     custom_id: str
 
 
-class InteractionUserSelectMenu(BaseInteractionComponent):
+class PartialUserSelectMenu(BasePartialComponent):
     type: Literal[5]  # pyright: ignore[reportIncompatibleVariableOverride]
     values: list[Snowflake]
     custom_id: str
 
 
-class InteractionRoleSelectMenu(BaseInteractionComponent):
+class PartialRoleSelectMenu(BasePartialComponent):
     type: Literal[6]  # pyright: ignore[reportIncompatibleVariableOverride]
     values: list[Snowflake]
     custom_id: str
 
 
-class InteractionMentionableSelectMenu(BaseInteractionComponent):
+class PartialMentionableSelectMenu(BasePartialComponent):
     type: Literal[7]  # pyright: ignore[reportIncompatibleVariableOverride]
     values: list[Snowflake]
     custom_id: str
 
 
-class InteractionChannelSelectMenu(BaseInteractionComponent):
+class PartialChannelSelectMenu(BasePartialComponent):
     type: Literal[8]  # pyright: ignore[reportIncompatibleVariableOverride]
     values: list[Snowflake]
     custom_id: str
 
 
-class InteractionTextInput(BaseInteractionComponent):
+class PartialTextInput(BasePartialComponent):
     type: Literal[4]  # pyright: ignore[reportIncompatibleVariableOverride]
     value: str
     custom_id: str
 
 
-class InteractionTextDisplay(BaseInteractionComponent):
+class PartialTextDisplay(BasePartialComponent):
     type: Literal[10]  # pyright: ignore[reportIncompatibleVariableOverride]
     value: str
 
 
-AllowedInteractionLabelComponents: TypeAlias = "InteractionStringSelectMenu | InteractionTextInput"
+AllowedPartialLabelComponents: TypeAlias = "PartialStringSelectMenu | PartialTextInput"
 
 
-class InteractionLabel(BaseInteractionComponent):
+class PartialLabel(BasePartialComponent):
     type: Literal[18]  # pyright: ignore[reportIncompatibleVariableOverride]
-    component: AllowedInteractionLabelComponents
+    component: AllowedPartialLabelComponents
 
 
-InteractionComponent: TypeAlias = (
-    InteractionStringSelectMenu
-    | InteractionUserSelectMenu
-    | InteractionButton
-    | InteractionRoleSelectMenu
-    | InteractionMentionableSelectMenu
-    | InteractionChannelSelectMenu
-    | InteractionTextInput
-    | InteractionLabel
-    | InteractionTextDisplay
+PartialComponent: TypeAlias = (
+    PartialStringSelectMenu
+    | PartialUserSelectMenu
+    | PartialButton
+    | PartialRoleSelectMenu
+    | PartialMentionableSelectMenu
+    | PartialChannelSelectMenu
+    | PartialTextInput
+    | PartialLabel
+    | PartialTextDisplay
 )

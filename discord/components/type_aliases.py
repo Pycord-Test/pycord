@@ -6,21 +6,21 @@ from .channel_select_menu import ChannelSelect
 from .container import Container
 from .file_component import FileComponent
 from .input_text import TextInput
-from .interaction_components import (
-    InteractionButton,
-    InteractionChannelSelect,
-    InteractionLabel,
-    InteractionMentionableSelect,
-    InteractionRoleSelect,
-    InteractionStringSelect,
-    InteractionTextDisplay,
-    InteractionTextInput,
-    InteractionUserSelect,
-    UnknownInteractionComponent,
-)
 from .label import Label
 from .media_gallery import MediaGallery
 from .mentionable_select_menu import MentionableSelect
+from .partial_components import (
+    PartialButton,
+    PartialChannelSelect,
+    PartialLabel,
+    PartialMentionableSelect,
+    PartialRoleSelect,
+    PartialStringSelect,
+    PartialTextDisplay,
+    PartialTextInput,
+    PartialUserSelect,
+    UnknownPartialComponent,
+)
 from .role_select_menu import RoleSelect
 from .section import Section
 from .separator import Separator
@@ -56,31 +56,36 @@ AnyTopLevelMessageComponent: TypeAlias = (
 
 AnyTopLevelModalComponent: TypeAlias = TextDisplay | Label
 
-AnyInteractionComponent: TypeAlias = (
-    InteractionLabel
-    | InteractionTextInput
-    | InteractionStringSelect
-    | InteractionTextDisplay
-    | InteractionUserSelect
-    | InteractionRoleSelect
-    | InteractionMentionableSelect
-    | InteractionChannelSelect
-    | UnknownInteractionComponent
-    | InteractionButton
+AnyPartialComponent: TypeAlias = (
+    PartialLabel
+    | PartialTextInput
+    | PartialStringSelect
+    | PartialTextDisplay
+    | PartialUserSelect
+    | PartialRoleSelect
+    | PartialMentionableSelect
+    | PartialChannelSelect
+    | UnknownPartialComponent
+    | PartialButton
 )
 
-AnyTopLevelModalInteractionComponent: TypeAlias = (
-    InteractionLabel | InteractionTextDisplay | UnknownInteractionComponent
+AnyTopLevelModalPartialComponent: TypeAlias = PartialLabel | PartialTextDisplay | UnknownPartialComponent
+
+AnyMessagePartialComponent: TypeAlias = (
+    PartialStringSelect
+    | PartialUserSelect
+    | PartialRoleSelect
+    | PartialMentionableSelect
+    | PartialButton
+    | PartialChannelSelect
+    | UnknownPartialComponent
 )
 
-AnyMessageInteractionComponent: TypeAlias = (
-    InteractionStringSelect
-    | InteractionUserSelect
-    | InteractionRoleSelect
-    | InteractionMentionableSelect
-    | InteractionButton
-    | InteractionChannelSelect
-    | UnknownInteractionComponent
+__all__ = (
+    "AnyComponent",
+    "AnyTopLevelMessageComponent",
+    "AnyTopLevelModalComponent",
+    "AnyPartialComponent",
+    "AnyTopLevelModalPartialComponent",
+    "AnyMessagePartialComponent",
 )
-
-__all__ = ("AnyComponent",)

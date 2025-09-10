@@ -32,27 +32,27 @@ from .container import Container
 from .default_select_option import DefaultSelectOption
 from .file_component import FileComponent
 from .input_text import TextInput
-from .interaction_components import (
-    InteractionButton,
-    InteractionChannelSelect,
-    InteractionComponent,
-    InteractionLabel,
-    InteractionMentionableSelect,
-    InteractionRoleSelect,
-    InteractionSelect,
-    InteractionStringSelect,
-    InteractionTextDisplay,
-    InteractionTextInput,
-    InteractionUserSelect,
-    InteractionWalkableComponent,
-    UnknownInteractionComponent,
-    _interaction_component_factory,  # pyright: ignore[reportPrivateUsage]
-)
 from .label import Label
 from .media_gallery import MediaGallery
 from .media_gallery_item import MediaGalleryItem
 from .mentionable_select_menu import MentionableSelect
 from .modal import Modal
+from .partial_components import (
+    PartialButton,
+    PartialChannelSelect,
+    PartialComponent,
+    PartialLabel,
+    PartialMentionableSelect,
+    PartialRoleSelect,
+    PartialSelect,
+    PartialStringSelect,
+    PartialTextDisplay,
+    PartialTextInput,
+    PartialUserSelect,
+    PartialWalkableComponent,
+    UnknownPartialComponent,
+    _interaction_component_factory,  # pyright: ignore[reportPrivateUsage]
+)
 from .role_select_menu import RoleSelect
 from .section import Section
 from .select_menu import Select
@@ -65,11 +65,11 @@ from .thumbnail import Thumbnail
 # Don't change the import order
 from .type_aliases import (
     AnyComponent,
-    AnyInteractionComponent,
-    AnyMessageInteractionComponent,
+    AnyMessagePartialComponent,
+    AnyPartialComponent,
     AnyTopLevelMessageComponent,
     AnyTopLevelModalComponent,
-    AnyTopLevelModalInteractionComponent,
+    AnyTopLevelModalPartialComponent,
 )
 from .unfurled_media_item import UnfurledMediaItem
 from .unknown_component import UnknownComponent
@@ -89,7 +89,7 @@ __all__ = (
     "RoleSelect",
     "MentionableSelect",
     "ChannelSelect",
-    "AnyMessageInteractionComponent",
+    "AnyMessagePartialComponent",
     "SelectOption",
     "DefaultSelectOption",
     "TextInput",
@@ -106,23 +106,23 @@ __all__ = (
     "Modal",
     "UnknownComponent",
     "_component_factory",
-    "InteractionLabel",
-    "InteractionComponent",
-    "InteractionSelect",
-    "InteractionStringSelect",
-    "InteractionUserSelect",
-    "InteractionButton",
-    "InteractionRoleSelect",
-    "InteractionMentionableSelect",
-    "InteractionChannelSelect",
-    "InteractionTextInput",
-    "InteractionTextDisplay",
-    "UnknownInteractionComponent",
+    "PartialLabel",
+    "PartialComponent",
+    "PartialSelect",
+    "PartialStringSelect",
+    "PartialUserSelect",
+    "PartialButton",
+    "PartialRoleSelect",
+    "PartialMentionableSelect",
+    "PartialChannelSelect",
+    "PartialTextInput",
+    "PartialTextDisplay",
+    "UnknownPartialComponent",
     "_interaction_component_factory",
     "AnyComponent",
     "AnyTopLevelModalComponent",
     "AnyTopLevelMessageComponent",
-    "AnyInteractionComponent",
-    "AnyTopLevelModalInteractionComponent",
-    "InteractionWalkableComponent",
+    "AnyPartialComponent",
+    "AnyTopLevelModalPartialComponent",
+    "PartialWalkableComponent",
 )

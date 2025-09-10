@@ -32,21 +32,21 @@ from typing import TYPE_CHECKING, Any, Generic, Literal, TypeAlias, cast
 from typing_extensions import TypeVar, override
 
 from ..enums import ComponentType, try_enum
-from ..types.interaction_components import InteractionButton as InteractionButtonPayload
-from ..types.interaction_components import InteractionChannelSelectMenu as InteractionChannelSelectMenuPayload
-from ..types.interaction_components import InteractionComponent as InteractionComponentPayload
-from ..types.interaction_components import InteractionLabel as InteractionLabelPayload
-from ..types.interaction_components import InteractionMentionableSelectMenu as InteractionMentionableSelectMenuPayload
-from ..types.interaction_components import InteractionRoleSelectMenu as InteractionRoleSelectMenuPayload
-from ..types.interaction_components import InteractionStringSelectMenu as InteractionStringSelectMenuPayload
-from ..types.interaction_components import InteractionTextDisplay as InteractionTextDisplayPayload
-from ..types.interaction_components import InteractionTextInput as InteractionTextInputPayload
-from ..types.interaction_components import InteractionUserSelectMenu as InteractionUserSelectMenuPayload
+from ..types.partial_components import PartialButton as PartialButtonPayload
+from ..types.partial_components import PartialChannelSelectMenu as PartialChannelSelectPayload
+from ..types.partial_components import PartialComponent as PartialComponentPayload
+from ..types.partial_components import PartialLabel as PartialLabelPayload
+from ..types.partial_components import PartialMentionableSelectMenu as PartialMentionableSelectPayload
+from ..types.partial_components import PartialRoleSelectMenu as PartialRoleSelectPayload
+from ..types.partial_components import PartialStringSelectMenu as PartialStringSelectPayload
+from ..types.partial_components import PartialTextDisplay as PartialTextDisplayPayload
+from ..types.partial_components import PartialTextInput as PartialTextInputPayload
+from ..types.partial_components import PartialUserSelectMenu as PartialUserSelectPayload
 
 if TYPE_CHECKING:
     from typing_extensions import Self
 
-    from .type_aliases import AnyInteractionComponent
+    from .type_aliases import AnyPartialComponent
 
 
 # Below, the usage of field with kw_only=True is used to push the attribute at the end of the __init__ signature and
@@ -55,12 +55,12 @@ if TYPE_CHECKING:
 
 
 T = TypeVar("T", bound="ComponentType")
-P = TypeVar("P", bound="InteractionComponentPayload")
+P = TypeVar("P", bound="PartialComponentPayload")
 
 
 @dataclass
-class InteractionComponent(ABC, Generic[T, P]):
-    """Base class for all interaction components returned by Discord during an :class:`Interaction` of type :data:`InteractionType.modal_submit`.
+class PartialComponent(ABC, Generic[T, P]):
+    """Base class for all partial components returned by Discord during an :class:`Interaction` of type :data:`InteractionType.modal_submit`.
 
     .. versionadded:: 3.0
     """
@@ -73,10 +73,10 @@ class InteractionComponent(ABC, Generic[T, P]):
     def from_payload(cls, payload: P) -> Self: ...
 
 
-C = TypeVar("C", bound="AnyInteractionComponent", covariant=True)
+C = TypeVar("C", bound="AnyPartialComponent", covariant=True)
 
 
-class InteractionWalkableComponent(InteractionComponent[T, P], ABC, Generic[T, P, C]):
+class PartialWalkableComponent(PartialComponent[T, P], ABC, Generic[T, P, C]):
     @abstractmethod
     def walk_components(self) -> Iterator[C]: ...
 
@@ -100,7 +100,7 @@ V = TypeVar("V", bound="str | int")
 
 
 @dataclass
-class InteractionButton(InteractionComponent[Literal[ComponentType.button], InteractionButtonPayload]):
+class PartialButton(PartialComponent[Literal[ComponentType.button], PartialButtonPayload]):
     """Represents a :class:`Button` component as returned by Discord during a :class:`Interaction` of type :data:`InteractionType.modal_submit`.
 
     .. versionadded:: 3.0
@@ -121,12 +121,12 @@ class InteractionButton(InteractionComponent[Literal[ComponentType.button], Inte
 
     @classmethod
     @override
-    def from_payload(cls, payload: InteractionButtonPayload) -> Self:
+    def from_payload(cls, payload: PartialButtonPayload) -> Self:
         return cls(id=payload["id"], custom_id=payload.get("custom_id"))
 
 
 @dataclass
-class InteractionSelect(InteractionComponent[T, P], ABC, Generic[T, V, P]):
+class PartialSelect(PartialComponent[T, P], ABC, Generic[T, V, P]):
     """Base class for all select menu interaction components returned by Discord during an :class:`Interaction` of type :data:`InteractionType.modal_submit`.
 
     .. versionadded:: 3.0
@@ -139,9 +139,7 @@ class InteractionSelect(InteractionComponent[T, P], ABC, Generic[T, V, P]):
 
 
 @dataclass
-class InteractionStringSelect(
-    InteractionSelect[Literal[ComponentType.string_select], str, InteractionStringSelectMenuPayload]
-):
+class PartialStringSelect(PartialSelect[Literal[ComponentType.string_select], str, PartialStringSelectPayload]):
     """Represents a :class:`StringSelect` component as returned by Discord during a :class:`Interaction` of type :data:`InteractionType.modal_submit`.
 
     .. versionadded:: 3.0
@@ -162,7 +160,7 @@ class InteractionStringSelect(
 
     @classmethod
     @override
-    def from_payload(cls, payload: InteractionStringSelectMenuPayload) -> Self:
+    def from_payload(cls, payload: PartialStringSelectPayload) -> Self:
         return cls(
             id=payload["id"],
             custom_id=payload["custom_id"],
@@ -172,15 +170,15 @@ class InteractionStringSelect(
 
 P_int_select = TypeVar(
     "P_int_select",
-    bound=InteractionUserSelectMenuPayload
-    | InteractionRoleSelectMenuPayload
-    | InteractionChannelSelectMenuPayload
-    | InteractionMentionableSelectMenuPayload,
+    bound=PartialUserSelectPayload
+    | PartialRoleSelectPayload
+    | PartialChannelSelectPayload
+    | PartialMentionableSelectPayload,
 )
 
 
 @dataclass
-class InteractionSnowflakeSelect(InteractionSelect[T, int, P_int_select], ABC, Generic[T, P_int_select]):
+class PartialSnowflakeSelect(PartialSelect[T, int, P_int_select], ABC, Generic[T, P_int_select]):
     type: T
 
     @classmethod
@@ -194,9 +192,7 @@ class InteractionSnowflakeSelect(InteractionSelect[T, int, P_int_select], ABC, G
 
 
 @dataclass
-class InteractionUserSelect(
-    InteractionSnowflakeSelect[Literal[ComponentType.user_select], InteractionUserSelectMenuPayload]
-):
+class PartialUserSelect(PartialSnowflakeSelect[Literal[ComponentType.user_select], PartialUserSelectPayload]):
     """Represents a :class:`UserSelect` component as returned by Discord during a :class:`Interaction` of type :data:`InteractionType.modal_submit`.
 
     .. versionadded:: 3.0
@@ -217,9 +213,7 @@ class InteractionUserSelect(
 
 
 @dataclass
-class InteractionRoleSelect(
-    InteractionSnowflakeSelect[Literal[ComponentType.role_select], InteractionRoleSelectMenuPayload]
-):
+class PartialRoleSelect(PartialSnowflakeSelect[Literal[ComponentType.role_select], PartialRoleSelectPayload]):
     """Represents a :class:`RoleSelect` component as returned by Discord during a :class:`Interaction` of type :data:`InteractionType.modal_submit`.
 
     .. versionadded:: 3.0
@@ -240,9 +234,7 @@ class InteractionRoleSelect(
 
 
 @dataclass
-class InteractionChannelSelect(
-    InteractionSnowflakeSelect[Literal[ComponentType.channel_select], InteractionChannelSelectMenuPayload]
-):
+class PartialChannelSelect(PartialSnowflakeSelect[Literal[ComponentType.channel_select], PartialChannelSelectPayload]):
     """Represents a :class:`ChannelSelect` component as returned by Discord during a :class:`Interaction` of type :data:`InteractionType.modal_submit`.
 
     .. versionadded:: 3.0
@@ -263,8 +255,8 @@ class InteractionChannelSelect(
 
 
 @dataclass
-class InteractionMentionableSelect(
-    InteractionSnowflakeSelect[Literal[ComponentType.mentionable_select], InteractionMentionableSelectMenuPayload]
+class PartialMentionableSelect(
+    PartialSnowflakeSelect[Literal[ComponentType.mentionable_select], PartialMentionableSelectPayload]
 ):
     """Represents a :class:`MentionableSelect` component as returned by Discord during a :class:`Interaction` of type :data:`InteractionType.modal_submit`.
 
@@ -286,7 +278,7 @@ class InteractionMentionableSelect(
 
 
 @dataclass
-class InteractionTextInput(InteractionComponent[Literal[ComponentType.text_input], InteractionTextInputPayload]):
+class PartialTextInput(PartialComponent[Literal[ComponentType.text_input], PartialTextInputPayload]):
     """Represents a :class:`TextInput` component as returned by Discord during a :class:`Interaction` of type :data:`InteractionType.modal_submit`.
 
     .. versionadded:: 3.0
@@ -310,20 +302,18 @@ class InteractionTextInput(InteractionComponent[Literal[ComponentType.text_input
 
     @classmethod
     @override
-    def from_payload(cls, payload: InteractionTextInputPayload) -> Self:
+    def from_payload(cls, payload: PartialTextInputPayload) -> Self:
         return cls(id=payload["id"], custom_id=payload["custom_id"], value=payload["value"])
 
 
-AllowedInteractionLabelComponents: TypeAlias = "InteractionStringSelect | InteractionUserSelect | InteractionChannelSelect | InteractionRoleSelect | InteractionMentionableSelect | InteractionTextInput"
+AllowedPartialLabelComponents: TypeAlias = "PartialStringSelect | PartialUserSelect | PartialChannelSelect | PartialRoleSelect | PartialMentionableSelect | PartialTextInput"
 
-L_c = TypeVar("L_c", bound=AllowedInteractionLabelComponents, default=AllowedInteractionLabelComponents)
+L_c = TypeVar("L_c", bound=AllowedPartialLabelComponents, default=AllowedPartialLabelComponents)
 
 
 @dataclass
-class InteractionLabel(
-    InteractionWalkableComponent[
-        Literal[ComponentType.label], InteractionLabelPayload, AllowedInteractionLabelComponents
-    ],
+class PartialLabel(
+    PartialWalkableComponent[Literal[ComponentType.label], PartialLabelPayload, AllowedPartialLabelComponents],
     Generic[L_c],
 ):
     """Represents a :class:`Label` component as returned by Discord during a :class:`Interaction` of type :data:`InteractionType.modal_submit`.
@@ -336,7 +326,7 @@ class InteractionLabel(
     ----------
     type: Literal[:data:`ComponentType.label`]
         The type of component.
-    component: :class:`InteractionTextInput` | :class:`InteractionStringSelect`
+    component: :class:`PartialTextInput` | :class:`PartialStringSelect`
         The component contained in this label.
     id: :class:`int`
         The ID of this label component.
@@ -348,21 +338,21 @@ class InteractionLabel(
 
     @classmethod
     @override
-    def from_payload(cls, payload: InteractionLabelPayload) -> Self:
+    def from_payload(cls, payload: PartialLabelPayload) -> Self:
         return cls(
             id=payload["id"],
-            component=cast("AllowedInteractionLabelComponents", _interaction_component_factory(payload["component"])),
+            component=cast("AllowedPartialLabelComponents", _interaction_component_factory(payload["component"])),
         )
 
     @override
-    def walk_components(self) -> Iterator[AllowedInteractionLabelComponents]:
+    def walk_components(self) -> Iterator[AllowedPartialLabelComponents]:
         yield self.component
-        if isinstance(self.component, InteractionWalkableComponent):
+        if isinstance(self.component, PartialWalkableComponent):
             yield from self.component.walk_components()  # pyright: ignore[reportReturnType]
 
 
 @dataclass
-class InteractionTextDisplay(InteractionComponent[Literal[ComponentType.text_display], InteractionTextDisplayPayload]):
+class PartialTextDisplay(PartialComponent[Literal[ComponentType.text_display], PartialTextDisplayPayload]):
     """Represents a :class:`TextDisplay` component as returned by Discord during a :class:`Interaction` of type :data:`InteractionType.modal_submit`.
 
     .. versionadded:: 3.0
@@ -380,12 +370,12 @@ class InteractionTextDisplay(InteractionComponent[Literal[ComponentType.text_dis
 
     @classmethod
     @override
-    def from_payload(cls, payload: InteractionTextDisplayPayload) -> Self:
+    def from_payload(cls, payload: PartialTextDisplayPayload) -> Self:
         return cls(id=payload["id"])
 
 
 @dataclass
-class UnknownInteractionComponent(InteractionComponent[ComponentType, InteractionComponentPayload]):
+class UnknownPartialComponent(PartialComponent[ComponentType, PartialComponentPayload]):
     """A class representing an unknown interaction component.
 
     This class is used when an interaction component with an unrecognized type is encountered.
@@ -406,7 +396,7 @@ class UnknownInteractionComponent(InteractionComponent[ComponentType, Interactio
 
     @classmethod
     @override
-    def from_payload(cls, payload: InteractionComponentPayload) -> Self:
+    def from_payload(cls, payload: PartialComponentPayload) -> Self:
         return cls(
             id=payload["id"],
             type=try_enum(ComponentType, payload["type"]),
@@ -415,19 +405,19 @@ class UnknownInteractionComponent(InteractionComponent[ComponentType, Interactio
 
 
 COMPONENT_MAPPINGS = {
-    2: InteractionButton,
-    3: InteractionStringSelect,
-    4: InteractionTextInput,
-    5: InteractionUserSelect,
-    6: InteractionRoleSelect,
-    7: InteractionMentionableSelect,
-    8: InteractionChannelSelect,
-    10: InteractionTextDisplay,
-    18: InteractionLabel,
+    2: PartialButton,
+    3: PartialStringSelect,
+    4: PartialTextInput,
+    5: PartialUserSelect,
+    6: PartialRoleSelect,
+    7: PartialMentionableSelect,
+    8: PartialChannelSelect,
+    10: PartialTextDisplay,
+    18: PartialLabel,
 }
 
 
-def _interaction_component_factory(payload: InteractionComponentPayload, key: str = "type") -> AnyInteractionComponent:
+def _interaction_component_factory(payload: PartialComponentPayload, key: str = "type") -> AnyPartialComponent:
     component_type: int = cast("int", payload[key])
-    component_class = COMPONENT_MAPPINGS.get(component_type, UnknownInteractionComponent)
+    component_class = COMPONENT_MAPPINGS.get(component_type, UnknownPartialComponent)
     return component_class.from_payload(payload)  # pyright: ignore[reportArgumentType]

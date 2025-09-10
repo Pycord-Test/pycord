@@ -79,9 +79,9 @@ if TYPE_CHECKING:
     from .client import Client
     from .commands import ApplicationCommand, OptionChoice
     from .components import (
-        AnyMessageInteractionComponent,
+        AnyMessagePartialComponent,
         AnyTopLevelModalComponent,
-        AnyTopLevelModalInteractionComponent,
+        AnyTopLevelModalPartialComponent,
         Modal,
     )
     from .embeds import Embed
@@ -89,10 +89,10 @@ if TYPE_CHECKING:
     from .poll import Poll
     from .state import ConnectionState
     from .threads import Thread
-    from .types.interaction_components import InteractionComponent
     from .types.interactions import Interaction as InteractionPayload
     from .types.interactions import InteractionData
     from .types.interactions import InteractionMetadata as InteractionMetadataPayload
+    from .types.partial_components import PartialComponent
 
     InteractionChannel = Union[
         VoiceChannel,
@@ -660,7 +660,7 @@ class Interaction:
         return data
 
 
-Components_t = TypeVarTuple("Components_t", default="Unpack[tuple[AnyTopLevelModalInteractionComponent, ...]]")
+Components_t = TypeVarTuple("Components_t", default="Unpack[tuple[AnyTopLevelModalPartialComponent, ...]]")
 
 
 class ModalInteraction(Interaction, Generic[Unpack[Components_t]]):
@@ -672,12 +672,12 @@ class ModalInteraction(Interaction, Generic[Unpack[Components_t]]):
             raise TypeError("Only modal submit interactions have components")
         if not self.data:
             raise TypeError("This interaction has no data. This should never happen, please open an issue on GitHub")
-        components_payload = cast("list[InteractionComponent]", self.data.get("components", []))
+        components_payload = cast("list[PartialComponent]", self.data.get("components", []))
 
         return ComponentsHolder(*(_interaction_component_factory(component) for component in components_payload))  # pyright: ignore[reportReturnType]
 
 
-Component_t = TypeVar("Component_t", bound="AnyMessageInteractionComponent", default="AnyMessageInteractionComponent")
+Component_t = TypeVar("Component_t", bound="AnyMessagePartialComponent", default="AnyMessagePartialComponent")
 
 
 class ComponentInteraction(Generic[Component_t], Interaction):

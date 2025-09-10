@@ -105,43 +105,43 @@ Interaction Components
 -----------
 These objects are dataclasses that represent components as they are recieved from Discord in interaction payloads, currently applicable only with :class:`discord.Interaction` of type :data:`discord.InteractionType.modal_submit`.
 
-.. attributetable:: discord.InteractionLabel
-.. autoclass:: discord.InteractionLabel
+.. attributetable:: discord.PartialLabel
+.. autoclass:: discord.PartialLabel
     :members:
     :inherited-members:
 
-.. attributetable:: discord.InteractionStringSelect
-.. autoclass:: discord.InteractionStringSelect
+.. attributetable:: discord.PartialStringSelect
+.. autoclass:: discord.PartialStringSelect
     :members:
     :inherited-members:
 
-.. attributetable:: discord.InteractionUserSelect
-.. autoclass:: discord.InteractionUserSelect
+.. attributetable:: discord.PartialUserSelect
+.. autoclass:: discord.PartialUserSelect
     :members:
     :inherited-members:
 
-.. attributetable:: discord.InteractionRoleSelect
-.. autoclass:: discord.InteractionRoleSelect
+.. attributetable:: discord.PartialRoleSelect
+.. autoclass:: discord.PartialRoleSelect
     :members:
     :inherited-members:
 
-.. attributetable:: discord.InteractionMentionableSelect
-.. autoclass:: discord.InteractionMentionableSelect
+.. attributetable:: discord.PartialMentionableSelect
+.. autoclass:: discord.PartialMentionableSelect
     :members:
     :inherited-members:
 
-.. attributetable:: discord.InteractionChannelSelect
-.. autoclass:: discord.InteractionChannelSelect
+.. attributetable:: discord.PartialChannelSelect
+.. autoclass:: discord.PartialChannelSelect
     :members:
     :inherited-members:
 
-.. attributetable:: discord.InteractionTextInput
-.. autoclass:: discord.InteractionTextInput
+.. attributetable:: discord.PartialTextInput
+.. autoclass:: discord.PartialTextInput
     :members:
     :inherited-members:
 
-.. attributetable:: discord.InteractionTextDisplay
-.. autoclass:: discord.InteractionTextDisplay
+.. attributetable:: discord.PartialTextDisplay
+.. autoclass:: discord.PartialTextDisplay
     :members:
     :inherited-members:
 
@@ -184,7 +184,7 @@ ABCs
 .. autoclass:: discord.Component
     :members:
 
-.. attributetable:: discord.InteractionComponent
-.. autoclass:: discord.InteractionComponent
+.. attributetable:: discord.PartialComponent
+.. autoclass:: discord.PartialComponent
     :members:
     :inherited-members:
