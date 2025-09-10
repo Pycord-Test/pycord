@@ -94,17 +94,17 @@ if TYPE_CHECKING:
     from .types.interactions import InteractionMetadata as InteractionMetadataPayload
     from .types.partial_components import PartialComponent
 
-    InteractionChannel = Union[
-        VoiceChannel,
-        StageChannel,
-        TextChannel,
-        ForumChannel,
-        CategoryChannel,
-        Thread,
-        DMChannel,
-        GroupChannel,
-        PartialMessageable,
-    ]
+    InteractionChannel = (
+        VoiceChannel
+        | StageChannel
+        | TextChannel
+        | ForumChannel
+        | CategoryChannel
+        | Thread
+        | DMChannel
+        | GroupChannel
+        | PartialMessageable
+    )
 
 MISSING: Any = utils.MISSING
 

@@ -29,7 +29,6 @@ from typing import (
     TypeVar,
     Union,
     overload,
-    reveal_type,
 )
 
 from ..errors import HTTPException, InvalidArgument
@@ -331,7 +330,7 @@ def evaluate_annotation(
         args = tp.__args__
         if not hasattr(tp, "__origin__"):
             if PY_310 and tp.__class__ is types.UnionType:  # type: ignore
-                converted = Union[args]  # type: ignore
+                converted = Union[args]  # type: ignore  # noqa: UP007
                 return evaluate_annotation(converted, globals, locals, cache)
 
             return tp
@@ -494,7 +493,7 @@ class CachedSlotProperty(Generic[T, T_co]):
     def __init__(self, name: str, function: Callable[[T], T_co]) -> None:
         self.name = name
         self.function = function
-        self.__doc__ = getattr(function, "__doc__")
+        self.__doc__ = function.__doc__
 
     @overload
     def __get__(self, instance: None, owner: type[T]) -> CachedSlotProperty[T, T_co]: ...

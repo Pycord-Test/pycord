@@ -91,7 +91,7 @@ if TYPE_CHECKING:
 
     T = TypeVar("T")
     CS = TypeVar("CS", bound="ConnectionState")
-    Channel = Union[GuildChannel, VocalGuildChannel, PrivateChannel, PartialMessageable]
+    Channel = GuildChannel | VocalGuildChannel | PrivateChannel | P | rtialMessageable
 
 
 class ChunkRequest:
@@ -1928,7 +1928,7 @@ class AutoShardedConnectionState(ConnectionState):
 
         guilds = sorted(processed, key=lambda g: g[0].shard_id)
         for shard_id, info in itertools.groupby(guilds, key=lambda g: g[0].shard_id):
-            children, futures = zip(*info)
+            children, futures = zip(*info, strict=False)
             # 110 reqs/minute w/ 1 req/guild plus some buffer
             timeout = 61 * (len(children) / 110)
             try:

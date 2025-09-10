@@ -121,10 +121,10 @@ async def get_or_fetch(obj, attr: str, id: int, *, default: Any = MISSING) -> An
     if getter is None:
         try:
             getter = await getattr(obj, f"fetch_{attr}")(id)
-        except AttributeError:
+        except AttributeError as e:
             getter = await getattr(obj, f"_fetch_{attr}")(id)
             if getter is None:
-                raise ValueError(f"Could not find {attr} with id {id} on {obj}")
+                raise ValueError(f"Could not find {attr} with id {id} on {obj}") from e
         except (HTTPException, ValueError):
             if default is not MISSING:
                 return default

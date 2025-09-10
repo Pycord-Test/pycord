@@ -197,9 +197,9 @@ class SeparatorComponent(BaseComponent):
     spacing: NotRequired[SeparatorSpacingSize]
 
 
-AllowedActionRowComponents = Union[
-    ButtonComponent, TextInput, StringSelect, UserSelect, RoleSelect, MentionableSelect, ChannelSelect
-]
+AllowedActionRowComponents = (
+    ButtonComponent | TextInput | StringSelect | UserSelect | RoleSelect | MentionableSelect | ChannelSelect
+)
 
 
 class ActionRow(BaseComponent):
@@ -207,14 +207,9 @@ class ActionRow(BaseComponent):
     components: list[AllowedActionRowComponents]
 
 
-AllowedContainerComponents = Union[
-    ActionRow,
-    TextDisplayComponent,
-    MediaGalleryComponent,
-    FileComponent,
-    SeparatorComponent,
-    SectionComponent,
-]
+AllowedContainerComponents = (
+    ActionRow | TextDisplayComponent | MediaGalleryComponent | FileComponent | SeparatorComponent | SectionComponent
+)
 
 
 class ContainerComponent(BaseComponent):
@@ -234,24 +229,24 @@ class LabelComponent(BaseComponent):
     description: NotRequired[str]
 
 
-Component = Union[
-    ActionRow,
-    ButtonComponent,
-    StringSelect,
-    UserSelect,
-    RoleSelect,
-    MentionableSelect,
-    ChannelSelect,
-    TextInput,
-    TextDisplayComponent,
-    SectionComponent,
-    ThumbnailComponent,
-    MediaGalleryComponent,
-    FileComponent,
-    SeparatorComponent,
-    ContainerComponent,
-    LabelComponent,
-]
+Component = (
+    ActionRow
+    | ButtonComponent
+    | StringSelect
+    | UserSelect
+    | RoleSelect
+    | MentionableSelect
+    | ChannelSelect
+    | TextInput
+    | TextDisplayComponent
+    | SectionComponent
+    | ThumbnailComponent
+    | MediaGalleryComponent
+    | FileComponent
+    | SeparatorComponent
+    | ContainerComponent
+    | LabelComponent
+)
 
 AllowedModalComponents = LabelComponent | TextDisplayComponent
 
@@ -262,11 +257,6 @@ class Modal(TypedDict):
     components: list[AllowedModalComponents]
 
 
-AllowedContainerComponents = Union[
-    ActionRow,
-    TextDisplayComponent,
-    MediaGalleryComponent,
-    FileComponent,
-    SeparatorComponent,
-    SectionComponent,
-]
+AllowedContainerComponents = (
+    ActionRow | TextDisplayComponent | MediaGalleryComponent | FileComponent | SeparatorComponent | SectionComponent
+)

@@ -116,9 +116,9 @@ if TYPE_CHECKING:
     from .voice_client import VoiceClient
     from .webhook import Webhook
 
-    VocalGuildChannel = Union[VoiceChannel, StageChannel]
-    GuildChannel = Union[VoiceChannel, StageChannel, TextChannel, ForumChannel, CategoryChannel]
-    ByCategoryItem = Tuple[Optional[CategoryChannel], List[GuildChannel]]
+    VocalGuildChannel = VoiceChannel | StageChannel
+    GuildChannel = VoiceChannel | StageChannel | TextChannel | ForumChannel | CategoryChannel
+    ByCategoryItem = Tuple[CategoryChannel | None, List[GuildChannel]]
 
 
 class BanEntry(NamedTuple):
