@@ -16,24 +16,24 @@ from inspect import isawaitable, signature
 from typing import (
     TYPE_CHECKING,
     Any,
-    overload,
-    Callable,
-    TypeVar,
-    ParamSpec,
-    Iterable,
-    Literal,
-    ForwardRef,
-    Union,
-    Coroutine,
     Awaitable,
-    reveal_type,
+    Callable,
+    Coroutine,
+    ForwardRef,
     Generic,
-    Sequence,
+    Iterable,
     Iterator,
+    Literal,
+    ParamSpec,
+    Sequence,
+    TypeVar,
+    Union,
     get_args,
+    overload,
+    reveal_type,
 )
 
-from ..errors import InvalidArgument, HTTPException
+from ..errors import HTTPException, InvalidArgument
 
 if TYPE_CHECKING:
     from ..invite import Invite
@@ -106,9 +106,7 @@ def parse_ratelimit_header(request: Any, *, use_clock: bool = False) -> float:
         return float(reset_after)
     utc = datetime.timezone.utc
     now = datetime.datetime.now(utc)
-    reset = datetime.datetime.fromtimestamp(
-        float(request.headers["X-Ratelimit-Reset"]), utc
-    )
+    reset = datetime.datetime.fromtimestamp(float(request.headers["X-Ratelimit-Reset"]), utc)
     return (reset - now).total_seconds()
 
 
@@ -327,7 +325,9 @@ def evaluate_annotation(
         args = tp.__args__
         if not hasattr(tp, "__origin__"):
             if PY_310 and tp.__class__ is types.UnionType:
-                converted = Union[args]
+                converted = args[0]
+                for arg in args[1:]:
+                    converted = converted | arg
                 return evaluate_annotation(converted, globals, locals, cache)
 
             return tp
@@ -344,16 +344,11 @@ def evaluate_annotation(
             is_literal = True
 
         evaluated_args = tuple(
-            evaluate_annotation(arg, globals, locals, cache, implicit_str=implicit_str)
-            for arg in args
+            evaluate_annotation(arg, globals, locals, cache, implicit_str=implicit_str) for arg in args
         )
 
-        if is_literal and not all(
-            isinstance(x, (str, int, bool, type(None))) for x in evaluated_args
-        ):
-            raise TypeError(
-                "Literal arguments must be of type str, int, bool, or NoneType."
-            )
+        if is_literal and not all(isinstance(x, (str, int, bool, type(None))) for x in evaluated_args):
+            raise TypeError("Literal arguments must be of type str, int, bool, or NoneType.")
 
         if evaluated_args == args:
             return tp
@@ -403,9 +398,7 @@ async def async_all(gen: Iterable[Any]) -> bool:
     return True
 
 
-async def maybe_awaitable(
-    f: Callable[P, T | Awaitable[T]], *args: P.args, **kwargs: P.kwargs
-) -> T:
+async def maybe_awaitable(f: Callable[P, T | Awaitable[T]], *args: P.args, **kwargs: P.kwargs) -> T:
     value = f(*args, **kwargs)
     if isawaitable(value):
         reveal_type(f)
@@ -413,13 +406,9 @@ async def maybe_awaitable(
     return value
 
 
-async def sane_wait_for(
-    futures: Iterable[Awaitable[T]], *, timeout: float
-) -> set[asyncio.Task[T]]:
+async def sane_wait_for(futures: Iterable[Awaitable[T]], *, timeout: float) -> set[asyncio.Task[T]]:
     ensured = [asyncio.ensure_future(fut) for fut in futures]
-    done, pending = await asyncio.wait(
-        ensured, timeout=timeout, return_when=asyncio.ALL_COMPLETED
-    )
+    done, pending = await asyncio.wait(ensured, timeout=timeout, return_when=asyncio.ALL_COMPLETED)
 
     if len(pending) != 0:
         raise asyncio.TimeoutError()
@@ -464,7 +453,7 @@ class SnowflakeList(array.array[int]):
 def copy_doc(original: Callable[..., object]) -> Callable[[T], T]:
     def decorator(overridden: T) -> T:
         overridden.__doc__ = original.__doc__
-        setattr(overridden, "__signature__", signature(original))
+        overridden.__signature__ = signature(original)
         return overridden
 
     return decorator
@@ -502,12 +491,10 @@ class CachedSlotProperty(Generic[T, T_co]):
     def __init__(self, name: str, function: Callable[[T], T_co]) -> None:
         self.name = name
         self.function = function
-        self.__doc__ = getattr(function, "__doc__")
+        self.__doc__ = function.__doc__
 
     @overload
-    def __get__(
-        self, instance: None, owner: type[T]
-    ) -> CachedSlotProperty[T, T_co]: ...
+    def __get__(self, instance: None, owner: type[T]) -> CachedSlotProperty[T, T_co]: ...
 
     @overload
     def __get__(self, instance: T, owner: type[T]) -> T_co: ...
