@@ -30,7 +30,6 @@ from typing import (
     Union,
     get_args,
     overload,
-    reveal_type,
 )
 
 from ..errors import HTTPException, InvalidArgument
@@ -106,7 +105,9 @@ def parse_ratelimit_header(request: Any, *, use_clock: bool = False) -> float:
         return float(reset_after)
     utc = datetime.timezone.utc
     now = datetime.datetime.now(utc)
-    reset = datetime.datetime.fromtimestamp(float(request.headers["X-Ratelimit-Reset"]), utc)
+    reset = datetime.datetime.fromtimestamp(
+        float(request.headers["X-Ratelimit-Reset"]), utc
+    )
     return (reset - now).total_seconds()
 
 
@@ -213,7 +214,6 @@ def warn_deprecated(
     stacklevel: :class:`int`
         The stacklevel kwarg passed to :func:`warnings.warn`. Defaults to 3.
     """
-    warnings.simplefilter("always", DeprecationWarning)  # turn off filter
     message = f"{name} is deprecated"
     if since:
         message += f" since version {since}"
@@ -226,7 +226,6 @@ def warn_deprecated(
         message += f" See {reference} for more information."
 
     warnings.warn(message, stacklevel=stacklevel, category=DeprecationWarning)
-    warnings.simplefilter("default", DeprecationWarning)  # reset filter
 
 
 def deprecated(
@@ -342,11 +341,16 @@ def evaluate_annotation(
             is_literal = True
 
         evaluated_args = tuple(
-            evaluate_annotation(arg, globals, locals, cache, implicit_str=implicit_str) for arg in args
+            evaluate_annotation(arg, globals, locals, cache, implicit_str=implicit_str)
+            for arg in args
         )
 
-        if is_literal and not all(isinstance(x, (str, int, bool, type(None))) for x in evaluated_args):
-            raise TypeError("Literal arguments must be of type str, int, bool, or NoneType.")
+        if is_literal and not all(
+            isinstance(x, (str, int, bool, type(None))) for x in evaluated_args
+        ):
+            raise TypeError(
+                "Literal arguments must be of type str, int, bool, or NoneType."
+            )
 
         if evaluated_args == args:
             return tp
@@ -396,17 +400,22 @@ async def async_all(gen: Iterable[Any]) -> bool:
     return True
 
 
-async def maybe_awaitable(f: Callable[P, T | Awaitable[T]], *args: P.args, **kwargs: P.kwargs) -> T:
+async def maybe_awaitable(
+    f: Callable[P, T | Awaitable[T]], *args: P.args, **kwargs: P.kwargs
+) -> T:
     value = f(*args, **kwargs)
     if isawaitable(value):
-        reveal_type(f)
         return await value
     return value
 
 
-async def sane_wait_for(futures: Iterable[Awaitable[T]], *, timeout: float) -> set[asyncio.Task[T]]:
+async def sane_wait_for(
+    futures: Iterable[Awaitable[T]], *, timeout: float
+) -> set[asyncio.Task[T]]:
     ensured = [asyncio.ensure_future(fut) for fut in futures]
-    done, pending = await asyncio.wait(ensured, timeout=timeout, return_when=asyncio.ALL_COMPLETED)
+    done, pending = await asyncio.wait(
+        ensured, timeout=timeout, return_when=asyncio.ALL_COMPLETED
+    )
 
     if len(pending) != 0:
         raise asyncio.TimeoutError()
@@ -451,7 +460,7 @@ class SnowflakeList(array.array[int]):
 def copy_doc(original: Callable[..., object]) -> Callable[[T], T]:
     def decorator(overridden: T) -> T:
         overridden.__doc__ = original.__doc__
-        overridden.__signature__ = signature(original)
+        overridden.__signature__ = signature(original)  # pyright: ignore[reportAttributeAccessIssue]
         return overridden
 
     return decorator
@@ -463,7 +472,12 @@ class SequenceProxy(collections.abc.Sequence[T_co], Generic[T_co]):
     def __init__(self, proxied: Sequence[T_co]):
         self.__proxied = proxied
 
-    def __getitem__(self, idx: int) -> T_co:  # type: ignore[override]
+    @overload
+    def __getitem__(self, idx: int) -> T_co: ...
+    @overload
+    def __getitem__(self, idx: slice) -> Sequence[T_co]: ...
+
+    def __getitem__(self, idx: int | slice) -> T_co | Sequence[T_co]:
         return self.__proxied[idx]
 
     def __len__(self) -> int:
@@ -492,7 +506,9 @@ class CachedSlotProperty(Generic[T, T_co]):
         self.__doc__ = function.__doc__
 
     @overload
-    def __get__(self, instance: None, owner: type[T]) -> CachedSlotProperty[T, T_co]: ...
+    def __get__(
+        self, instance: None, owner: type[T]
+    ) -> CachedSlotProperty[T, T_co]: ...
 
     @overload
     def __get__(self, instance: T, owner: type[T]) -> T_co: ...
@@ -529,15 +545,15 @@ def cached_slot_property(
 try:
     import msgspec
 
-    def _to_json(obj: Any) -> str:  # type: ignore[reportUnusedFunction]
+    def to_json(obj: Any) -> str:  # type: ignore[reportUnusedFunction]
         return msgspec.json.encode(obj).decode("utf-8")
 
-    _from_json = msgspec.json.decode
+    from_json = msgspec.json.decode
 
 except ModuleNotFoundError:
     import json
 
-    def _to_json(obj: Any) -> str:  # type: ignore[reportUnusedFunction]
+    def to_json(obj: Any) -> str:  # type: ignore[reportUnusedFunction]
         return json.dumps(obj, separators=(",", ":"), ensure_ascii=True)
 
-    _from_json = json.loads
+    from_json = json.loads
