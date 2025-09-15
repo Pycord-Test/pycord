@@ -40,8 +40,8 @@ from .snowflake import Snowflake
 from .user import User
 
 if TYPE_CHECKING:
-    from .message import AllowedMentions, Message
     from ..interactions import InteractionChannel
+    from .message import AllowedMentions, Message
 
 from typing_extensions import NotRequired, TypedDict
 
@@ -150,14 +150,14 @@ class _ApplicationCommandInteractionDataOptionNumber(_ApplicationCommandInteract
     value: float
 
 
-ApplicationCommandInteractionDataOption = Union[
-    _ApplicationCommandInteractionDataOptionString,
-    _ApplicationCommandInteractionDataOptionInteger,
-    _ApplicationCommandInteractionDataOptionSubcommand,
-    _ApplicationCommandInteractionDataOptionBoolean,
-    _ApplicationCommandInteractionDataOptionSnowflake,
-    _ApplicationCommandInteractionDataOptionNumber,
-]
+ApplicationCommandInteractionDataOption = (
+    _ApplicationCommandInteractionDataOptionString
+    | _ApplicationCommandInteractionDataOptionInteger
+    | _ApplicationCommandInteractionDataOptionSubcommand
+    | _ApplicationCommandInteractionDataOptionBoolean
+    | _ApplicationCommandInteractionDataOptionSnowflake
+    | _ApplicationCommandInteractionDataOptionNumber
+)
 
 
 class ApplicationCommandResolvedPartialChannel(TypedDict):
@@ -190,7 +190,7 @@ class ComponentInteractionData(TypedDict):
     component_type: ComponentType
 
 
-InteractionData = Union[ApplicationCommandInteractionData, ComponentInteractionData]
+InteractionData = ApplicationCommandInteractionData | ComponentInteractionData
 
 
 class Interaction(TypedDict):

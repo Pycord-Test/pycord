@@ -69,7 +69,7 @@ docs = [
 dev = [
     "codespell==2.4.1",
     "coverage~=7.8",
-    "mypy~=1.17.1",
+    "mypy~=1.18.1",
     "pre-commit==4.3.0",
     "pytest~=8.4.1",
     "pytest-asyncio~=0.26.0",
@@ -89,20 +89,15 @@ version-file = "discord/_version.py"
 [tool.hatch.build.targets.wheel]
 only-packages = true
 packages = ["discord"]
-only-include = ["discord", "LICENSE", "pyproject.toml", "discord/bin/*.dll", "discord/ibanner.txt", "discord/banner.txt", "discord/chan/ART.txt"]
-artifacts = ["discord/bin/*.dll", "discord/ibanner.txt", "discord/banner.txt", "discord/chan/ART.txt"]
+only-include = ["discord", "README.rst", "LICENSE", "pyproject.toml", "discord/bin/*.dll", "discord/emojis.json", "discord/ibanner.txt", "discord/banner.txt", "discord/chan/ART.txt",]
 
 [tool.hatch.build.targets.sdist]
 only-packages = true
 packages = ["discord"]
-only-include = ["discord", "README.rst", "LICENSE", "pyproject.toml", "discord/bin/*.dll"]
-artifacts = ["discord/bin/*.dll"]
-
-[tool.black]
-target-version = ['py310', 'py311', 'py312', 'py313']
+only-include = ["discord", "README.rst", "LICENSE", "pyproject.toml", "discord/bin/*.dll", "discord/emojis.json", "discord/ibanner.txt", "discord/banner.txt", "discord/chan/ART.txt",]
 
 [tool.ruff]
-target-version = "py39"
+target-version = "py310"
 line-length = 120
 indent-width = 4
 
@@ -142,17 +137,6 @@ extend-ignore = [
     "ARG004",
     "ARG005",
     "ASYNC230",
-    "B006",
-    "B007",
-    "B009",
-    "B010",
-    "B012",
-    "B018",
-    "B023",
-    "B026",
-    "B034",
-    "B039",
-    "B904",
     "BLE001",
     "C416",
     "C417",
@@ -203,7 +187,6 @@ extend-ignore = [
     "FIX002",
     "FURB167",
     "FURB188",
-    "I001",
     "ISC001",
     "N801",
     "N803",
