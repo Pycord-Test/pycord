@@ -20,6 +20,14 @@ These changes are available on the `master` branch, but have not yet been releas
 - Added support for setting guild-specific `avatar`, `banner`, and `bio` for the bot
   user through `Member.edit`.
   ([#2908](https://github.com/Pycord-Development/pycord/pull/2908))
+- Added support for select default values.
+  ([#2899](https://github.com/Pycord-Development/pycord/pull/2899))
+  - Adds a new generic parameter to selects to type `ui.Select.values` return type.
+  - Adds `SelectDefaultValue` object to create select default values.
+  - Adds `SelectDefaultValueType` enum.
+  - Adds pre-typed and pre-constructed with select_type `ui.Select` aliases for the
+    different select types: `ui.StringSelect`, `ui.UserSelect`, `ui.RoleSelect`,
+    `ui.MentionableSelect`, and `ui.ChannelSelect`.
 
 ### Changed
 
@@ -29,6 +37,14 @@ These changes are available on the `master` branch, but have not yet been releas
   ([#2808](https://github.com/Pycord-Development/pycord/pull/2808))
 - Unbound `raw` reference in `parse_message_update` causing errors on message updates.
   ([#2905](https://github.com/Pycord-Development/pycord/pull/2905))
+- `view=None` in various methods causing an AttributeError.
+  ([#2915](https://github.com/Pycord-Development/pycord/pull/2915))
+- `View.message` being `None` when it had not been interacted with yet.
+  ([#2916](https://github.com/Pycord-Development/pycord/pull/2916))
+- Fixed a crash when processing message edit events while message cache was disabled.
+  ([#2924](https://github.com/Pycord-Development/pycord/pull/2924))
+- Fixed OPUS Decode Error when recording audio.
+  ([#2925](https://github.com/Pycord-Development/pycord/pull/2925))
 
 ### Removed
 
@@ -106,10 +122,14 @@ These changes are available on the `master` branch, but have not yet been releas
   ([#2826](https://github.com/Pycord-Development/pycord/pull/2826))
 - Added `Interaction.attachment_size_limit`.
   ([#2854](https://github.com/Pycord-Development/pycord/pull/2854))
+- Added support for selects and text displays in modals.
+  ([#2858](https://github.com/Pycord-Development/pycord/pull/2858))
 - Added `AuditLogDiff.communication_disabled_until`.
   ([#2883](https://github.com/Pycord-Development/pycord/pull/2883))
 - Added `discord.User.primary_guild` and the `PrimaryGuild` class.
   ([#2876](https://github.com/Pycord-Development/pycord/pull/2876))
+- Added `get_component` to `Message`, `Section`, `Container` and `ActionRow`.
+  ([#2849](https://github.com/Pycord-Development/pycord/pull/2849))
 
 ### Fixed
 
@@ -1136,7 +1156,9 @@ These changes are available on the `master` branch, but have not yet been releas
 - Fix py3.10 UnionType checks issue.
   ([#1240](https://github.com/Pycord-Development/pycord/pull/1240))
 
-[unreleased]: https://github.com/Pycord-Development/pycord/compare/v2.6.0...HEAD
+[unreleased]: https://github.com/Pycord-Development/pycord/compare/v2.7.0rc1...HEAD
+[2.7.0rc1]: https://github.com/Pycord-Development/pycord/compare/v2.6.0...v2.7.0rc1
+[2.6.1]: https://github.com/Pycord-Development/pycord/compare/v2.6.0...v2.6.1
 [2.6.0]: https://github.com/Pycord-Development/pycord/compare/v2.5.0...v2.6.0
 [2.5.0]: https://github.com/Pycord-Development/pycord/compare/v2.4.1...v2.5.0
 [2.4.1]: https://github.com/Pycord-Development/pycord/compare/v2.4.0...v2.4.1
