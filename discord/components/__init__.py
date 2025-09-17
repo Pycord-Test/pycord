@@ -26,11 +26,12 @@ from ._component_factory import _component_factory  # pyright: ignore[reportPriv
 from .action_row import ActionRow
 from .button import Button
 from .channel_select_menu import ChannelSelect
-from .component import Component, ModalComponentMixin, StateComponent, WalkableComponent
+from .component import Component, ModalComponentMixin, StateComponentMixin, WalkableComponent
 from .components_holder import ComponentsHolder
 from .container import Container
 from .default_select_option import DefaultSelectOption
 from .file_component import FileComponent
+from .file_upload import FileUpload
 from .input_text import TextInput
 from .label import Label
 from .media_gallery import MediaGallery
@@ -41,6 +42,7 @@ from .partial_components import (
     PartialButton,
     PartialChannelSelect,
     PartialComponent,
+    PartialFileUpload,
     PartialLabel,
     PartialMentionableSelect,
     PartialRoleSelect,
@@ -51,7 +53,7 @@ from .partial_components import (
     PartialUserSelect,
     PartialWalkableComponent,
     UnknownPartialComponent,
-    _interaction_component_factory,  # pyright: ignore[reportPrivateUsage]
+    _partial_component_factory,  # pyright: ignore[reportPrivateUsage]
 )
 from .role_select_menu import RoleSelect
 from .section import Section
@@ -77,7 +79,7 @@ from .user_select_menu import UserSelect
 
 __all__ = (
     "Component",
-    "StateComponent",
+    "StateComponentMixin",
     "WalkableComponent",
     "ModalComponentMixin",
     "ComponentsHolder",
@@ -100,6 +102,7 @@ __all__ = (
     "MediaGalleryItem",
     "UnfurledMediaItem",
     "FileComponent",
+    "FileUpload",
     "Separator",
     "Container",
     "Label",
@@ -118,7 +121,8 @@ __all__ = (
     "PartialTextInput",
     "PartialTextDisplay",
     "UnknownPartialComponent",
-    "_interaction_component_factory",
+    "PartialFileUpload",
+    "_partial_component_factory",
     "AnyComponent",
     "AnyTopLevelModalComponent",
     "AnyTopLevelMessageComponent",

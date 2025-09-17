@@ -101,7 +101,7 @@ class Component(ABC, Generic[P]):
         return self.is_dispatchable()
 
 
-class StateComponent(Component[P], ABC):
+class StateComponentMixin(Component[P], ABC):
     @classmethod
     @abstractmethod
     @override

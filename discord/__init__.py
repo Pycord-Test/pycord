@@ -38,7 +38,6 @@ from .cog import *
 from .collectibles import *
 from .colour import *
 from .commands import *
-from .components import *
 from .embeds import *
 from .emoji import *
 from .enums import *

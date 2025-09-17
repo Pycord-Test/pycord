@@ -39,11 +39,12 @@ if TYPE_CHECKING:
 
     from discord.state import ConnectionState
 
+    from .file_upload import FileUpload
     from .input_text import TextInput
     from .string_select_menu import StringSelect
     from .user_select_menu import UserSelect
 
-AllowedLabelComponents: TypeAlias = "StringSelect | UserSelect | TextInput"
+    AllowedLabelComponents: TypeAlias = StringSelect | UserSelect | TextInput | FileUpload
 
 
 class Label(

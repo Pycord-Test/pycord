@@ -30,7 +30,7 @@ from typing import TYPE_CHECKING
 from .action_row import ActionRow
 from .button import Button
 from .channel_select_menu import ChannelSelect
-from .component import Component, StateComponent
+from .component import Component, StateComponentMixin
 from .container import Container
 from .file_component import FileComponent
 from .input_text import TextInput
@@ -76,7 +76,7 @@ STATE_COMPONENTS = (Section, Container, Thumbnail, MediaGallery, FileComponent)
 def _component_factory(data: P, state: ConnectionState | None = None) -> Component[P]:
     component_type = data["type"]
     if cls := COMPONENT_MAPPINGS.get(component_type):
-        if issubclass(cls, StateComponent):
+        if issubclass(cls, StateComponentMixin):
             return cls.from_payload(data, state=state)  # pyright: ignore[ reportReturnType, reportArgumentType]
         else:
             return cls.from_payload(data)  # pyright: ignore[reportArgumentType,  reportReturnType]

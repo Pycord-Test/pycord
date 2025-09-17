@@ -28,7 +28,7 @@ from typing import Literal, TypeAlias
 
 from typing_extensions import TypedDict
 
-from discord.types.snowflake import Snowflake
+from .snowflake import Snowflake
 
 ComponentType = Literal[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 17]
 ButtonStyle = Literal[1, 2, 3, 4, 5, 6]
@@ -87,7 +87,13 @@ class PartialTextDisplay(BasePartialComponent):
     value: str
 
 
-AllowedPartialLabelComponents: TypeAlias = "PartialStringSelectMenu | PartialTextInput"
+class PartialFileUpload(BasePartialComponent):
+    type: Literal[19]  # pyright: ignore[reportIncompatibleVariableOverride]
+    values: list[Snowflake]
+    custom_id: str
+
+
+AllowedPartialLabelComponents: TypeAlias = "PartialStringSelectMenu | PartialTextInput | PartialFileUpload"
 
 
 class PartialLabel(BasePartialComponent):
@@ -105,4 +111,5 @@ PartialComponent: TypeAlias = (
     | PartialTextInput
     | PartialLabel
     | PartialTextDisplay
+    | PartialFileUpload
 )

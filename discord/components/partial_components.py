@@ -35,6 +35,7 @@ from ..enums import ComponentType, try_enum
 from ..types.partial_components import PartialButton as PartialButtonPayload
 from ..types.partial_components import PartialChannelSelectMenu as PartialChannelSelectPayload
 from ..types.partial_components import PartialComponent as PartialComponentPayload
+from ..types.partial_components import PartialFileUpload as PartialFileUploadPayload
 from ..types.partial_components import PartialLabel as PartialLabelPayload
 from ..types.partial_components import PartialMentionableSelectMenu as PartialMentionableSelectPayload
 from ..types.partial_components import PartialRoleSelectMenu as PartialRoleSelectPayload
@@ -48,6 +49,7 @@ if TYPE_CHECKING:
 
     from .type_aliases import AnyPartialComponent
 
+AllowedPartialLabelComponents: TypeAlias = "PartialStringSelect | PartialUserSelect | PartialChannelSelect | PartialRoleSelect | PartialMentionableSelect | PartialTextInput | PartialFileUpload"
 
 # Below, the usage of field with kw_only=True is used to push the attribute at the end of the __init__ signature and
 # avoid issues with optional arguments order during class inheritance.
@@ -306,8 +308,6 @@ class PartialTextInput(PartialComponent[Literal[ComponentType.text_input], Parti
         return cls(id=payload["id"], custom_id=payload["custom_id"], value=payload["value"])
 
 
-AllowedPartialLabelComponents: TypeAlias = "PartialStringSelect | PartialUserSelect | PartialChannelSelect | PartialRoleSelect | PartialMentionableSelect | PartialTextInput"
-
 L_c = TypeVar("L_c", bound=AllowedPartialLabelComponents, default=AllowedPartialLabelComponents)
 
 
@@ -341,7 +341,7 @@ class PartialLabel(
     def from_payload(cls, payload: PartialLabelPayload) -> Self:
         return cls(
             id=payload["id"],
-            component=cast("AllowedPartialLabelComponents", _interaction_component_factory(payload["component"])),
+            component=cast("AllowedPartialLabelComponents", _partial_component_factory(payload["component"])),
         )
 
     @override
@@ -372,6 +372,35 @@ class PartialTextDisplay(PartialComponent[Literal[ComponentType.text_display], P
     @override
     def from_payload(cls, payload: PartialTextDisplayPayload) -> Self:
         return cls(id=payload["id"])
+
+
+@dataclass
+class PartialFileUpload(PartialComponent[Literal[ComponentType.file_upload], PartialFileUploadPayload]):
+    """Represents a :class:`TextDisplay` component as returned by Discord during a :class:`Interaction` of type :data:`InteractionType.modal_submit`.
+
+    .. versionadded:: 3.0
+
+    Attributes
+    ----------
+    type: Literal[:data:`ComponentType.file_upload`]
+        The type of component.
+    id: :class:`int`
+        The ID of this file upload component.
+    custom_id: :class:`str`
+        The custom ID of this file upload component.
+    values: :class:`list` of :class:`int`
+        The attachment IDs uploaded in the file upload component.
+    """
+
+    id: int
+    custom_id: str
+    values: list[int]
+    type: Literal[ComponentType.file_upload] = field(default=ComponentType.file_upload, kw_only=True)
+
+    @classmethod
+    @override
+    def from_payload(cls, payload: PartialFileUploadPayload) -> Self:
+        return cls(id=payload["id"], custom_id=payload["custom_id"], values=[int(value) for value in payload["values"]])
 
 
 @dataclass
@@ -414,10 +443,11 @@ COMPONENT_MAPPINGS = {
     8: PartialChannelSelect,
     10: PartialTextDisplay,
     18: PartialLabel,
+    19: PartialFileUpload,
 }
 
 
-def _interaction_component_factory(payload: PartialComponentPayload, key: str = "type") -> AnyPartialComponent:
+def _partial_component_factory(payload: PartialComponentPayload, key: str = "type") -> AnyPartialComponent:
     component_type: int = cast("int", payload[key])
     component_class = COMPONENT_MAPPINGS.get(component_type, UnknownPartialComponent)
     return component_class.from_payload(payload)  # pyright: ignore[reportArgumentType]

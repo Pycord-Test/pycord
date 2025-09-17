@@ -30,7 +30,7 @@ from typing_extensions import override
 
 from ..enums import ComponentType
 from ..types.components import ThumbnailComponent as ThumbnailComponentPayload
-from .component import StateComponent
+from .component import Component, StateComponentMixin
 from .unfurled_media_item import UnfurledMediaItem
 
 if TYPE_CHECKING:
@@ -39,7 +39,7 @@ if TYPE_CHECKING:
     from ..state import ConnectionState
 
 
-class Thumbnail(StateComponent[ThumbnailComponentPayload]):
+class Thumbnail(StateComponentMixin[ThumbnailComponentPayload], Component[ThumbnailComponentPayload]):
     """Represents a Thumbnail from Components V2.
 
     This is a component that displays media, such as images and videos.

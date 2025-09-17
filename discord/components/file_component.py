@@ -30,7 +30,7 @@ from typing_extensions import override
 
 from ..enums import ComponentType
 from ..types.components import FileComponent as FileComponentPayload
-from .component import StateComponent
+from .component import Component, StateComponentMixin
 from .unfurled_media_item import UnfurledMediaItem
 
 if TYPE_CHECKING:
@@ -39,7 +39,7 @@ if TYPE_CHECKING:
     from ..state import ConnectionState
 
 
-class FileComponent(StateComponent[FileComponentPayload]):
+class FileComponent(StateComponentMixin[FileComponentPayload], Component[FileComponentPayload]):
     """Represents a File from Components V2.
 
     This component displays a downloadable file in a message.

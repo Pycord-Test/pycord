@@ -43,8 +43,8 @@ if TYPE_CHECKING:
     from .text_display import TextDisplay
     from .thumbnail import Thumbnail
 
-AllowedSectionComponents: TypeAlias = "TextDisplay"
-AllowedSectionAccessoryComponents: TypeAlias = "Button | Thumbnail"
+    AllowedSectionComponents: TypeAlias = TextDisplay
+    AllowedSectionAccessoryComponents: TypeAlias = Button | Thumbnail
 
 
 class Section(

@@ -219,7 +219,15 @@ class ContainerComponent(BaseComponent):
     components: list[AllowedContainerComponents]
 
 
-AllowedLabelComponents: TypeAlias = TextDisplayComponent | StringSelect
+class FileUpload(BaseComponent):
+    type: Literal[19]
+    custom_id: str
+    min_values: NotRequired[int]
+    max_values: NotRequired[int]
+    required: NotRequired[bool]
+
+
+AllowedLabelComponents: TypeAlias = TextDisplayComponent | StringSelect | FileUpload
 
 
 class LabelComponent(BaseComponent):
@@ -246,6 +254,7 @@ Component = (
     | SeparatorComponent
     | ContainerComponent
     | LabelComponent
+    | FileUpload
 )
 
 AllowedModalComponents = LabelComponent | TextDisplayComponent
@@ -259,4 +268,39 @@ class Modal(TypedDict):
 
 AllowedContainerComponents = (
     ActionRow | TextDisplayComponent | MediaGalleryComponent | FileComponent | SeparatorComponent | SectionComponent
+)
+
+__all__ = (
+    "ComponentType",
+    "ButtonStyle",
+    "TextInputStyle",
+    "SeparatorSpacingSize",
+    "BaseComponent",
+    "ButtonComponent",
+    "TextInput",
+    "SelectOption",
+    "SelectDefaultValue",
+    "StringSelect",
+    "UserSelect",
+    "RoleSelect",
+    "MentionableSelect",
+    "ChannelSelect",
+    "SectionComponent",
+    "TextDisplayComponent",
+    "UnfurledMediaItem",
+    "ThumbnailComponent",
+    "MediaGalleryItem",
+    "MediaGalleryComponent",
+    "FileComponent",
+    "SeparatorComponent",
+    "AllowedActionRowComponents",
+    "ActionRow",
+    "AllowedContainerComponents",
+    "ContainerComponent",
+    "FileUpload",
+    "AllowedLabelComponents",
+    "LabelComponent",
+    "Component",
+    "AllowedModalComponents",
+    "Modal",
 )

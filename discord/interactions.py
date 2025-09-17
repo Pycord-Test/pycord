@@ -34,7 +34,7 @@ from typing_extensions import TypeVar, TypeVarTuple
 
 from . import utils
 from .channel import PartialMessageable, _threaded_channel_factory
-from .components import ComponentsHolder, _interaction_component_factory
+from .components import ComponentsHolder, _partial_component_factory
 from .enums import ChannelType, InteractionContextType, InteractionResponseType, InteractionType, try_enum
 from .errors import ClientException, InteractionResponded, InvalidArgument
 from .file import File, VoiceMessage
@@ -674,7 +674,7 @@ class ModalInteraction(Interaction, Generic[Unpack[Components_t]]):
             raise TypeError("This interaction has no data. This should never happen, please open an issue on GitHub")
         components_payload = cast("list[PartialComponent]", self.data.get("components", []))
 
-        return ComponentsHolder(*(_interaction_component_factory(component) for component in components_payload))  # pyright: ignore[reportReturnType]
+        return ComponentsHolder(*(_partial_component_factory(component) for component in components_payload))  # pyright: ignore[reportReturnType]
 
 
 Component_t = TypeVar("Component_t", bound="AnyMessagePartialComponent", default="AnyMessagePartialComponent")
@@ -689,7 +689,7 @@ class ComponentInteraction(Generic[Component_t], Interaction):
             raise TypeError("Only component interactions have a component")
         if not self.data:
             raise TypeError("This interaction has no data. This should never happen, please open an issue on GitHub")
-        return _interaction_component_factory(self.data, key="component_type")  # pyright: ignore[reportArgumentType, reportReturnType]
+        return _partial_component_factory(self.data, key="component_type")  # pyright: ignore[reportArgumentType, reportReturnType]
 
 
 class InteractionResponse:

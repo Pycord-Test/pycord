@@ -31,7 +31,7 @@ from typing_extensions import override
 
 from ..enums import ComponentType
 from ..types.components import MediaGalleryComponent as MediaGalleryComponentPayload
-from .component import StateComponent
+from .component import Component, StateComponentMixin
 from .media_gallery_item import MediaGalleryItem
 
 if TYPE_CHECKING:
@@ -40,7 +40,7 @@ if TYPE_CHECKING:
     from ..state import ConnectionState
 
 
-class MediaGallery(StateComponent[MediaGalleryComponentPayload]):
+class MediaGallery(StateComponentMixin[MediaGalleryComponentPayload], Component[MediaGalleryComponentPayload]):
     """Represents a Media Gallery from Components V2.
 
     This is a component that displays up to 10 different :class:`MediaGalleryItem` objects.
