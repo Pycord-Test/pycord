@@ -1649,7 +1649,7 @@ class Message(Hashable):
             payload["components"] = []
             if components:
                 for c in components:
-                    if c.any_is_v2()():
+                    if c.any_is_v2():
                         flags.is_components_v2 = True
                     payload["components"].append(c.to_dict())
 
