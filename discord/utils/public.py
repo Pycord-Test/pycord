@@ -47,11 +47,11 @@ def utcnow() -> datetime.datetime:
     return datetime.datetime.now(datetime.timezone.utc)
 
 
-V = Iterable[OptionChoice] | Iterable[str] | Iterable[int] | Iterable[float]
+V = Iterable["OptionChoice"] | Iterable[str] | Iterable[int] | Iterable[float]
 AV = Awaitable[V]
-Values = V | Callable[[AutocompleteContext], V | AV] | AV
-AutocompleteFunc = Callable[[AutocompleteContext], AV]
-FilterFunc = Callable[[AutocompleteContext, Any], bool | Awaitable[bool]]
+Values = V | Callable[["AutocompleteContext"], V | AV] | AV
+AutocompleteFunc = Callable[["AutocompleteContext"], AV]
+FilterFunc = Callable[["AutocompleteContext", Any], bool | Awaitable[bool]]
 
 
 def basic_autocomplete(values: Values, *, filter: FilterFunc | None = None) -> AutocompleteFunc:

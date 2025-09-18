@@ -447,7 +447,7 @@ class SnowflakeList(array.array[int]):
 def copy_doc(original: Callable[..., object]) -> Callable[[T], T]:
     def decorator(overridden: T) -> T:
         overridden.__doc__ = original.__doc__
-        overridden.__signature__ = signature(original)  # pyright: ignore[reportAttributeAccessIssue]
+        overridden.__signature__ = signature(original)  # type: ignore[reportAttributeAccessIssue]
         return overridden
 
     return decorator
