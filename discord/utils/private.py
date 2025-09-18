@@ -105,9 +105,7 @@ def parse_ratelimit_header(request: Any, *, use_clock: bool = False) -> float:
         return float(reset_after)
     utc = datetime.timezone.utc
     now = datetime.datetime.now(utc)
-    reset = datetime.datetime.fromtimestamp(
-        float(request.headers["X-Ratelimit-Reset"]), utc
-    )
+    reset = datetime.datetime.fromtimestamp(float(request.headers["X-Ratelimit-Reset"]), utc)
     return (reset - now).total_seconds()
 
 
@@ -341,16 +339,11 @@ def evaluate_annotation(
             is_literal = True
 
         evaluated_args = tuple(
-            evaluate_annotation(arg, globals, locals, cache, implicit_str=implicit_str)
-            for arg in args
+            evaluate_annotation(arg, globals, locals, cache, implicit_str=implicit_str) for arg in args
         )
 
-        if is_literal and not all(
-            isinstance(x, (str, int, bool, type(None))) for x in evaluated_args
-        ):
-            raise TypeError(
-                "Literal arguments must be of type str, int, bool, or NoneType."
-            )
+        if is_literal and not all(isinstance(x, (str, int, bool, type(None))) for x in evaluated_args):
+            raise TypeError("Literal arguments must be of type str, int, bool, or NoneType.")
 
         if evaluated_args == args:
             return tp
@@ -400,22 +393,16 @@ async def async_all(gen: Iterable[Any]) -> bool:
     return True
 
 
-async def maybe_awaitable(
-    f: Callable[P, T | Awaitable[T]], *args: P.args, **kwargs: P.kwargs
-) -> T:
+async def maybe_awaitable(f: Callable[P, T | Awaitable[T]], *args: P.args, **kwargs: P.kwargs) -> T:
     value = f(*args, **kwargs)
     if isawaitable(value):
         return await value
     return value
 
 
-async def sane_wait_for(
-    futures: Iterable[Awaitable[T]], *, timeout: float
-) -> set[asyncio.Task[T]]:
+async def sane_wait_for(futures: Iterable[Awaitable[T]], *, timeout: float) -> set[asyncio.Task[T]]:
     ensured = [asyncio.ensure_future(fut) for fut in futures]
-    done, pending = await asyncio.wait(
-        ensured, timeout=timeout, return_when=asyncio.ALL_COMPLETED
-    )
+    done, pending = await asyncio.wait(ensured, timeout=timeout, return_when=asyncio.ALL_COMPLETED)
 
     if len(pending) != 0:
         raise asyncio.TimeoutError()
@@ -506,9 +493,7 @@ class CachedSlotProperty(Generic[T, T_co]):
         self.__doc__ = function.__doc__
 
     @overload
-    def __get__(
-        self, instance: None, owner: type[T]
-    ) -> CachedSlotProperty[T, T_co]: ...
+    def __get__(self, instance: None, owner: type[T]) -> CachedSlotProperty[T, T_co]: ...
 
     @overload
     def __get__(self, instance: T, owner: type[T]) -> T_co: ...
