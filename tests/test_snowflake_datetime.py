@@ -31,9 +31,9 @@ from discord.utils import (
     snowflake_time,
 )
 
-UTC: datetime.tzinfo = datetime.timezone.utc
+UTC = datetime.timezone.utc
 
-DATETIME_CASES: list[tuple[datetime.datetime, int]] = [
+DATETIME_CASES = [
     (datetime.datetime(1970, 1, 1, 0, 0, 0, tzinfo=UTC), int(0 * 1000 - DISCORD_EPOCH)),
     (datetime.datetime(2000, 2, 29, 12, 0, 0, tzinfo=UTC), int(951825600 * 1000 - DISCORD_EPOCH)),
     (datetime.datetime(1999, 12, 31, 23, 59, 59, tzinfo=UTC), int(946684799 * 1000 - DISCORD_EPOCH)),
@@ -64,7 +64,7 @@ def test_generate_snowflake_boundary_high(dt: datetime.datetime, expected_ms: in
 
 
 @pytest.mark.parametrize(("dt", "expected_ms"), DATETIME_CASES)
-def test_snowflake_time_roundtrip_boundary(dt: datetime.datetime, expected_ms: int) -> None:
+def test_snowflake_time_roundtrip_boundary(dt: datetime.datetime, _expected_ms: int) -> None:
     sf_low = generate_snowflake(dt, mode="boundary", high=False)
     sf_high = generate_snowflake(dt, mode="boundary", high=True)
     assert snowflake_time(sf_low) == dt
@@ -72,11 +72,11 @@ def test_snowflake_time_roundtrip_boundary(dt: datetime.datetime, expected_ms: i
 
 
 @pytest.mark.parametrize(("dt", "expected_ms"), DATETIME_CASES)
-def test_snowflake_time_roundtrip_realistic(dt: datetime.datetime, expected_ms: int) -> None:
+def test_snowflake_time_roundtrip_realistic(dt: datetime.datetime, _expected_ms: int) -> None:
     sf = generate_snowflake(dt, mode="realistic")
     assert snowflake_time(sf) == dt
 
 
 def test_generate_snowflake_invalid_mode() -> None:
     with pytest.raises(ValueError, match="Invalid mode 'nope'. Must be 'realistic' or 'boundary'"):
-        generate_snowflake(datetime.datetime.now(tz=UTC), mode="nope")  # pyright: ignore[reportArgumentType]
+        _ = generate_snowflake(datetime.datetime.now(tz=UTC), mode="nope")  # pyright: ignore[reportArgumentType]

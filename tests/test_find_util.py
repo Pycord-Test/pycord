@@ -25,10 +25,13 @@ DEALINGS IN THE SOFTWARE.
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Iterator
-from typing import Any
+from typing import Literal, TypeVar
+from typing_extensions import TypeIs
 
 import pytest
 from discord.utils import find
+
+T = TypeVar("T")
 
 
 def is_even(x: int) -> bool:
@@ -43,19 +46,19 @@ def greater_than_3(x: int) -> bool:
     return x > 3
 
 
-def equals_1(x: int) -> bool:
+def equals_1(x: int) -> TypeIs[Literal[1]]:
     return x == 1
 
 
-def equals_2(x: int) -> bool:
+def equals_2(x: int) -> TypeIs[Literal[2]]:
     return x == 2
 
 
-def equals_b(c: str) -> bool:
+def equals_b(c: str) -> TypeIs[Literal["b"]]:
     return c == "b"
 
 
-def equals_30(x: int) -> bool:
+def equals_30(x: int) -> TypeIs[Literal[30]]:
     return x == 30
 
 
@@ -77,9 +80,9 @@ def is_none_pred(x: object) -> bool:
     ],
 )
 def test_find_basic_parametrized(
-    seq: Iterable[Any],
-    predicate: Callable[[Any], object],
-    expected: Any | None,
+    seq: Iterable[T],
+    predicate: Callable[[T], object],
+    expected: T | None,
 ) -> None:
     result = find(predicate, seq)
     if expected is None:

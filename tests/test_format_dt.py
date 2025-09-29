@@ -30,7 +30,7 @@ from discord.utils.public import format_dt, TimestampStyle
 # Fix seed so that time tests are reproducible
 random.seed(42)
 
-ALL_STYLES: list[TimestampStyle | None] = [
+ALL_STYLES = [
     "t",
     "T",
     "d",
@@ -41,7 +41,7 @@ ALL_STYLES: list[TimestampStyle | None] = [
     None,
 ]
 
-DATETIME_CASES: list[tuple[datetime.datetime, int]] = [
+DATETIME_CASES = [
     (datetime.datetime(1970, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc), 0),
     (datetime.datetime(2000, 2, 29, 12, 0, 0, tzinfo=datetime.timezone.utc), 951825600),
     (datetime.datetime(1999, 12, 31, 23, 59, 59, tzinfo=datetime.timezone.utc), 946684799),
