@@ -534,7 +534,7 @@ class Guild(Hashable):
         if "channels" in data:
             channels = data["channels"]
             for c in channels:
-                factory, ch_type = _guild_channel_factory(c["type"])
+                factory, _ch_type = _guild_channel_factory(c["type"])
                 if factory:
                     self._add_channel(factory(guild=self, data=c, state=self._state))  # type: ignore
 
@@ -1020,7 +1020,10 @@ class Guild(Hashable):
 
             # do the actual lookup and return if found
             # if it isn't found then we'll do a full name lookup below.
-            result = utils.find(lambda m: m.name == name[:-5] and discriminator == potential_discriminator, members)
+            result = utils.find(
+                lambda m: m.name == name[:-5] and discriminator == potential_discriminator,
+                members,
+            )
             if result is not None:
                 return result
 
@@ -1885,7 +1888,7 @@ class Guild(Hashable):
         data = await self._state.http.get_all_guild_channels(self.id)
 
         def convert(d):
-            factory, ch_type = _guild_channel_factory(d["type"])
+            factory, _ch_type = _guild_channel_factory(d["type"])
             if factory is None:
                 raise InvalidData("Unknown channel type {type} for channel ID {id}.".format_map(d))
 
@@ -3312,7 +3315,10 @@ class Guild(Hashable):
         return Widget(state=self._state, data=data)
 
     async def edit_widget(
-        self, *, enabled: bool | utils.Undefined = MISSING, channel: Snowflake | None | utils.Undefined = MISSING
+        self,
+        *,
+        enabled: bool | utils.Undefined = MISSING,
+        channel: Snowflake | None | utils.Undefined = MISSING,
     ) -> None:
         """|coro|
 
