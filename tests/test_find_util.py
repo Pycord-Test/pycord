@@ -62,7 +62,7 @@ def equals_30(x: int) -> TypeIs[Literal[30]]:
     return x == 30
 
 
-def is_none_pred(x: object) -> bool:
+def is_none_pred(x: object) -> TypeIs[Literal[None]]:
     return x is None
 
 
