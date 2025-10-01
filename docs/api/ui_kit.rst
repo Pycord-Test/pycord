@@ -5,186 +5,186 @@ Bot UI Kit
 
 The library implements a UI Kit that allows you to create interactive components for your Discord applications.
 
-API Objects
+API Models
 -----------
 
-.. attributetable:: discord.ActionRow
+.. attributetable:: discord.components.ActionRow
 
-.. autoclass:: discord.ActionRow
+.. autoclass:: discord.components.ActionRow
     :members:
     :inherited-members:
 
-.. attributetable:: discord.Button
+.. attributetable:: discord.components.Button
 
-.. autoclass:: discord.Button
+.. autoclass:: discord.components.Button
     :members:
     :inherited-members:
 
-.. attributetable:: discord.StringSelect
+.. attributetable:: discord.components.StringSelect
 
-.. autoclass:: discord.StringSelect
+.. autoclass:: discord.components.StringSelect
     :members:
     :inherited-members:
 
-.. attributetable:: discord.TextInput
+.. attributetable:: discord.components.TextInput
 
-.. autoclass:: discord.TextInput
+.. autoclass:: discord.components.TextInput
     :members:
     :inherited-members:
 
-.. attributetable:: discord.UserSelect
+.. attributetable:: discord.components.UserSelect
 
-.. autoclass:: discord.UserSelect
+.. autoclass:: discord.components.UserSelect
     :members:
     :inherited-members:
 
-.. attributetable:: discord.RoleSelect
+.. attributetable:: discord.components.RoleSelect
 
-.. autoclass:: discord.RoleSelect
+.. autoclass:: discord.components.RoleSelect
     :members:
     :inherited-members:
 
-.. attributetable:: discord.MentionableSelect
+.. attributetable:: discord.components.MentionableSelect
 
-.. autoclass:: discord.MentionableSelect
+.. autoclass:: discord.components.MentionableSelect
     :members:
     :inherited-members:
 
-.. attributetable:: discord.ChannelSelect
+.. attributetable:: discord.components.ChannelSelect
 
-.. autoclass:: discord.ChannelSelect
+.. autoclass:: discord.components.ChannelSelect
     :members:
     :inherited-members:
 
-.. attributetable:: discord.Section
+.. attributetable:: discord.components.Section
 
-.. autoclass:: discord.Section
+.. autoclass:: discord.components.Section
     :members:
     :inherited-members:
 
-.. attributetable:: discord.TextDisplay
+.. attributetable:: discord.components.TextDisplay
 
-.. autoclass:: discord.TextDisplay
+.. autoclass:: discord.components.TextDisplay
     :members:
     :inherited-members:
 
-.. attributetable:: discord.Thumbnail
+.. attributetable:: discord.components.Thumbnail
 
-.. autoclass:: discord.Thumbnail
+.. autoclass:: discord.components.Thumbnail
     :members:
     :inherited-members:
 
-.. attributetable:: discord.MediaGallery
+.. attributetable:: discord.components.MediaGallery
 
-.. autoclass:: discord.MediaGallery
+.. autoclass:: discord.components.MediaGallery
     :members:
     :inherited-members:
 
-.. attributetable:: discord.FileComponent
+.. attributetable:: discord.components.FileComponent
 
-.. autoclass:: discord.FileComponent
+.. autoclass:: discord.components.FileComponent
     :members:
     :inherited-members:
 
-.. attributetable:: discord.Separator
-.. autoclass:: discord.Separator
+.. attributetable:: discord.components.Separator
+.. autoclass:: discord.components.Separator
     :members:
     :inherited-members:
 
-.. attributetable:: discord.Container
-.. autoclass:: discord.Container
+.. attributetable:: discord.components.Container
+.. autoclass:: discord.components.Container
     :members:
     :inherited-members:
 
-.. attributetable:: discord.Label
-.. autoclass:: discord.Label
+.. attributetable:: discord.components.Label
+.. autoclass:: discord.components.Label
     :members:
     :inherited-members:
 
 Interaction Components
 -----------
-These objects are dataclasses that represent components as they are recieved from Discord in interaction payloads, currently applicable only with :class:`discord.Interaction` of type :data:`discord.InteractionType.modal_submit`.
+These objects are dataclasses that represent components as they are recieved from Discord in interaction payloads, currently applicable only with :class:`discord.components.Interaction` of type :data:`discord.components.InteractionType.modal_submit`.
 
-.. attributetable:: discord.PartialLabel
-.. autoclass:: discord.PartialLabel
+.. attributetable:: discord.components.PartialLabel
+.. autoclass:: discord.components.PartialLabel
     :members:
     :inherited-members:
 
-.. attributetable:: discord.PartialStringSelect
-.. autoclass:: discord.PartialStringSelect
+.. attributetable:: discord.components.PartialStringSelect
+.. autoclass:: discord.components.PartialStringSelect
     :members:
     :inherited-members:
 
-.. attributetable:: discord.PartialUserSelect
-.. autoclass:: discord.PartialUserSelect
+.. attributetable:: discord.components.PartialUserSelect
+.. autoclass:: discord.components.PartialUserSelect
     :members:
     :inherited-members:
 
-.. attributetable:: discord.PartialRoleSelect
-.. autoclass:: discord.PartialRoleSelect
+.. attributetable:: discord.components.PartialRoleSelect
+.. autoclass:: discord.components.PartialRoleSelect
     :members:
     :inherited-members:
 
-.. attributetable:: discord.PartialMentionableSelect
-.. autoclass:: discord.PartialMentionableSelect
+.. attributetable:: discord.components.PartialMentionableSelect
+.. autoclass:: discord.components.PartialMentionableSelect
     :members:
     :inherited-members:
 
-.. attributetable:: discord.PartialChannelSelect
-.. autoclass:: discord.PartialChannelSelect
+.. attributetable:: discord.components.PartialChannelSelect
+.. autoclass:: discord.components.PartialChannelSelect
     :members:
     :inherited-members:
 
-.. attributetable:: discord.PartialTextInput
-.. autoclass:: discord.PartialTextInput
+.. attributetable:: discord.components.PartialTextInput
+.. autoclass:: discord.components.PartialTextInput
     :members:
     :inherited-members:
 
-.. attributetable:: discord.PartialTextDisplay
-.. autoclass:: discord.PartialTextDisplay
+.. attributetable:: discord.components.PartialTextDisplay
+.. autoclass:: discord.components.PartialTextDisplay
     :members:
     :inherited-members:
 
 Additional Objects
 ------------------
 
-.. attributetable:: discord.Modal
-.. autoclass:: discord.Modal
+.. attributetable:: discord.components.Modal
+.. autoclass:: discord.components.Modal
     :members:
     :inherited-members:
 
-.. attributetable:: discord.UnknownComponent
-.. autoclass:: discord.UnknownComponent
+.. attributetable:: discord.components.UnknownComponent
+.. autoclass:: discord.components.UnknownComponent
     :members:
     :inherited-members:
 
-.. attributetable:: discord.UnfurledMediaItem
-.. autoclass:: discord.UnfurledMediaItem
+.. attributetable:: discord.components.UnfurledMediaItem
+.. autoclass:: discord.components.UnfurledMediaItem
     :members:
     :inherited-members:
 
-.. attributetable:: discord.MediaGalleryItem
-.. autoclass:: discord.MediaGalleryItem
+.. attributetable:: discord.components.MediaGalleryItem
+.. autoclass:: discord.components.MediaGalleryItem
     :members:
     :inherited-members:
 
-.. attributetable:: discord.ComponentsHolder
-.. autoclass:: discord.ComponentsHolder
+.. attributetable:: discord.components.ComponentsHolder
+.. autoclass:: discord.components.ComponentsHolder
     :members:
     :inherited-members:
 
-.. attributetable:: discord.DefaultSelectOption
-.. autoclass:: discord.DefaultSelectOption
+.. attributetable:: discord.components.DefaultSelectOption
+.. autoclass:: discord.components.DefaultSelectOption
     :members:
     :inherited-members:
 
 ABCs
 ----
-.. attributetable:: discord.Component
-.. autoclass:: discord.Component
+.. attributetable:: discord.components.Component
+.. autoclass:: discord.components.Component
     :members:
 
-.. attributetable:: discord.PartialComponent
-.. autoclass:: discord.PartialComponent
+.. attributetable:: discord.components.PartialComponent
+.. autoclass:: discord.components.PartialComponent
     :members:
     :inherited-members:
