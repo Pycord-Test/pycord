@@ -699,7 +699,7 @@ class ModalInteraction(Interaction, Generic[Unpack[Components_t]]):
 Component_t = TypeVar("Component_t", bound="AnyMessagePartialComponent", default="AnyMessagePartialComponent")
 
 
-class ComponentInteraction(Generic[Component_t], Interaction):
+class ComponentInteraction(Interaction, Generic[Component_t]):
     __slots__ = ("_component",)
 
     @cached_slot_property("_component")
