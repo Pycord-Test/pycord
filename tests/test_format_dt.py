@@ -25,12 +25,21 @@ DEALINGS IN THE SOFTWARE.
 import datetime
 import random
 import pytest
-from discord.utils import format_dt
+from discord.utils.public import format_dt, TimestampStyle
 
 # Fix seed so that time tests are reproducible
 random.seed(42)
 
-ALL_STYLES = ["t", "T", "d", "D", "f", "F", "R", None]
+ALL_STYLES = [
+    "t",
+    "T",
+    "d",
+    "D",
+    "f",
+    "F",
+    "R",
+    None,
+]
 
 DATETIME_CASES = [
     (datetime.datetime(1970, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc), 0),
@@ -41,7 +50,7 @@ DATETIME_CASES = [
 ]
 
 
-def random_time():
+def random_time() -> datetime.time:
     return datetime.time(
         random.randint(0, 23),
         random.randint(0, 59),
@@ -51,7 +60,11 @@ def random_time():
 
 @pytest.mark.parametrize(("dt", "expected_ts"), DATETIME_CASES)
 @pytest.mark.parametrize("style", ALL_STYLES)
-def test_format_dt_formats_datetime(dt, expected_ts, style):
+def test_format_dt_formats_datetime(
+    dt: datetime.datetime,
+    expected_ts: int,
+    style: TimestampStyle | None,
+) -> None:
     if style is None:
         expected = f"<t:{expected_ts}>"
     else:
@@ -61,7 +74,9 @@ def test_format_dt_formats_datetime(dt, expected_ts, style):
 
 
 @pytest.mark.parametrize("style", ALL_STYLES)
-def test_format_dt_formats_time_equivalence(style):
+def test_format_dt_formats_time_equivalence(
+    style: TimestampStyle | None,
+) -> None:
     tm = random_time()
     today = datetime.datetime.now().date()
     result_time = format_dt(tm, style=style)

@@ -23,20 +23,10 @@ DEALINGS IN THE SOFTWARE.
 """
 
 from discord.utils import (
-    oauth_url,
-    snowflake_time,
-    find,
-    get_or_fetch,
-    utcnow,
-    remove_markdown,
-    escape_markdown,
     escape_mentions,
     raw_mentions,
     raw_channel_mentions,
     raw_role_mentions,
-    format_dt,
-    generate_snowflake,
-    basic_autocomplete,
 )
 
 
