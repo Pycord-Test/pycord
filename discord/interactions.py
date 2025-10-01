@@ -671,10 +671,16 @@ class ModalInteraction(Interaction, Generic[Unpack[Components_t]]):
     def __init__(self, *, data: ModalInteractionPayload, state: ConnectionState):
         super().__init__(data=data, state=state)
         resolved = data.get("data", {}).get("resolved", {})
-        self.users: dict[int, User] = {int(user_id): User(state=state, data=user_data) for user_id, user_data in resolved.get("users", {}).items()}
-        self.attachments: dict[int, Attachment] = {int(att_id): Attachment(state=state, data=att_data) for att_id, att_data in resolved.get("attachments", {}).items()}
+        self.users: dict[int, User] = {
+            int(user_id): User(state=state, data=user_data) for user_id, user_data in resolved.get("users", {}).items()
+        }
+        self.attachments: dict[int, Attachment] = {
+            int(att_id): Attachment(state=state, data=att_data)
+            for att_id, att_data in resolved.get("attachments", {}).items()
+        }
         self.roles: dict[int, Role] = {
-            int(role_id): Role(state=state, data=role_data, guild=self.guild) for role_id, role_data in resolved.get("roles", {}).items()
+            int(role_id): Role(state=state, data=role_data, guild=self.guild)
+            for role_id, role_data in resolved.get("roles", {}).items()
         }
 
         # TODO: When we have better partial objects, add self.channels and self.members

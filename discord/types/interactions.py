@@ -194,9 +194,11 @@ class ModalInteractionData(TypedDict):
     components: list[Component]
     resolved: NotRequired[ApplicationCommandInteractionDataResolved]
 
+
 InteractionData = ApplicationCommandInteractionData | ComponentInteractionData | ModalInteractionData
 
 D = TypeVar("D", bound=InteractionData)
+
 
 class Interaction(TypedDict, Generic[D]):
     data: NotRequired[D]
@@ -218,6 +220,7 @@ class Interaction(TypedDict, Generic[D]):
     entitlements: list[Entitlement]
     authorizing_integration_owners: AuthorizingIntegrationOwners
     context: InteractionContextType
+
 
 ModalInteraction: TypeAlias = Interaction[ModalInteractionData]
 
