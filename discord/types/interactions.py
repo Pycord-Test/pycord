@@ -25,7 +25,7 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Dict, Literal, Union
+from typing import TYPE_CHECKING, Dict, Generic, Literal, TypeAlias, TypeVar, Union
 
 from ..permissions import Permissions
 from .channel import ChannelType
@@ -189,11 +189,17 @@ class ComponentInteractionData(TypedDict):
     component_type: ComponentType
 
 
-InteractionData = ApplicationCommandInteractionData | ComponentInteractionData
+class ModalInteractionData(TypedDict):
+    custom_id: str
+    components: list[Component]
+    resolved: NotRequired[ApplicationCommandInteractionDataResolved]
 
+InteractionData = ApplicationCommandInteractionData | ComponentInteractionData | ModalInteractionData
 
-class Interaction(TypedDict):
-    data: NotRequired[InteractionData]
+D = TypeVar("D", bound=InteractionData)
+
+class Interaction(TypedDict, Generic[D]):
+    data: NotRequired[D]
     guild_id: NotRequired[Snowflake]
     channel_id: NotRequired[Snowflake]
     channel: NotRequired[InteractionChannel]
@@ -212,6 +218,8 @@ class Interaction(TypedDict):
     entitlements: list[Entitlement]
     authorizing_integration_owners: AuthorizingIntegrationOwners
     context: InteractionContextType
+
+ModalInteraction: TypeAlias = Interaction[ModalInteractionData]
 
 
 class InteractionMetadata(TypedDict):

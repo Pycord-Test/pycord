@@ -28,9 +28,9 @@ from __future__ import annotations
 import asyncio
 import datetime
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any, Coroutine, Generic, Union, Unpack, cast
+from typing import TYPE_CHECKING, Any, Coroutine, Generic, cast
 
-from typing_extensions import TypeVar, TypeVarTuple
+from typing_extensions import TypeVar, TypeVarTuple, Unpack
 
 from . import utils
 from .channel import PartialMessageable, _threaded_channel_factory
@@ -45,6 +45,7 @@ from .message import Attachment, Message
 from .monetization import Entitlement
 from .object import Object
 from .permissions import Permissions
+from .role import Role
 from .user import User
 from .utils.private import cached_slot_property, delay_task, deprecated, get_as_snowflake
 from .webhook.async_ import (
@@ -92,6 +93,7 @@ if TYPE_CHECKING:
     from .types.interactions import Interaction as InteractionPayload
     from .types.interactions import InteractionData
     from .types.interactions import InteractionMetadata as InteractionMetadataPayload
+    from .types.interactions import ModalInteraction as ModalInteractionPayload
     from .types.partial_components import PartialComponent
 
     InteractionChannel = (
@@ -664,7 +666,18 @@ Components_t = TypeVarTuple("Components_t", default="Unpack[tuple[AnyTopLevelMod
 
 
 class ModalInteraction(Interaction, Generic[Unpack[Components_t]]):
-    __slots__ = ("_components",)
+    __slots__ = ("_components", "users", "attachments")
+
+    def __init__(self, *, data: ModalInteractionPayload, state: ConnectionState):
+        super().__init__(data=data, state=state)
+        resolved = data.get("data", {}).get("resolved", {})
+        self.users: dict[int, User] = {int(user_id): User(state=state, data=user_data) for user_id, user_data in resolved.get("users", {}).items()}
+        self.attachments: dict[int, Attachment] = {int(att_id): Attachment(state=state, data=att_data) for att_id, att_data in resolved.get("attachments", {}).items()}
+        self.roles: dict[int, Role] = {
+            int(role_id): Role(state=state, data=role_data, guild=self.guild) for role_id, role_data in resolved.get("roles", {}).items()
+        }
+
+        # TODO: When we have better partial objects, add self.channels and self.members
 
     @cached_slot_property("_components")
     def components(self) -> ComponentsHolder[Unpack[Components_t]]:
