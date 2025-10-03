@@ -22,12 +22,13 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
-
 from __future__ import annotations
 
 from enum import Enum as EnumBase
 import types
 from typing import Any, Self, TypeVar, Union
+
+E = TypeVar("E", bound="Enum")
 
 __all__ = (
     "Enum",
@@ -987,22 +988,9 @@ class SeparatorSpacingSize(Enum):
         return self.value
 
 
-T = TypeVar("T")
-
-
-def create_unknown_value(cls: type[T], val: Any) -> T:
-    value_cls = cls._enum_value_cls_  # type: ignore
-    name = f"unknown_{val}"
-    return value_cls(name=name, value=val)
-
-
-def try_enum(cls: type[T], val: Any) -> T:
+def try_enum(cls: type[E], val: Any) -> E:
     """A function that tries to turn the value into enum ``cls``.
 
     If it fails it returns a proxy invalid value instead.
     """
-
-    try:
-        return cls._enum_value_map_[val]  # type: ignore
-    except (KeyError, TypeError, AttributeError):
-        return create_unknown_value(cls, val)
+    return cls(val)
