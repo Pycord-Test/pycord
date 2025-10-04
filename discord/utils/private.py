@@ -410,7 +410,7 @@ async def sane_wait_for(futures: Iterable[Awaitable[T]], *, timeout: float) -> s
     return done
 
 
-class SnowflakeList(array.array[int]):
+class SnowflakeList(array.array):
     """Internal data storage class to efficiently store a list of snowflakes.
 
     This should have the following characteristics:
@@ -427,6 +427,8 @@ class SnowflakeList(array.array[int]):
     if TYPE_CHECKING:
 
         def __init__(self, data: Iterable[int], *, is_sorted: bool = False): ...
+        def __iter__(self) -> Iterator[int]: ...
+        def __getitem__(self, i: int) -> int: ...
 
     def __new__(cls, data: Iterable[int], *, is_sorted: bool = False):
         return super().__new__(cls, "Q", data if is_sorted else sorted(data))

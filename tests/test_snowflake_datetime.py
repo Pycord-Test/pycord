@@ -63,7 +63,7 @@ def test_generate_snowflake_boundary_high(dt: datetime.datetime, expected_ms: in
     assert (sf & ((1 << 22) - 1)) == (2**22 - 1)
 
 
-@pytest.mark.parametrize(("dt", "expected_ms"), DATETIME_CASES)
+@pytest.mark.parametrize(("dt", "_expected_ms"), DATETIME_CASES)
 def test_snowflake_time_roundtrip_boundary(dt: datetime.datetime, _expected_ms: int) -> None:
     sf_low = generate_snowflake(dt, mode="boundary", high=False)
     sf_high = generate_snowflake(dt, mode="boundary", high=True)
@@ -71,7 +71,7 @@ def test_snowflake_time_roundtrip_boundary(dt: datetime.datetime, _expected_ms: 
     assert snowflake_time(sf_high) == dt
 
 
-@pytest.mark.parametrize(("dt", "expected_ms"), DATETIME_CASES)
+@pytest.mark.parametrize(("dt", "_expected_ms"), DATETIME_CASES)
 def test_snowflake_time_roundtrip_realistic(dt: datetime.datetime, _expected_ms: int) -> None:
     sf = generate_snowflake(dt, mode="realistic")
     assert snowflake_time(sf) == dt
