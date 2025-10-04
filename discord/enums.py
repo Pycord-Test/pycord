@@ -99,7 +99,6 @@ class Enum(EnumBase):
             cls.__le__ = lambda self, other: isinstance(other, self.__class__) and self.value <= other.value
             cls.__ge__ = lambda self, other: isinstance(other, self.__class__) and self.value >= other.value
 
-
     @classmethod
     def _missing_(cls, value: Any) -> Self:
         name = f"unknown_{value}"
