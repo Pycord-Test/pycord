@@ -453,7 +453,7 @@ class HTTPClient:
         allowed_mentions: message.AllowedMentions | None = None,
         message_reference: message.MessageReference | None = None,
         stickers: list[sticker.StickerItem] | None = None,
-        components: list[components.Component] | None = None,
+        components: list[component_types.Component] | None = None,
         flags: int | None = None,
         poll: poll.Poll | None = None,
     ) -> Response[message.Message]:
@@ -515,7 +515,7 @@ class HTTPClient:
         allowed_mentions: message.AllowedMentions | None = None,
         message_reference: message.MessageReference | None = None,
         stickers: list[sticker.StickerItem] | None = None,
-        components: list[components.Component] | None = None,
+        components: list[component_types.Component] | None = None,
         flags: int | None = None,
         poll: poll.Poll | None = None,
     ) -> Response[message.Message]:
@@ -585,7 +585,7 @@ class HTTPClient:
         allowed_mentions: message.AllowedMentions | None = None,
         message_reference: message.MessageReference | None = None,
         stickers: list[sticker.StickerItem] | None = None,
-        components: list[components.Component] | None = None,
+        components: list[component_types.Component] | None = None,
         flags: int | None = None,
         poll: poll.Poll | None = None,
     ) -> Response[message.Message]:
@@ -1173,7 +1173,7 @@ class HTTPClient:
         nonce: int | str | None = None,
         allowed_mentions: message.AllowedMentions | None = None,
         stickers: list[sticker.StickerItem] | None = None,
-        components: list[components.Component] | None = None,
+        components: list[component_types.Component] | None = None,
         flags: int | None = None,
     ) -> Response[threads.Thread]:
         payload: dict[str, Any] = {

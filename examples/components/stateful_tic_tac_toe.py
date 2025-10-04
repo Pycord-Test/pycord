@@ -1,6 +1,7 @@
-from typing import Sequence, TypedDict
 import os
 import random
+from typing import Sequence, TypedDict
+
 from dotenv import load_dotenv
 
 import discord
@@ -14,8 +15,8 @@ load_dotenv()
 
 # Player identifiers
 PLAYER_NONE = 0  # Empty cell
-PLAYER_X = 1     # X player
-PLAYER_O = 2     # O player
+PLAYER_X = 1  # X player
+PLAYER_O = 2  # O player
 
 # Display symbols for each player
 X_EMOJI = "❌"
@@ -36,7 +37,8 @@ CUSTOM_ID_PREFIX = "tic_tac_toe"
 # TYPE DEFINITIONS
 # ==============================================================================
 
-type Board = list[list[int]]  # 3x3 grid of player identifiers
+Board = list[list[int]]  # 3x3 grid of player identifiers
+
 
 class GameState(TypedDict):
     """Represents the complete state of a Tic Tac Toe game.
@@ -47,12 +49,14 @@ class GameState(TypedDict):
     - Database with automatic cleanup of old games
     - Any persistent storage with expiration support
     """
-    board: Board                    # Current board state
-    current_turn: int              # Which player's turn (1 or 2)
-    player_x_id: int               # Discord user ID of player X
-    player_o_id: int               # Discord user ID of player O
-    game_over: bool                # Whether the game has ended
-    winner: int | None             # Winner (1, 2, or None for tie)
+
+    board: Board  # Current board state
+    current_turn: int  # Which player's turn (1 or 2)
+    player_x_id: int  # Discord user ID of player X
+    player_o_id: int  # Discord user ID of player O
+    game_over: bool  # Whether the game has ended
+    winner: int | None  # Winner (1, 2, or None for tie)
+
 
 # ==============================================================================
 # GAME STATE STORAGE
@@ -62,6 +66,7 @@ class GameState(TypedDict):
 # For production, use Redis with TTL, a database, or another persistent store
 # with automatic expiration (e.g., Redis SETEX with 3600 seconds TTL)
 GAME_STATES: dict[int, GameState] = {}  # Keyed by message ID
+
 
 def create_initial_game_state(player_x_id: int, player_o_id: int) -> GameState:
     """Create a new game state with empty board and random first player.
@@ -85,6 +90,7 @@ def create_initial_game_state(player_x_id: int, player_o_id: int) -> GameState:
         winner=None,
     )
 
+
 def get_player_for_user(game_state: GameState, user_id: int) -> int | None:
     """Get which player (X or O) a user is controlling.
 
@@ -101,9 +107,11 @@ def get_player_for_user(game_state: GameState, user_id: int) -> int | None:
         return PLAYER_O
     return None
 
+
 # ==============================================================================
 # CUSTOM ID HELPERS
 # ==============================================================================
+
 
 def create_button_custom_id(row: int, col: int) -> str:
     """Create a custom ID for a Tic Tac Toe button.
@@ -116,6 +124,7 @@ def create_button_custom_id(row: int, col: int) -> str:
     """
     return f"{CUSTOM_ID_PREFIX}:{row}:{col}"
 
+
 def parse_button_custom_id(custom_id: str) -> tuple[int, int]:
     """Parse a button's custom ID to extract coordinates.
 
@@ -125,16 +134,13 @@ def parse_button_custom_id(custom_id: str) -> tuple[int, int]:
     parts = custom_id.split(":")
     return int(parts[1]), int(parts[2])
 
+
 # ==============================================================================
 # BUTTON CREATION
 # ==============================================================================
 
-def create_cell_button(
-        cell_value: int,
-        row: int,
-        col: int,
-        disabled: bool = False
-) -> components.Button:
+
+def create_cell_button(cell_value: int, row: int, col: int, disabled: bool = False) -> components.Button:
     """Create a button representing a single Tic Tac Toe cell.
 
     Args:
@@ -151,24 +157,20 @@ def create_cell_button(
     match cell_value:
         case 0:  # Empty cell - clickable
             return components.Button(
-                style=discord.ButtonStyle.primary,
-                label=EMPTY_CELL,
-                custom_id=custom_id,
-                disabled=disabled
+                style=discord.ButtonStyle.primary, label=EMPTY_CELL, custom_id=custom_id, disabled=disabled
             )
         case 1 | 2:  # Occupied cell - always disabled
             return components.Button(
-                style=discord.ButtonStyle.primary,
-                emoji=PLAYER_SYMBOLS[cell_value],
-                custom_id=custom_id,
-                disabled=True
+                style=discord.ButtonStyle.primary, emoji=PLAYER_SYMBOLS[cell_value], custom_id=custom_id, disabled=True
             )
         case _:
             raise ValueError(f"Invalid cell value: {cell_value}")
 
+
 # ==============================================================================
 # BOARD STATE MANAGEMENT
 # ==============================================================================
+
 
 def check_winner(board: Board) -> int | None:
     """Check if there's a winner on the board.
@@ -198,6 +200,7 @@ def check_winner(board: Board) -> int | None:
 
     return None
 
+
 def is_board_full(board: Board) -> bool:
     """Check if the board is completely filled (tie game).
 
@@ -213,14 +216,13 @@ def is_board_full(board: Board) -> bool:
                 return False
     return True
 
+
 # ==============================================================================
 # UI COMPONENT BUILDERS
 # ==============================================================================
 
-def create_game_buttons(
-        board: Board,
-        disable_all: bool = False
-) -> list[components.ActionRow]:
+
+def create_game_buttons(board: Board, disable_all: bool = False) -> list[components.ActionRow]:
     """Create the 3x3 grid of buttons for the Tic Tac Toe game.
 
     Args:
@@ -234,22 +236,15 @@ def create_game_buttons(
 
     for row_idx, row in enumerate(board):
         buttons = [
-            create_cell_button(
-                cell_value=cell_value,
-                row=row_idx,
-                col=col_idx,
-                disabled=disable_all
-            )
+            create_cell_button(cell_value=cell_value, row=row_idx, col=col_idx, disabled=disable_all)
             for col_idx, cell_value in enumerate(row)
         ]
         action_rows.append(components.ActionRow(*buttons))
 
     return action_rows
 
-def create_game_container(
-        game_buttons: list[components.ActionRow],
-        game_state: GameState
-) -> components.Container:
+
+def create_game_container(game_buttons: list[components.ActionRow], game_state: GameState) -> components.Container:
     """Create the container for an active game.
 
     Args:
@@ -273,10 +268,8 @@ def create_game_container(
         *game_buttons,
     )
 
-def create_game_over_container(
-        game_buttons: list[components.ActionRow],
-        game_state: GameState
-) -> components.Container:
+
+def create_game_over_container(game_buttons: list[components.ActionRow], game_state: GameState) -> components.Container:
     """Create the container for a finished game.
 
     Args:
@@ -302,6 +295,7 @@ def create_game_over_container(
         *game_buttons,
     )
 
+
 # ==============================================================================
 # BOT SETUP
 # ==============================================================================
@@ -312,10 +306,9 @@ bot = discord.Bot(intents=discord.Intents.all())
 # EVENT HANDLERS
 # ==============================================================================
 
+
 @bot.component_listener(lambda custom_id: custom_id.startswith(CUSTOM_ID_PREFIX))
-async def handle_tic_tac_toe_move(
-        interaction: discord.ComponentInteraction[components.PartialButton]
-):
+async def handle_tic_tac_toe_move(interaction: discord.ComponentInteraction[components.PartialButton]):
     """Handle a player clicking a Tic Tac Toe cell.
 
     This function:
@@ -335,29 +328,21 @@ async def handle_tic_tac_toe_move(
     # Retrieve game state from storage
     if message_id not in GAME_STATES:
         await interaction.respond(
-            "❌ Game state not found! This game may have expired or the bot was restarted.",
-            ephemeral=True
+            "❌ Game state not found! This game may have expired or the bot was restarted.", ephemeral=True
         )
         return
 
     game_state = GAME_STATES[message_id]
 
-
     # Validate the user is in this game
     user_player = get_player_for_user(game_state, interaction.user.id)
     if user_player is None:
-        await interaction.respond(
-            "❌ You're not a player in this game!",
-            ephemeral=True
-        )
+        await interaction.respond("❌ You're not a player in this game!", ephemeral=True)
         return
 
     # Validate it's this user's turn
     if user_player != game_state["current_turn"]:
-        await interaction.respond(
-            "❌ It's not your turn!",
-            ephemeral=True
-        )
+        await interaction.respond("❌ It's not your turn!", ephemeral=True)
         return
 
     # Parse the clicked cell coordinates
@@ -380,31 +365,27 @@ async def handle_tic_tac_toe_move(
         game_state["current_turn"] = PLAYER_O if game_state["current_turn"] == PLAYER_X else PLAYER_X
 
     # Create updated button grid
-    updated_buttons = create_game_buttons(
-        board=game_state["board"],
-        disable_all=game_over
-    )
+    updated_buttons = create_game_buttons(board=game_state["board"], disable_all=game_over)
 
     # Update the message with new game state
     if game_over:
         await interaction.edit(
             components=[create_game_over_container(updated_buttons, game_state)],
         )
-        del GAME_STATES[message_id] # The message can't be interacted with anymore because all buttons are disabled
+        del GAME_STATES[message_id]  # The message can't be interacted with anymore because all buttons are disabled
     else:
         await interaction.edit(
             components=[create_game_container(updated_buttons, game_state)],
         )
 
+
 # ==============================================================================
 # SLASH COMMANDS
 # ==============================================================================
 
+
 @bot.slash_command()
-async def tic_tac_toe(
-        ctx: discord.ApplicationContext,
-        opponent: discord.User
-):
+async def tic_tac_toe(ctx: discord.ApplicationContext, opponent: discord.User):
     """Start a new Tic Tac Toe game against another user.
 
     Args:
@@ -456,13 +437,16 @@ async def tic_tac_toe(
         f"🎮 Game started! {first_player_symbol} (<@{first_player_id}>) goes first!",
     )
 
+
 # ==============================================================================
 # BOT STARTUP
 # ==============================================================================
+
 
 # Optional: Add a cleanup task for old games if not using Redis TTL
 @bot.event
 async def on_ready():
     print(f"Bot ready! Logged in as {bot.user}")
+
 
 bot.run(os.getenv("TOKEN_2"))

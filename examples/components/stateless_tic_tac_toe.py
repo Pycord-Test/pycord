@@ -1,5 +1,6 @@
-from typing import Sequence
 import os
+from typing import Sequence
+
 from dotenv import load_dotenv
 
 import discord
@@ -13,8 +14,8 @@ load_dotenv()
 
 # Player identifiers
 PLAYER_NONE = 0  # Empty cell
-PLAYER_X = 1     # X player
-PLAYER_O = 2     # O player
+PLAYER_X = 1  # X player
+PLAYER_O = 2  # O player
 
 # Display symbols for each player
 X_EMOJI = "❌"
@@ -37,15 +38,16 @@ CUSTOM_ID_PREFIX = "tic_tac_toe"
 # TYPE DEFINITIONS
 # ==============================================================================
 
-type Board = list[list[int]]  # 3x3 grid of player identifiers
+Board = list[list[int]]  # 3x3 grid of player identifiers
 
 # ==============================================================================
 # CUSTOM ID HELPERS
 # ==============================================================================
 
+
 def create_button_custom_id(current_player: int, row: int, col: int, next_player: int) -> str:
     """Create a custom ID for a Tic Tac Toe button.
-    
+
     Args:
         current_player: The player occupying this cell (0 = empty)
         row: Row position (0-2)
@@ -54,9 +56,10 @@ def create_button_custom_id(current_player: int, row: int, col: int, next_player
     """
     return f"{CUSTOM_ID_PREFIX}:{current_player}:{row}:{col}:{next_player}"
 
+
 def parse_button_custom_id(custom_id: str) -> tuple[int, int, int, int]:
     """Parse a button's custom ID to extract game state.
-    
+
     Returns:
         Tuple of (current_player, row, col, next_player)
     """
@@ -68,26 +71,24 @@ def parse_button_custom_id(custom_id: str) -> tuple[int, int, int, int]:
         int(parts[4]),  # next_player
     )
 
+
 # ==============================================================================
 # BUTTON CREATION
 # ==============================================================================
 
+
 def create_cell_button(
-        current_player: int,
-        row: int,
-        col: int,
-        next_player: int,
-        disabled: bool = False
+    current_player: int, row: int, col: int, next_player: int, disabled: bool = False
 ) -> components.Button:
     """Create a button representing a single Tic Tac Toe cell.
-    
+
     Args:
         current_player: The player occupying this cell (0 = empty)
         row: Row position in the grid (0-2)
         col: Column position in the grid (0-2)
         next_player: The player whose turn is next
         disabled: Whether the button should be disabled
-    
+
     Returns:
         A Discord Button component
     """
@@ -96,34 +97,33 @@ def create_cell_button(
     match current_player:
         case 0:  # Empty cell - clickable
             return components.Button(
-                style=discord.ButtonStyle.primary,
-                label=EMPTY_CELL,
-                custom_id=custom_id,
-                disabled=disabled
+                style=discord.ButtonStyle.primary, label=EMPTY_CELL, custom_id=custom_id, disabled=disabled
             )
         case 1 | 2:  # Occupied cell - always disabled
             return components.Button(
                 style=discord.ButtonStyle.secondary,
                 emoji=PLAYER_SYMBOLS[current_player],
                 custom_id=custom_id,
-                disabled=True
+                disabled=True,
             )
         case _:
             raise ValueError(f"Invalid player identifier: {current_player}")
+
 
 # ==============================================================================
 # BOARD STATE MANAGEMENT
 # ==============================================================================
 
+
 def extract_board_from_components(action_rows: Sequence[components.ActionRow]) -> Board:
     """Extract the current board state from Discord action rows.
-    
+
     The board state is encoded in the custom_id of each button. This function
     reconstructs the 3x3 game board from the button components.
-    
+
     Args:
         action_rows: The ActionRow components containing the game buttons
-        
+
     Returns:
         A 3x3 board represented as a list of lists
     """
@@ -139,14 +139,15 @@ def extract_board_from_components(action_rows: Sequence[components.ActionRow]) -
 
     return board
 
+
 def check_winner(board: Board) -> int | None:
     """Check if there's a winner on the board.
-    
+
     Checks all rows, columns, and diagonals for three in a row.
-    
+
     Args:
         board: The current game board state
-        
+
     Returns:
         The winning player (1 or 2), or None if no winner
     """
@@ -167,12 +168,13 @@ def check_winner(board: Board) -> int | None:
 
     return None
 
+
 def is_board_full(board: Board) -> bool:
     """Check if the board is completely filled (tie game).
-    
+
     Args:
         board: The current game board state
-        
+
     Returns:
         True if no empty cells remain, False otherwise
     """
@@ -182,22 +184,22 @@ def is_board_full(board: Board) -> bool:
                 return False
     return True
 
+
 # ==============================================================================
 # UI COMPONENT BUILDERS
 # ==============================================================================
 
+
 def create_game_buttons(
-        board: Board | None = None,
-        next_player: int = PLAYER_X,
-        disable_all: bool = False
+    board: Board | None = None, next_player: int = PLAYER_X, disable_all: bool = False
 ) -> list[components.ActionRow]:
     """Create the 3x3 grid of buttons for the Tic Tac Toe game.
-    
+
     Args:
         board: The current board state (None for a new game)
         next_player: The player whose turn is next
         disable_all: Whether to disable all buttons (game over)
-        
+
     Returns:
         List of ActionRow components, one per row of the game board
     """
@@ -210,11 +212,7 @@ def create_game_buttons(
     for row_idx, row in enumerate(board):
         buttons = [
             create_cell_button(
-                current_player=cell_value,
-                row=row_idx,
-                col=col_idx,
-                next_player=next_player,
-                disabled=disable_all
+                current_player=cell_value, row=row_idx, col=col_idx, next_player=next_player, disabled=disable_all
             )
             for col_idx, cell_value in enumerate(row)
         ]
@@ -222,16 +220,14 @@ def create_game_buttons(
 
     return action_rows
 
-def create_game_container(
-        game_buttons: list[components.ActionRow],
-        next_player: int
-) -> components.Container:
+
+def create_game_container(game_buttons: list[components.ActionRow], next_player: int) -> components.Container:
     """Create the container for an active game.
-    
+
     Args:
         game_buttons: The 3x3 grid of game buttons
         next_player: The player whose turn it is
-        
+
     Returns:
         A Container with the game title, turn indicator, and buttons
     """
@@ -241,16 +237,14 @@ def create_game_container(
         *game_buttons,
     )
 
-def create_game_over_container(
-        game_buttons: list[components.ActionRow],
-        winner: int
-) -> components.Container:
+
+def create_game_over_container(game_buttons: list[components.ActionRow], winner: int) -> components.Container:
     """Create the container for a finished game.
-    
+
     Args:
         game_buttons: The final state of the game buttons
         winner: The winning player (0 for tie, 1 or 2 for winners)
-        
+
     Returns:
         A Container with the game title, result message, and final board
     """
@@ -265,6 +259,7 @@ def create_game_over_container(
         *game_buttons,
     )
 
+
 # ==============================================================================
 # BOT SETUP
 # ==============================================================================
@@ -275,12 +270,11 @@ bot = discord.Bot(intents=discord.Intents.all())
 # EVENT HANDLERS
 # ==============================================================================
 
+
 @bot.component_listener(lambda custom_id: custom_id.startswith(CUSTOM_ID_PREFIX))
-async def handle_tic_tac_toe_move(
-        interaction: discord.ComponentInteraction[components.PartialButton]
-):
+async def handle_tic_tac_toe_move(interaction: discord.ComponentInteraction[components.PartialButton]):
     """Handle a player clicking a Tic Tac Toe cell.
-    
+
     This function:
     1. Extracts the current board state from the message components
     2. Parses which cell was clicked and which player clicked it
@@ -311,11 +305,7 @@ async def handle_tic_tac_toe_move(
     game_over = winner is not None or is_tie
 
     # Create updated button grid
-    updated_buttons = create_game_buttons(
-        board=board,
-        next_player=next_player,
-        disable_all=game_over
-    )
+    updated_buttons = create_game_buttons(board=board, next_player=next_player, disable_all=game_over)
 
     # Update the message with new game state
     if game_over:
@@ -328,9 +318,11 @@ async def handle_tic_tac_toe_move(
             components=[create_game_container(updated_buttons, next_player)],
         )
 
+
 # ==============================================================================
 # SLASH COMMANDS
 # ==============================================================================
+
 
 @bot.slash_command()
 async def tic_tac_toe(ctx: discord.ApplicationContext):
@@ -340,12 +332,15 @@ async def tic_tac_toe(ctx: discord.ApplicationContext):
         components=[create_game_container(initial_buttons, next_player=PLAYER_X)],
     )
 
+
 # ==============================================================================
 # BOT STARTUP
 # ==============================================================================
 
+
 @bot.event
 async def on_ready():
     print(f"Bot ready! Logged in as {bot.user}")
+
 
 bot.run(os.getenv("TOKEN_2"))

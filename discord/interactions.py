@@ -80,10 +80,10 @@ if TYPE_CHECKING:
     from .client import Client
     from .commands import ApplicationCommand, OptionChoice
     from .components import (
+        AnyComponent,
         AnyMessagePartialComponent,
         AnyTopLevelModalComponent,
         AnyTopLevelModalPartialComponent,
-        AnyComponent,
         Modal,
     )
     from .embeds import Embed

@@ -26,6 +26,7 @@ DEALINGS IN THE SOFTWARE.
 from __future__ import annotations
 
 from .public import (
+    EMOJIS_MAP,
     MISSING,
     UNICODE_EMOJIS,
     Undefined,
@@ -42,7 +43,6 @@ from .public import (
     remove_markdown,
     snowflake_time,
     utcnow,
-    EMOJIS_MAP
 )
 
 DISCORD_EPOCH = 1420070400000
@@ -65,5 +65,5 @@ __all__ = (
     "Undefined",
     "MISSING",
     "UNICODE_EMOJIS",
-    "EMOJIS_MAP"
+    "EMOJIS_MAP",
 )
