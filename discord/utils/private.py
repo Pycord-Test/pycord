@@ -423,6 +423,7 @@ else:
     else:
         SnowflakeListBase = array.array
 
+
 class SnowflakeList(SnowflakeListBase):
     """Internal data storage class to efficiently store a list of snowflakes.
 
