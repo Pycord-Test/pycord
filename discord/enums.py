@@ -27,9 +27,12 @@ from __future__ import annotations
 
 import types
 from enum import Enum as EnumBase
-from typing import Any, Self, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Generic, Self, Union
+
+from typing_extensions import TypeVar
 
 E = TypeVar("E", bound="Enum")
+V = TypeVar("V", default=Any)
 
 __all__ = (
     "Enum",
@@ -85,10 +88,16 @@ __all__ = (
 )
 
 
-class Enum(EnumBase):
+class Enum(EnumBase, Generic[V]):
     """An :class:`enum.Enum` subclass that implements a missing value creation behavior if it is
     not present in any of the members of it.
     """
+
+    if TYPE_CHECKING:
+        _value_: V
+
+        @property
+        def value(self) -> V: ...
 
     def __init_subclass__(cls, *, comparable: bool = False) -> None:
         super().__init_subclass__()
@@ -100,7 +109,7 @@ class Enum(EnumBase):
             cls.__ge__ = lambda self, other: isinstance(other, self.__class__) and self.value >= other.value
 
     @classmethod
-    def _missing_(cls, value: Any) -> Self:
+    def _missing_(cls, value: V) -> Self:
         name = f"unknown_{value}"
         if name in cls.__members__:
             return cls.__members__[name]
