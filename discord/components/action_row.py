@@ -30,7 +30,7 @@ from typing import TYPE_CHECKING, ClassVar, Literal, TypeAlias, cast
 from typing_extensions import override
 
 from ..enums import ComponentType
-from ..types.components import ActionRow as ActionRowPayload
+from ..types.component_types import ActionRow as ActionRowPayload
 from .component import WalkableComponent
 
 if TYPE_CHECKING:
@@ -96,7 +96,7 @@ class ActionRow(WalkableComponent["ActionRowPayload", "AllowedActionRowComponent
         from ._component_factory import _component_factory  # noqa: PLC0415  # pyright: ignore[reportPrivateUsage]
 
         components: list[AllowedActionRowComponents] = cast(
-            "list[AllowedActionRowComponents]", [_component_factory(d) for d in payload.get("", [])]
+            "list[AllowedActionRowComponents]", [_component_factory(d) for d in payload.get("components", [])]
         )
         return cls(*components, id=payload.get("id"))
 

@@ -62,7 +62,7 @@ if TYPE_CHECKING:
         audit_log,
         automod,
         channel,
-        components,
+        component_types,
         embed,
         emoji,
         guild,

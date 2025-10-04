@@ -26,7 +26,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from ..types.components import MediaGalleryItem as MediaGalleryItemPayload
+from ..types.component_types import MediaGalleryItem as MediaGalleryItemPayload
 from .unfurled_media_item import UnfurledMediaItem
 
 if TYPE_CHECKING:

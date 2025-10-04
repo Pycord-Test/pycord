@@ -31,7 +31,7 @@ from typing_extensions import override
 
 from ..enums import ButtonStyle, ComponentType, try_enum
 from ..partial_emoji import PartialEmoji, _EmojiTag  # pyright: ignore[reportPrivateUsage]
-from ..types.components import ButtonComponent as ButtonComponentPayload
+from ..types.component_types import ButtonComponent as ButtonComponentPayload
 from .component import Component
 
 if TYPE_CHECKING:

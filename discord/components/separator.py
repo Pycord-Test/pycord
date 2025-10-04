@@ -29,7 +29,7 @@ from typing import TYPE_CHECKING, ClassVar, Literal
 from typing_extensions import override
 
 from ..enums import ComponentType, SeparatorSpacingSize, try_enum
-from ..types.components import SeparatorComponent as SeparatorComponentPayload
+from ..types.component_types import SeparatorComponent as SeparatorComponentPayload
 from .component import Component
 
 if TYPE_CHECKING:

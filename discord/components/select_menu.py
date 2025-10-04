@@ -28,19 +28,19 @@ from abc import ABC
 from typing import ClassVar, Generic, Literal, TypeAlias, TypeVar
 
 from ..enums import ComponentType
-from ..types.components import (
+from ..types.component_types import (
     ChannelSelect as ChannelSelectPayload,
 )
-from ..types.components import (
+from ..types.component_types import (
     MentionableSelect as MentionableSelectPayload,
 )
-from ..types.components import (
+from ..types.component_types import (
     RoleSelect as RoleSelectPayload,
 )
-from ..types.components import (
+from ..types.component_types import (
     StringSelect as StringSelectPayload,
 )
-from ..types.components import (
+from ..types.component_types import (
     UserSelect as UserSelectPayload,
 )
 from .component import Component, ModalComponentMixin

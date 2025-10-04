@@ -26,7 +26,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, TypeAlias
 
-from ..types.components import Modal as ModalPayload
+from ..types.component_types import Modal as ModalPayload
 
 if TYPE_CHECKING:
     from .label import Label

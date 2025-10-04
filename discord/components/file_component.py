@@ -29,7 +29,7 @@ from typing import TYPE_CHECKING, ClassVar, Literal
 from typing_extensions import override
 
 from ..enums import ComponentType
-from ..types.components import FileComponent as FileComponentPayload
+from ..types.component_types import FileComponent as FileComponentPayload
 from .component import Component, StateComponentMixin
 from .unfurled_media_item import UnfurledMediaItem
 

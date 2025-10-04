@@ -31,7 +31,7 @@ from typing import TYPE_CHECKING, ClassVar, Literal, TypeAlias, cast
 from typing_extensions import override
 
 from ..enums import ComponentType
-from ..types.components import LabelComponent as LabelComponentPayload
+from ..types.component_types import LabelComponent as LabelComponentPayload
 from .component import ModalComponentMixin, WalkableComponent
 
 if TYPE_CHECKING:

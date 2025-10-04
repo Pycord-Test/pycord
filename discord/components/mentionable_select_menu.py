@@ -30,7 +30,7 @@ from typing import TYPE_CHECKING, Literal
 from typing_extensions import override
 
 from ..enums import ComponentType
-from ..types.components import MentionableSelect as MentionableSelectPayload
+from ..types.component_types import MentionableSelect as MentionableSelectPayload
 from .default_select_option import DefaultSelectOption
 from .select_menu import Select
 

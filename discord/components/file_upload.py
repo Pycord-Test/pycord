@@ -29,7 +29,7 @@ from typing import TYPE_CHECKING, ClassVar, Literal
 from typing_extensions import override
 
 from ..enums import ComponentType
-from ..types.components import FileUpload as FileUploadPayload
+from ..types.component_types import FileUpload as FileUploadPayload
 from .component import Component, ModalComponentMixin
 
 if TYPE_CHECKING:

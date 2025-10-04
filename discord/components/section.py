@@ -31,7 +31,7 @@ from typing import TYPE_CHECKING, ClassVar, Literal, TypeAlias, cast
 from typing_extensions import override
 
 from ..enums import ComponentType
-from ..types.components import SectionComponent as SectionComponentPayload
+from ..types.component_types import SectionComponent as SectionComponentPayload
 from .component import WalkableComponent
 
 if TYPE_CHECKING:

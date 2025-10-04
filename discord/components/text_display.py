@@ -29,7 +29,7 @@ from typing import TYPE_CHECKING, ClassVar, Literal
 from typing_extensions import override
 
 from ..enums import ComponentType
-from ..types.components import TextDisplayComponent as TextDisplayComponentPayload
+from ..types.component_types import TextDisplayComponent as TextDisplayComponentPayload
 from .component import Component, ModalComponentMixin
 
 if TYPE_CHECKING:

@@ -74,7 +74,7 @@ if TYPE_CHECKING:
     from .mentions import AllowedMentions
     from .role import Role
     from .state import ConnectionState
-    from .types.components import Component as ComponentPayload
+    from .types.component_types import Component as ComponentPayload
     from .types.embed import Embed as EmbedPayload
     from .types.member import Member as MemberPayload
     from .types.member import UserWithMember as UserWithMemberPayload

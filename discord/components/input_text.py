@@ -30,7 +30,7 @@ from typing import TYPE_CHECKING, ClassVar, Literal
 from typing_extensions import override
 
 from ..enums import ComponentType, TextInputStyle, try_enum
-from ..types.components import TextInput as TextInputComponentPayload
+from ..types.component_types import TextInput as TextInputComponentPayload
 from .component import Component, ModalComponentMixin
 
 if TYPE_CHECKING:

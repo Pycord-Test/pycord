@@ -42,6 +42,7 @@ from .public import (
     remove_markdown,
     snowflake_time,
     utcnow,
+    EMOJIS_MAP
 )
 
 DISCORD_EPOCH = 1420070400000
@@ -64,4 +65,5 @@ __all__ = (
     "Undefined",
     "MISSING",
     "UNICODE_EMOJIS",
+    "EMOJIS_MAP"
 )

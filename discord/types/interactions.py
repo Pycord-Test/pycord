@@ -29,7 +29,7 @@ from typing import TYPE_CHECKING, Dict, Generic, Literal, TypeAlias, TypeVar, Un
 
 from ..permissions import Permissions
 from .channel import ChannelType
-from .components import Component, ComponentType
+from .component_types import Component, ComponentType
 from .embed import Embed
 from .member import Member
 from .message import Attachment

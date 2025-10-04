@@ -28,7 +28,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Literal
 
 from .channel import ChannelType
-from .components import Component
+from .component_types import Component
 from .embed import Embed
 from .emoji import PartialEmoji
 from .member import Member, UserWithMember

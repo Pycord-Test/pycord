@@ -30,7 +30,7 @@ from typing import TYPE_CHECKING, Literal
 from typing_extensions import override
 
 from ..enums import ComponentType
-from ..types.components import StringSelect as StringSelectPayload
+from ..types.component_types import StringSelect as StringSelectPayload
 from .select_menu import Select
 from .select_option import SelectOption
 

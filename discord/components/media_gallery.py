@@ -30,7 +30,7 @@ from typing import TYPE_CHECKING, ClassVar, Literal
 from typing_extensions import override
 
 from ..enums import ComponentType
-from ..types.components import MediaGalleryComponent as MediaGalleryComponentPayload
+from ..types.component_types import MediaGalleryComponent as MediaGalleryComponentPayload
 from .component import Component, StateComponentMixin
 from .media_gallery_item import MediaGalleryItem
 

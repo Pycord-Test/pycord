@@ -30,7 +30,7 @@ from typing_extensions import override
 
 from ..colour import Colour
 from ..enums import ComponentType
-from ..types.components import ContainerComponent as ContainerComponentPayload
+from ..types.component_types import ContainerComponent as ContainerComponentPayload
 from .component import WalkableComponent
 
 if TYPE_CHECKING:
@@ -134,7 +134,7 @@ class Container(WalkableComponent["ContainerComponentPayload", "AllowedContainer
 
         components: list[AllowedContainerComponents] = cast(
             "list[AllowedContainerComponents]",
-            [_component_factory(d, state=state) for d in payload.get("", [])],
+            [_component_factory(d, state=state) for d in payload.get("components", [])],
         )
         accent_color = Colour(c) if (c := payload.get("accent_color") is not None) else None
         return cls(

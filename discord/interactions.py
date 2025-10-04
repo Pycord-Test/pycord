@@ -83,6 +83,7 @@ if TYPE_CHECKING:
         AnyMessagePartialComponent,
         AnyTopLevelModalComponent,
         AnyTopLevelModalPartialComponent,
+        AnyComponent,
         Modal,
     )
     from .embeds import Embed
@@ -1014,7 +1015,7 @@ class InteractionResponse:
         file: File | utils.Undefined = MISSING,
         files: list[File] | utils.Undefined = MISSING,
         attachments: list[Attachment] | utils.Undefined = MISSING,
-        components: Sequence[AnyTopLevelModalComponent] | None | utils.Undefined = MISSING,
+        components: Sequence[AnyComponent] | None | utils.Undefined = MISSING,
         delete_after: float | None = None,
         suppress: bool | None | utils.Undefined = MISSING,
         allowed_mentions: AllowedMentions | None = None,

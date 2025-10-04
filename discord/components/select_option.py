@@ -30,7 +30,7 @@ from typing import TYPE_CHECKING, TypeAlias
 from typing_extensions import override
 
 from ..partial_emoji import PartialEmoji, _EmojiTag  # pyright: ignore[reportPrivateUsage]
-from ..types.components import SelectOption as SelectOptionPayload
+from ..types.component_types import SelectOption as SelectOptionPayload
 from ..utils import MISSING, Undefined
 
 if TYPE_CHECKING:

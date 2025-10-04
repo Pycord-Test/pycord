@@ -30,7 +30,7 @@ from typing import TYPE_CHECKING, Literal
 from typing_extensions import override
 
 from ..enums import ComponentType
-from ..types.components import ChannelSelect as ChannelSelectPayload
+from ..types.component_types import ChannelSelect as ChannelSelectPayload
 from .default_select_option import DefaultSelectOption
 from .select_menu import Select
 

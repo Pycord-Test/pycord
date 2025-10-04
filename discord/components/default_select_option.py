@@ -28,7 +28,7 @@ from typing import Generic
 
 from typing_extensions import override
 
-from ..types.components import SelectDefaultValue
+from ..types.component_types import SelectDefaultValue
 from .types import DT
 
 

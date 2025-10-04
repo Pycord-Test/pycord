@@ -27,7 +27,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Literal, TypeVar
 
-from ..types.components import (
+from ..types.component_types import (
     Component as ComponentPayload,
 )
 

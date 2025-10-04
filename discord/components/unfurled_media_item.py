@@ -30,7 +30,7 @@ from typing_extensions import override
 
 from ..asset import AssetMixin
 from ..flags import AttachmentFlags
-from ..types.components import UnfurledMediaItem as UnfurledMediaItemPayload
+from ..types.component_types import UnfurledMediaItem as UnfurledMediaItemPayload
 
 if TYPE_CHECKING:
     from ..state import ConnectionState
