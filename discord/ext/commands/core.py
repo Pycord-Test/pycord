@@ -45,6 +45,7 @@ from typing import (
 import discord
 from discord import utils
 from discord.utils import Undefined
+from discord.utils.private import async_all, evaluate_annotation, maybe_awaitable
 
 from ...commands import (
     ApplicationCommand,
@@ -138,7 +139,6 @@ def get_signature_parameters(function: Callable[..., Any], globalns: dict[str, A
     signature = inspect.signature(function)
     params = {}
     cache: dict[str, Any] = {}
-    eval_annotation = discord.utils.evaluate_annotation
     for name, parameter in signature.parameters.items():
         annotation = parameter.annotation
         if annotation is parameter.empty:
@@ -148,7 +148,7 @@ def get_signature_parameters(function: Callable[..., Any], globalns: dict[str, A
             params[name] = parameter.replace(annotation=type(None))
             continue
 
-        annotation = eval_annotation(annotation, globalns, globalns, cache)
+        annotation = evaluate_annotation(annotation, globalns, globalns, cache)
         if annotation is Greedy:
             raise TypeError("Unparameterized Greedy[...] is disallowed in signature.")
 
@@ -741,13 +741,15 @@ class Command(_BaseCommand, Generic[CogT, P, T]):
             try:
                 next(iterator)
             except StopIteration:
-                raise discord.ClientException(f'Callback for {self.name} command is missing "self" parameter.')
+                raise discord.ClientException(
+                    f'Callback for {self.name} command is missing "self" parameter.'
+                ) from None
 
         # next we have the 'ctx' as the next parameter
         try:
             next(iterator)
         except StopIteration:
-            raise discord.ClientException(f'Callback for {self.name} command is missing "ctx" parameter.')
+            raise discord.ClientException(f'Callback for {self.name} command is missing "ctx" parameter.') from None
 
         for name, param in iterator:
             ctx.current_parameter = param
@@ -1146,7 +1148,7 @@ class Command(_BaseCommand, Generic[CogT, P, T]):
             if cog is not None:
                 local_check = Cog._get_overridden_method(cog.cog_check)
                 if local_check is not None:
-                    ret = await discord.utils.maybe_coroutine(local_check, ctx)
+                    ret = await maybe_awaitable(local_check, ctx)
                     if not ret:
                         return False
 
@@ -1155,7 +1157,7 @@ class Command(_BaseCommand, Generic[CogT, P, T]):
                 # since we have no checks, then we just return True.
                 return True
 
-            return await discord.utils.async_all(predicate(ctx) for predicate in predicates)  # type: ignore
+            return await async_all(predicate(ctx) for predicate in predicates)  # type: ignore
         finally:
             ctx.command = original
 
@@ -1370,7 +1372,7 @@ class GroupMixin(Generic[CogT]):
 
         def decorator(func: Callable[Concatenate[ContextT, P], Coro[Any]]) -> CommandT:
             kwargs.setdefault("parent", self)
-            result = command(name=name, cls=cls, *args, **kwargs)(func)
+            result = command(name=name, cls=cls, *args, **kwargs)(func)  # noqa: B026
             self.add_command(result)
             return result
 
@@ -1415,7 +1417,7 @@ class GroupMixin(Generic[CogT]):
 
         def decorator(func: Callable[Concatenate[ContextT, P], Coro[Any]]) -> GroupT:
             kwargs.setdefault("parent", self)
-            result = group(name=name, cls=cls, *args, **kwargs)(func)
+            result = group(name=name, cls=cls, *args, **kwargs)(func)  # noqa: B026
             self.add_command(result)
             return result
 
@@ -1865,9 +1867,9 @@ def has_role(item: int | str) -> Callable[[T], T]:
 
         # ctx.guild is None doesn't narrow ctx.author to Member
         if isinstance(item, int):
-            role = discord.utils.get(ctx.author.roles, id=item)  # type: ignore
+            role = discord.utils.find(lambda r: r.id == item, ctx.author.roles)  # type: ignore
         else:
-            role = discord.utils.get(ctx.author.roles, name=item)  # type: ignore
+            role = discord.utils.find(lambda r: r.name == item, ctx.author.roles)  # type: ignore
         if role is None:
             raise MissingRole(item)
         return True
@@ -1912,11 +1914,13 @@ def has_any_role(*items: int | str) -> Callable[[T], T]:
             raise NoPrivateMessage()
 
         # ctx.guild is None doesn't narrow ctx.author to Member
-        getter = functools.partial(discord.utils.get, ctx.author.roles)  # type: ignore
-        if any(
-            (getter(id=item) is not None if isinstance(item, int) else getter(name=item) is not None) for item in items
-        ):
-            return True
+        for item in items:
+            if isinstance(item, int):
+                if any(role.id == item for role in ctx.author.roles):
+                    return True
+            else:
+                if any(role.name == item for role in ctx.author.roles):
+                    return True
         raise MissingAnyRole(list(items))
 
     return check(predicate)
@@ -1942,9 +1946,9 @@ def bot_has_role(item: int) -> Callable[[T], T]:
 
         me = ctx.me
         if isinstance(item, int):
-            role = discord.utils.get(me.roles, id=item)
+            role = discord.utils.find(lambda r: r.id == item, me.roles)
         else:
-            role = discord.utils.get(me.roles, name=item)
+            role = discord.utils.find(lambda r: r.name == item, me.roles)
         if role is None:
             raise BotMissingRole(item)
         return True
@@ -1971,11 +1975,14 @@ def bot_has_any_role(*items: int) -> Callable[[T], T]:
             raise NoPrivateMessage()
 
         me = ctx.me
-        getter = functools.partial(discord.utils.get, me.roles)
-        if any(
-            (getter(id=item) is not None if isinstance(item, int) else getter(name=item) is not None) for item in items
-        ):
-            return True
+        for item in items:
+            if isinstance(item, int):
+                if any(role.id == item for role in me.roles):
+                    return True
+            else:
+                if any(role.name == item for role in me.roles):
+                    return True
+
         raise BotMissingAnyRole(list(items))
 
     return check(predicate)

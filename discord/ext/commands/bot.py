@@ -33,6 +33,7 @@ from typing import TYPE_CHECKING, Any, Callable, Coroutine, Iterable, TypeVar
 
 import discord
 from discord.utils import Undefined
+from discord.utils.private import async_all, copy_doc, maybe_awaitable
 
 from . import errors
 from .context import Context
@@ -132,7 +133,7 @@ class BotBase(GroupMixin, discord.cog.CogMixin):
         self.help_command = DefaultHelpCommand() if help_command is MISSING else help_command
         self.strip_after_prefix = options.get("strip_after_prefix", False)
 
-    @discord.utils.copy_doc(discord.Client.close)
+    @copy_doc(discord.Client.close)
     async def close(self) -> None:
         for extension in tuple(self.__extensions):
             try:
@@ -179,7 +180,7 @@ class BotBase(GroupMixin, discord.cog.CogMixin):
             return True
 
         # type-checker doesn't distinguish between functions and methods
-        return await discord.utils.async_all(f(ctx) for f in data)  # type: ignore
+        return await async_all(f(ctx) for f in data)  # type: ignore
 
     # help command stuff
 
@@ -223,12 +224,12 @@ class BotBase(GroupMixin, discord.cog.CogMixin):
         """
         prefix = ret = self.command_prefix
         if callable(prefix):
-            ret = await discord.utils.maybe_coroutine(prefix, self, message)
+            ret = await maybe_awaitable(prefix, self, message)
 
         if not isinstance(ret, str):
             try:
                 ret = list(ret)
-            except TypeError:
+            except TypeError as e:
                 # It's possible that a generator raised this exception.  Don't
                 # replace it with our own error if that's the case.
                 if isinstance(ret, collections.abc.Iterable):
@@ -237,7 +238,7 @@ class BotBase(GroupMixin, discord.cog.CogMixin):
                 raise TypeError(
                     "command_prefix must be plain string, iterable of strings, or"
                     f" callable returning either of these, not {ret.__class__.__name__}"
-                )
+                ) from e
 
             if not ret:
                 raise ValueError("Iterable command_prefix must contain at least one prefix")
@@ -295,11 +296,11 @@ class BotBase(GroupMixin, discord.cog.CogMixin):
                 else:
                     return ctx
 
-            except TypeError:
+            except TypeError as e:
                 if not isinstance(prefix, list):
                     raise TypeError(
                         f"get_prefix must return either a string or a list of string, not {prefix.__class__.__name__}"
-                    )
+                    ) from e
 
                 # It's possible a bad command_prefix got us here.
                 for value in prefix:
@@ -308,7 +309,7 @@ class BotBase(GroupMixin, discord.cog.CogMixin):
                             "Iterable command_prefix or list returned from get_prefix"
                             " must contain only strings, not"
                             f" {value.__class__.__name__}"
-                        )
+                        ) from e
 
                 # Getting here shouldn't happen
                 raise

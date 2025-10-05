@@ -85,6 +85,7 @@ from .stage_instance import StageInstance
 from .sticker import GuildSticker
 from .threads import Thread, ThreadMember
 from .user import User
+from .utils.private import bytes_to_base64_data, get_as_snowflake
 from .welcome_screen import WelcomeScreen, WelcomeScreenChannel
 from .widget import Widget
 
@@ -115,9 +116,9 @@ if TYPE_CHECKING:
     from .voice_client import VoiceClient
     from .webhook import Webhook
 
-    VocalGuildChannel = Union[VoiceChannel, StageChannel]
-    GuildChannel = Union[VoiceChannel, StageChannel, TextChannel, ForumChannel, CategoryChannel]
-    ByCategoryItem = Tuple[Optional[CategoryChannel], List[GuildChannel]]
+    VocalGuildChannel = VoiceChannel | StageChannel
+    GuildChannel = VoiceChannel | StageChannel | TextChannel | ForumChannel | CategoryChannel
+    ByCategoryItem = Tuple[CategoryChannel | None, List[GuildChannel]]
 
 
 class BanEntry(NamedTuple):
@@ -472,7 +473,7 @@ class Guild(Hashable):
         )
         self.features: list[GuildFeature] = guild.get("features", [])
         self._splash: str | None = guild.get("splash")
-        self._system_channel_id: int | None = utils._get_as_snowflake(guild, "system_channel_id")
+        self._system_channel_id: int | None = get_as_snowflake(guild, "system_channel_id")
         self.description: str | None = guild.get("description")
         self.max_presences: int | None = guild.get("max_presences")
         self.max_members: int | None = guild.get("max_members")
@@ -483,8 +484,8 @@ class Guild(Hashable):
         self._system_channel_flags: int = guild.get("system_channel_flags", 0)
         self.preferred_locale: str | None = guild.get("preferred_locale")
         self._discovery_splash: str | None = guild.get("discovery_splash")
-        self._rules_channel_id: int | None = utils._get_as_snowflake(guild, "rules_channel_id")
-        self._public_updates_channel_id: int | None = utils._get_as_snowflake(guild, "public_updates_channel_id")
+        self._rules_channel_id: int | None = get_as_snowflake(guild, "rules_channel_id")
+        self._public_updates_channel_id: int | None = get_as_snowflake(guild, "public_updates_channel_id")
         self.nsfw_level: NSFWLevel = try_enum(NSFWLevel, guild.get("nsfw_level", 0))
         self.approximate_presence_count = guild.get("approximate_presence_count")
         self.approximate_member_count = guild.get("approximate_member_count")
@@ -510,8 +511,8 @@ class Guild(Hashable):
         self._sync(guild)
         self._large: bool | None = None if self._member_count is None else self._member_count >= 250
 
-        self.owner_id: int | None = utils._get_as_snowflake(guild, "owner_id")
-        self.afk_channel: VoiceChannel | None = self.get_channel(utils._get_as_snowflake(guild, "afk_channel_id"))  # type: ignore
+        self.owner_id: int | None = get_as_snowflake(guild, "owner_id")
+        self.afk_channel: VoiceChannel | None = self.get_channel(get_as_snowflake(guild, "afk_channel_id"))  # type: ignore
 
         for obj in guild.get("voice_states", []):
             self._update_voice_state(obj, int(obj["channel_id"]))
@@ -533,7 +534,7 @@ class Guild(Hashable):
         if "channels" in data:
             channels = data["channels"]
             for c in channels:
-                factory, ch_type = _guild_channel_factory(c["type"])
+                factory, _ch_type = _guild_channel_factory(c["type"])
                 if factory:
                     self._add_channel(factory(guild=self, data=c, state=self._state))  # type: ignore
 
@@ -1019,7 +1020,10 @@ class Guild(Hashable):
 
             # do the actual lookup and return if found
             # if it isn't found then we'll do a full name lookup below.
-            result = utils.get(members, name=name[:-5], discriminator=potential_discriminator)
+            result = utils.find(
+                lambda m: m.name == name[:-5] and discriminator == potential_discriminator,
+                members,
+            )
             if result is not None:
                 return result
 
@@ -1722,24 +1726,24 @@ class Guild(Hashable):
             fields["afk_timeout"] = afk_timeout
 
         if icon is not MISSING:
-            fields["icon"] = icon if icon is None else utils._bytes_to_base64_data(icon)
+            fields["icon"] = icon if icon is None else bytes_to_base64_data(icon)
         if banner is not MISSING:
             if banner is None:
                 fields["banner"] = banner
             else:
-                fields["banner"] = utils._bytes_to_base64_data(banner)
+                fields["banner"] = bytes_to_base64_data(banner)
 
         if splash is not MISSING:
             if splash is None:
                 fields["splash"] = splash
             else:
-                fields["splash"] = utils._bytes_to_base64_data(splash)
+                fields["splash"] = bytes_to_base64_data(splash)
 
         if discovery_splash is not MISSING:
             if discovery_splash is None:
                 fields["discovery_splash"] = discovery_splash
             else:
-                fields["discovery_splash"] = utils._bytes_to_base64_data(discovery_splash)
+                fields["discovery_splash"] = bytes_to_base64_data(discovery_splash)
 
         if default_notifications is not MISSING:
             if not isinstance(default_notifications, NotificationLevel):
@@ -1884,7 +1888,7 @@ class Guild(Hashable):
         data = await self._state.http.get_all_guild_channels(self.id)
 
         def convert(d):
-            factory, ch_type = _guild_channel_factory(d["type"])
+            factory, _ch_type = _guild_channel_factory(d["type"])
             if factory is None:
                 raise InvalidData("Unknown channel type {type} for channel ID {id}.".format_map(d))
 
@@ -2684,7 +2688,7 @@ class Guild(Hashable):
             The created emoji.
         """
 
-        img = utils._bytes_to_base64_data(image)
+        img = bytes_to_base64_data(image)
         role_ids = [role.id for role in roles] if roles else []
         data = await self._state.http.create_custom_emoji(self.id, name, img, roles=role_ids, reason=reason)
         return self._state.store_emoji(self, data)
@@ -2935,7 +2939,7 @@ class Guild(Hashable):
             if icon is None:
                 fields["icon"] = None
             else:
-                fields["icon"] = utils._bytes_to_base64_data(icon)
+                fields["icon"] = bytes_to_base64_data(icon)
                 fields["unicode_emoji"] = None
 
         if unicode_emoji is not MISSING:
@@ -3311,7 +3315,10 @@ class Guild(Hashable):
         return Widget(state=self._state, data=data)
 
     async def edit_widget(
-        self, *, enabled: bool | utils.Undefined = MISSING, channel: Snowflake | None | utils.Undefined = MISSING
+        self,
+        *,
+        enabled: bool | utils.Undefined = MISSING,
+        channel: Snowflake | None | utils.Undefined = MISSING,
     ) -> None:
         """|coro|
 
@@ -3741,7 +3748,7 @@ class Guild(Hashable):
             payload["scheduled_end_time"] = end_time.isoformat()
 
         if image is not MISSING:
-            payload["image"] = utils._bytes_to_base64_data(image)
+            payload["image"] = bytes_to_base64_data(image)
 
         data = await self._state.http.create_scheduled_event(guild_id=self.id, reason=reason, **payload)
         event = ScheduledEvent(state=self._state, guild=self, creator=self.me, data=data)

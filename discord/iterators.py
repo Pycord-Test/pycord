@@ -41,7 +41,8 @@ from typing import (
 from .audit_logs import AuditLogEntry
 from .errors import NoMoreItems
 from .object import Object
-from .utils import maybe_coroutine, snowflake_time, time_snowflake
+from .utils import generate_snowflake, snowflake_time
+from .utils.private import maybe_awaitable
 
 __all__ = (
     "ReactionIterator",
@@ -73,7 +74,7 @@ if TYPE_CHECKING:
 
 T = TypeVar("T")
 OT = TypeVar("OT")
-_Func = Callable[[T], Union[OT, Awaitable[OT]]]
+_Func = Callable[[T], OT | Awaitable[OT]]
 
 OLDEST_OBJECT = Object(id=0)
 
@@ -84,20 +85,6 @@ class _AsyncIterator(AsyncIterator[T]):
     async def next(self) -> T:
         raise NotImplementedError
 
-    def get(self, **attrs: Any) -> Awaitable[T | None]:
-        def predicate(elem: T):
-            for attr, val in attrs.items():
-                nested = attr.split("__")
-                obj = elem
-                for attribute in nested:
-                    obj = getattr(obj, attribute)
-
-                if obj != val:
-                    return False
-            return True
-
-        return self.find(predicate)
-
     async def find(self, predicate: _Func[T, bool]) -> T | None:
         while True:
             try:
@@ -105,7 +92,7 @@ class _AsyncIterator(AsyncIterator[T]):
             except NoMoreItems:
                 return None
 
-            ret = await maybe_coroutine(predicate, elem)
+            ret = await maybe_awaitable(predicate, elem)
             if ret:
                 return elem
 
@@ -126,8 +113,8 @@ class _AsyncIterator(AsyncIterator[T]):
     async def __anext__(self) -> T:
         try:
             return await self.next()
-        except NoMoreItems:
-            raise StopAsyncIteration()
+        except NoMoreItems as e:
+            raise StopAsyncIteration() from e
 
 
 def _identity(x):
@@ -163,7 +150,7 @@ class _MappedAsyncIterator(_AsyncIterator[T]):
     async def next(self) -> T:
         # this raises NoMoreItems and will propagate appropriately
         item = await self.iterator.next()
-        return await maybe_coroutine(self.func, item)
+        return await maybe_awaitable(self.func, item)
 
 
 class _FilteredAsyncIterator(_AsyncIterator[T]):
@@ -181,7 +168,7 @@ class _FilteredAsyncIterator(_AsyncIterator[T]):
         while True:
             # propagate NoMoreItems similar to _MappedAsyncIterator
             item = await getter()
-            ret = await maybe_coroutine(pred, item)
+            ret = await maybe_awaitable(pred, item)
             if ret:
                 return item
 
@@ -206,8 +193,8 @@ class ReactionIterator(_AsyncIterator[Union["User", "Member"]]):
 
         try:
             return self.users.get_nowait()
-        except asyncio.QueueEmpty:
-            raise NoMoreItems()
+        except asyncio.QueueEmpty as e:
+            raise NoMoreItems() from e
 
     async def fill_users(self):
         # this is a hack because >circular imports<
@@ -261,8 +248,8 @@ class VoteIterator(_AsyncIterator[Union["User", "Member"]]):
 
         try:
             return self.users.get_nowait()
-        except asyncio.QueueEmpty:
-            raise NoMoreItems()
+        except asyncio.QueueEmpty as e:
+            raise NoMoreItems() from e
 
     async def fill_users(self):
         # import here to prevent circular imports
@@ -341,11 +328,11 @@ class HistoryIterator(_AsyncIterator["Message"]):
         oldest_first=None,
     ):
         if isinstance(before, datetime.datetime):
-            before = Object(id=time_snowflake(before, high=False))
+            before = Object(id=generate_snowflake(before, high=False))
         if isinstance(after, datetime.datetime):
-            after = Object(id=time_snowflake(after, high=True))
+            after = Object(id=generate_snowflake(after, high=True))
         if isinstance(around, datetime.datetime):
-            around = Object(id=time_snowflake(around))
+            around = Object(id=generate_snowflake(around))
 
         self.reverse = after is not None if oldest_first is None else oldest_first
         self.messageable = messageable
@@ -390,8 +377,8 @@ class HistoryIterator(_AsyncIterator["Message"]):
 
         try:
             return self.messages.get_nowait()
-        except asyncio.QueueEmpty:
-            raise NoMoreItems()
+        except asyncio.QueueEmpty as e:
+            raise NoMoreItems() from e
 
     def _get_retrieve(self) -> bool:
         l = self.limit
@@ -467,9 +454,9 @@ class AuditLogIterator(_AsyncIterator["AuditLogEntry"]):
         action_type=None,
     ):
         if isinstance(before, datetime.datetime):
-            before = Object(id=time_snowflake(before, high=False))
+            before = Object(id=generate_snowflake(before, high=False))
         if isinstance(after, datetime.datetime):
-            after = Object(id=time_snowflake(after, high=True))
+            after = Object(id=generate_snowflake(after, high=True))
 
         self.guild = guild
         self.loop = guild._state.loop
@@ -514,8 +501,8 @@ class AuditLogIterator(_AsyncIterator["AuditLogEntry"]):
 
         try:
             return self.entries.get_nowait()
-        except asyncio.QueueEmpty:
-            raise NoMoreItems()
+        except asyncio.QueueEmpty as e:
+            raise NoMoreItems() from e
 
     def _get_retrieve(self):
         l = self.limit
@@ -578,9 +565,9 @@ class GuildIterator(_AsyncIterator["Guild"]):
 
     def __init__(self, bot, limit, before=None, after=None, with_counts=True):
         if isinstance(before, datetime.datetime):
-            before = Object(id=time_snowflake(before, high=False))
+            before = Object(id=generate_snowflake(before, high=False))
         if isinstance(after, datetime.datetime):
-            after = Object(id=time_snowflake(after, high=True))
+            after = Object(id=generate_snowflake(after, high=True))
 
         self.bot = bot
         self.limit = limit
@@ -608,8 +595,8 @@ class GuildIterator(_AsyncIterator["Guild"]):
 
         try:
             return self.guilds.get_nowait()
-        except asyncio.QueueEmpty:
-            raise NoMoreItems()
+        except asyncio.QueueEmpty as e:
+            raise NoMoreItems() from e
 
     def _get_retrieve(self):
         l = self.limit
@@ -665,7 +652,7 @@ class GuildIterator(_AsyncIterator["Guild"]):
 class MemberIterator(_AsyncIterator["Member"]):
     def __init__(self, guild, limit=1000, after=None):
         if isinstance(after, datetime.datetime):
-            after = Object(id=time_snowflake(after, high=True))
+            after = Object(id=generate_snowflake(after, high=True))
 
         self.guild = guild
         self.limit = limit
@@ -681,8 +668,8 @@ class MemberIterator(_AsyncIterator["Member"]):
 
         try:
             return self.members.get_nowait()
-        except asyncio.QueueEmpty:
-            raise NoMoreItems()
+        except asyncio.QueueEmpty as e:
+            raise NoMoreItems() from e
 
     def _get_retrieve(self):
         l = self.limit
@@ -733,8 +720,8 @@ class BanIterator(_AsyncIterator["BanEntry"]):
 
         try:
             return self.bans.get_nowait()
-        except asyncio.QueueEmpty:
-            raise NoMoreItems()
+        except asyncio.QueueEmpty as e:
+            raise NoMoreItems() from e
 
     def _get_retrieve(self):
         l = self.limit
@@ -797,7 +784,7 @@ class ArchivedThreadIterator(_AsyncIterator["Thread"]):
             self.before = None
         elif isinstance(before, datetime.datetime):
             if joined:
-                self.before = str(time_snowflake(before, high=False))
+                self.before = str(generate_snowflake(before, high=False))
             else:
                 self.before = before.isoformat()
         else:
@@ -825,8 +812,8 @@ class ArchivedThreadIterator(_AsyncIterator["Thread"]):
 
         try:
             return self.queue.get_nowait()
-        except asyncio.QueueEmpty:
-            raise NoMoreItems()
+        except asyncio.QueueEmpty as e:
+            raise NoMoreItems() from e
 
     @staticmethod
     def get_archive_timestamp(data: ThreadPayload) -> str:
@@ -873,9 +860,9 @@ class ScheduledEventSubscribersIterator(_AsyncIterator[Union["User", "Member"]])
         after: datetime.datetime | int | None = None,
     ):
         if isinstance(before, datetime.datetime):
-            before = Object(id=time_snowflake(before, high=False))
+            before = Object(id=generate_snowflake(before, high=False))
         if isinstance(after, datetime.datetime):
-            after = Object(id=time_snowflake(after, high=True))
+            after = Object(id=generate_snowflake(after, high=True))
 
         self.event = event
         self.limit = limit
@@ -892,8 +879,8 @@ class ScheduledEventSubscribersIterator(_AsyncIterator[Union["User", "Member"]])
 
         try:
             return self.subscribers.get_nowait()
-        except asyncio.QueueEmpty:
-            raise NoMoreItems()
+        except asyncio.QueueEmpty as e:
+            raise NoMoreItems() from e
 
     def _get_retrieve(self):
         l = self.limit
@@ -967,9 +954,9 @@ class EntitlementIterator(_AsyncIterator["Entitlement"]):
         self.sku_ids = sku_ids
 
         if isinstance(before, datetime.datetime):
-            before = Object(id=time_snowflake(before, high=False))
+            before = Object(id=generate_snowflake(before, high=False))
         if isinstance(after, datetime.datetime):
-            after = Object(id=time_snowflake(after, high=True))
+            after = Object(id=generate_snowflake(after, high=True))
 
         self.before = before
         self.after = after
@@ -997,8 +984,8 @@ class EntitlementIterator(_AsyncIterator["Entitlement"]):
 
         try:
             return self.entitlements.get_nowait()
-        except asyncio.QueueEmpty:
-            raise NoMoreItems()
+        except asyncio.QueueEmpty as e:
+            raise NoMoreItems() from e
 
     def _get_retrieve(self):
         l = self.limit
@@ -1081,9 +1068,9 @@ class SubscriptionIterator(_AsyncIterator["Subscription"]):
         user_id: int | None = None,
     ):
         if isinstance(before, datetime.datetime):
-            before = Object(id=time_snowflake(before, high=False))
+            before = Object(id=generate_snowflake(before, high=False))
         if isinstance(after, datetime.datetime):
-            after = Object(id=time_snowflake(after, high=True))
+            after = Object(id=generate_snowflake(after, high=True))
 
         self.state = state
         self.sku_id = sku_id
@@ -1111,8 +1098,8 @@ class SubscriptionIterator(_AsyncIterator["Subscription"]):
 
         try:
             return self.subscriptions.get_nowait()
-        except asyncio.QueueEmpty:
-            raise NoMoreItems()
+        except asyncio.QueueEmpty as e:
+            raise NoMoreItems() from e
 
     def _get_retrieve(self):
         l = self.limit

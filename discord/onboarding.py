@@ -27,10 +27,12 @@ from __future__ import annotations
 from functools import cached_property
 from typing import TYPE_CHECKING, Any
 
+from discord import utils
+
+from . import utils
 from .enums import OnboardingMode, PromptType, try_enum
 from .partial_emoji import PartialEmoji
-from .utils import MISSING, generate_snowflake, get
-from . import utils
+from .utils import MISSING, find, generate_snowflake
 
 if TYPE_CHECKING:
     from .abc import Snowflake
@@ -82,7 +84,7 @@ class PromptOption:
         id: int | None = None,
     ):
         # ID is required when making edits, but it can be any snowflake that isn't already used by another prompt during edits
-        self.id: int = int(id) if id else generate_snowflake()
+        self.id: int = int(id) if id else generate_snowflake(mode="realistic")
         self.title: str = title
         self.channels: list[Snowflake] = channels or []
         self.roles: list[Snowflake] = roles or []
@@ -128,7 +130,7 @@ class PromptOption:
             # Emoji object is {'id': None, 'name': None, 'animated': False} ...
             emoji = PartialEmoji.from_dict(_emoji)
             if emoji.id:
-                emoji = get(guild.emojis, id=emoji.id) or emoji
+                emoji = find(lambda e: e.id == emoji.id, guild.emojis) or emoji
         else:
             emoji = None
 
@@ -170,7 +172,7 @@ class OnboardingPrompt:
         id: int | None = None,  # Currently optional as users can manually create these
     ):
         # ID is required when making edits, but it can be any snowflake that isn't already used by another prompt during edits
-        self.id: int = int(id) if id else generate_snowflake()
+        self.id: int = int(id) if id else generate_snowflake(mode="realistic")
 
         self.type: PromptType = type
         if isinstance(self.type, int):
@@ -432,7 +434,7 @@ class Onboarding:
             The matching prompt, or None if it didn't exist.
         """
 
-        return get(self.prompts, id=id)
+        return find(lambda p: p.id == id, self.prompts)
 
     async def delete_prompt(
         self,

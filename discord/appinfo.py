@@ -30,6 +30,7 @@ from typing import TYPE_CHECKING
 from . import utils
 from .asset import Asset
 from .permissions import Permissions
+from .utils.private import get_as_snowflake, warn_deprecated
 
 if TYPE_CHECKING:
     from .guild import Guild
@@ -200,9 +201,9 @@ class AppInfo:
         self._summary: str = data["summary"]
         self.verify_key: str = data["verify_key"]
 
-        self.guild_id: int | None = utils._get_as_snowflake(data, "guild_id")
+        self.guild_id: int | None = get_as_snowflake(data, "guild_id")
 
-        self.primary_sku_id: int | None = utils._get_as_snowflake(data, "primary_sku_id")
+        self.primary_sku_id: int | None = get_as_snowflake(data, "primary_sku_id")
         self.slug: str | None = data.get("slug")
         self._cover_image: str | None = data.get("cover_image")
         self.terms_of_service_url: str | None = data.get("terms_of_service_url")
@@ -261,7 +262,7 @@ class AppInfo:
         .. versionadded:: 1.3
         .. deprecated:: 2.7
         """
-        utils.warn_deprecated(
+        warn_deprecated(
             "summary",
             "description",
             reference="https://discord.com/developers/docs/resources/application#application-object-application-structure",

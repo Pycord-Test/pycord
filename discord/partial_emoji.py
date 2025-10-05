@@ -31,6 +31,7 @@ from typing import TYPE_CHECKING, Any, TypedDict, TypeVar
 from . import utils
 from .asset import Asset, AssetMixin
 from .errors import InvalidArgument
+from .utils.private import get_as_snowflake
 
 __all__ = ("PartialEmoji",)
 
@@ -108,7 +109,7 @@ class PartialEmoji(_EmojiTag, AssetMixin):
     def from_dict(cls: type[PE], data: PartialEmojiPayload | dict[str, Any]) -> PE:
         return cls(
             animated=data.get("animated", False),
-            id=utils._get_as_snowflake(data, "id"),
+            id=get_as_snowflake(data, "id"),
             name=data.get("name") or "",
         )
 

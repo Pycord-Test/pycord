@@ -39,13 +39,11 @@ from discord import (
     SlashCommandGroup,
     SlashCommandOptionType,
 )
+from discord.utils import MISSING, find
+from discord.utils.private import warn_deprecated
 
-from ...utils import MISSING, find, get, warn_deprecated
 from ..commands import (
     BadArgument,
-)
-from ..commands import Bot as ExtBot
-from ..commands import (
     Command,
     Context,
     Converter,
@@ -55,6 +53,7 @@ from ..commands import (
     RoleConverter,
     UserConverter,
 )
+from ..commands import Bot as ExtBot
 from ..commands.converter import _convert_to_bool, run_converters
 
 if TYPE_CHECKING:
@@ -223,8 +222,8 @@ class BridgeCommand:
                 if result is MISSING:
                     return getattr(self.ext_variant, name)
                 return result
-            except AttributeError:
-                raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
+            except AttributeError as e:
+                raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'") from e
 
     def __setattr__(self, name, value) -> None:
         if name not in self.__special_attrs__:
@@ -575,8 +574,8 @@ class AttachmentConverter(Converter):
     async def convert(self, ctx: Context, arg: str):
         try:
             attach = ctx.message.attachments[0]
-        except IndexError:
-            raise BadArgument("At least 1 attachment is needed")
+        except IndexError as e:
+            raise BadArgument("At least 1 attachment is needed") from e
         else:
             return attach
 
@@ -626,7 +625,7 @@ class BridgeOption(Option, Converter):
 
             if self.choices:
                 choices_names: list[str | int | float] = [choice.name for choice in self.choices]
-                if converted in choices_names and (choice := get(self.choices, name=converted)):
+                if converted in choices_names and (choice := find(lambda c: c.name == converted, self.choices)):
                     converted = choice.value
                 else:
                     choices = [choice.value for choice in self.choices]

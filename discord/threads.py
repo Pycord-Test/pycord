@@ -27,13 +27,15 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Callable, Iterable
 
+from discord import utils
+
 from .abc import Messageable, _purge_messages_helper
 from .enums import ChannelType, try_enum
 from .errors import ClientException
 from .flags import ChannelFlags
 from .mixins import Hashable
-from .utils import MISSING, _get_as_snowflake, parse_time
-from discord import utils
+from .utils import MISSING
+from .utils.private import get_as_snowflake, parse_time
 
 __all__ = (
     "Thread",
@@ -51,9 +53,8 @@ if TYPE_CHECKING:
     from .state import ConnectionState
     from .types.snowflake import SnowflakeList
     from .types.threads import Thread as ThreadPayload
-    from .types.threads import ThreadArchiveDuration
+    from .types.threads import ThreadArchiveDuration, ThreadMetadata
     from .types.threads import ThreadMember as ThreadMemberPayload
-    from .types.threads import ThreadMetadata
 
 
 class Thread(Messageable, Hashable):
@@ -189,7 +190,7 @@ class Thread(Messageable, Hashable):
 
         # This data may be missing depending on how this object is being created
         self.owner_id = int(data.get("owner_id")) if data.get("owner_id", None) is not None else None
-        self.last_message_id = _get_as_snowflake(data, "last_message_id")
+        self.last_message_id = get_as_snowflake(data, "last_message_id")
         self.slowmode_delay = data.get("rate_limit_per_user", 0)
         self.message_count = data.get("message_count", None)
         self.member_count = data.get("member_count", None)
@@ -283,7 +284,7 @@ class Thread(Messageable, Hashable):
 
         This is only available for threads in forum or media channels.
         """
-        from .channel import ForumChannel  # to prevent circular import  # noqa: PLC0415
+        from .channel import ForumChannel  # noqa: PLC0415 # to prevent circular import
 
         if isinstance(self.parent, ForumChannel):
             return [tag for tag_id in self._applied_tags if (tag := self.parent.get_tag(tag_id)) is not None]

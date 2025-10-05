@@ -25,59 +25,43 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import Literal, Union
+from .public import (
+    MISSING,
+    UNICODE_EMOJIS,
+    Undefined,
+    basic_autocomplete,
+    escape_markdown,
+    escape_mentions,
+    find,
+    format_dt,
+    generate_snowflake,
+    oauth_url,
+    raw_channel_mentions,
+    raw_mentions,
+    raw_role_mentions,
+    remove_markdown,
+    snowflake_time,
+    utcnow,
+)
 
-from typing_extensions import NotRequired, TypedDict
-
-from .snowflake import Snowflake
-from .user import User
-
-
-class IntegrationApplication(TypedDict):
-    bot: NotRequired[User]
-    id: Snowflake
-    name: str
-    icon: str | None
-    description: str
-    summary: str
-
-
-class IntegrationAccount(TypedDict):
-    id: str
-    name: str
-
-
-IntegrationExpireBehavior = Literal[0, 1]
+DISCORD_EPOCH = 1420070400000
 
 
-class PartialIntegration(TypedDict):
-    id: Snowflake
-    name: str
-    type: IntegrationType
-    account: IntegrationAccount
-
-
-IntegrationType = Literal["twitch", "youtube", "discord"]
-
-
-class BaseIntegration(PartialIntegration):
-    enabled: bool
-    syncing: bool
-    synced_at: str
-    user: User
-    expire_behavior: IntegrationExpireBehavior
-    expire_grace_period: int
-
-
-class StreamIntegration(BaseIntegration):
-    role_id: Snowflake | None
-    enable_emoticons: bool
-    subscriber_count: int
-    revoked: bool
-
-
-class BotIntegration(BaseIntegration):
-    application: IntegrationApplication
-
-
-Integration = BaseIntegration | StreamIntegration | BotIntegration
+__all__ = (
+    "oauth_url",
+    "snowflake_time",
+    "find",
+    "utcnow",
+    "remove_markdown",
+    "escape_markdown",
+    "escape_mentions",
+    "raw_mentions",
+    "raw_channel_mentions",
+    "raw_role_mentions",
+    "format_dt",
+    "generate_snowflake",
+    "basic_autocomplete",
+    "Undefined",
+    "MISSING",
+    "UNICODE_EMOJIS",
+)
