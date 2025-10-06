@@ -119,7 +119,12 @@ class WalkableComponentMixin(ABC, Generic[C]):
     @abstractmethod
     def walk_components(self) -> Iterator[C]: ...
 
-    __iter__: Callable[[Self], Iterator[C]] = walk_components
+    if TYPE_CHECKING:
+        __iter__: Iterator[C]
+    else:
+
+        def __iter__(self) -> Iterator[C]:
+            yield from self.walk_components()
 
     @abstractmethod
     def is_v2(self) -> bool: ...
