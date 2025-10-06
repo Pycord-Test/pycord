@@ -51,6 +51,8 @@ can read more in the migration guide.
 - `InputText` use `TextInput` instead
 - `ComponentType.input_text` use `ComponentType.text_input` instead
 - `InputTextStyle` use `TextInputStyle` instead
+- `TextInputStyle.singleline` use `TextInputStyle.short` instead
+- `TextInputStyle.multiline` and `TextInputStyle.long` use `TextInputStyle.paragraph` instead
 - `ComponentType.select` use `ComponentType.string_select` instead
 
 #### `discord.ext.pages`

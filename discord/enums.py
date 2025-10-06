@@ -744,10 +744,7 @@ class TextInputStyle(Enum):
     """Input text style"""
 
     short = 1
-    singleline = 1
     paragraph = 2
-    multiline = 2
-    long = 2
 
 
 class ApplicationType(Enum):
