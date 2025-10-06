@@ -62,7 +62,8 @@ class MediaGallery(StateComponentMixin[MediaGalleryComponentPayload], Component[
     Parameters
     ----------
     items:
-        The media this gallery contains.
+        The media gallery items this gallery contains.
+        Has to be passed unpacked (e.g. ``*items``).
     id:
         The component's ID. If not provided by the user, it is set sequentially by
         Discord. The ID `0` is treated as if no ID was provided.
@@ -74,7 +75,7 @@ class MediaGallery(StateComponentMixin[MediaGalleryComponentPayload], Component[
     versions: tuple[int, ...] = (2,)
     type: Literal[ComponentType.media_gallery] = ComponentType.media_gallery  # pyright: ignore[reportIncompatibleVariableOverride]
 
-    def __init__(self, items: Sequence[MediaGalleryItem], id: int | None = None):
+    def __init__(self, *items: MediaGalleryItem, id: int | None = None):
         self.items: list[MediaGalleryItem] = list(items)
         super().__init__(id=id)
 
@@ -82,7 +83,7 @@ class MediaGallery(StateComponentMixin[MediaGalleryComponentPayload], Component[
     @override
     def from_payload(cls, payload: MediaGalleryComponentPayload, state: ConnectionState | None = None) -> Self:
         items = [MediaGalleryItem.from_payload(d, state=state) for d in payload.get("items", [])]
-        return cls(items, id=payload.get("id"))
+        return cls(*items, id=payload.get("id"))
 
     @override
     def to_dict(self) -> MediaGalleryComponentPayload:
