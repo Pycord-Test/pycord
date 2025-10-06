@@ -667,7 +667,7 @@ Components_t = TypeVarTuple("Components_t", default="Unpack[tuple[AnyTopLevelMod
 
 
 class ModalInteraction(Interaction, Generic[Unpack[Components_t]]):
-    __slots__ = ("_components", "users", "attachments")
+    __slots__ = ("_components", "users", "attachments", "roles")
 
     def __init__(self, *, data: ModalInteractionPayload, state: ConnectionState):
         super().__init__(data=data, state=state)

@@ -1931,8 +1931,8 @@ class Webhook(BaseWebhook):
         allowed_mentions: :class:`AllowedMentions`
             Controls the mentions being processed in this message.
             See :meth:`.abc.Messageable.send` for more information.
-        components: Optional[Sequence[AnyComponent]]
-            # TODO: docstring
+        components:
+            The components to edit the message with.
             .. versionadded:: 3.0
         thread: Optional[:class:`~discord.abc.Snowflake`]
             The thread that contains the message.

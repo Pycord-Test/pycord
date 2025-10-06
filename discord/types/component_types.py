@@ -44,11 +44,6 @@ class BaseComponent(TypedDict):
     id: NotRequired[int]
 
 
-class BaseComponent(TypedDict):
-    type: ComponentType
-    id: NotRequired[int]
-
-
 class ButtonComponent(BaseComponent):
     type: Literal[2]  # pyright: ignore[reportIncompatibleVariableOverride]
     style: ButtonStyle
@@ -207,7 +202,7 @@ class ActionRow(BaseComponent):
     components: list[AllowedActionRowComponents]
 
 
-AllowedContainerComponents = (
+AllowedContainerComponents: TypeAlias = (
     ActionRow | TextDisplayComponent | MediaGalleryComponent | FileComponent | SeparatorComponent | SectionComponent
 )
 
@@ -265,10 +260,6 @@ class Modal(TypedDict):
     custom_id: str
     components: list[AllowedModalComponents]
 
-
-AllowedContainerComponents = (
-    ActionRow | TextDisplayComponent | MediaGalleryComponent | FileComponent | SeparatorComponent | SectionComponent
-)
 
 __all__ = (
     "ComponentType",
