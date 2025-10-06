@@ -26,9 +26,10 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Iterator
 from typing import Literal, TypeVar
-from typing_extensions import TypeIs
 
 import pytest
+from typing_extensions import TypeIs
+
 from discord.utils import find
 
 T = TypeVar("T")
@@ -62,7 +63,7 @@ def equals_30(x: int) -> TypeIs[Literal[30]]:
     return x == 30
 
 
-def is_none_pred(x: object) -> TypeIs[Literal[None]]:
+def is_none_pred(x: object) -> TypeIs[None]:
     return x is None
 
 

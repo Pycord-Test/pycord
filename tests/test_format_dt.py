@@ -24,8 +24,10 @@ DEALINGS IN THE SOFTWARE.
 
 import datetime
 import random
+
 import pytest
-from discord.utils.public import format_dt, TimestampStyle
+
+from discord.utils.public import TimestampStyle, format_dt
 
 # Fix seed so that time tests are reproducible
 random.seed(42)

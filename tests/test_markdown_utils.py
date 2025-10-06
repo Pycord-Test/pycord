@@ -24,8 +24,8 @@ DEALINGS IN THE SOFTWARE.
 
 from discord.utils import (
     escape_mentions,
-    raw_mentions,
     raw_channel_mentions,
+    raw_mentions,
     raw_role_mentions,
 )
 
