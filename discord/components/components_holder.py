@@ -4,8 +4,8 @@ from typing import Generic, cast
 
 from typing_extensions import TypeVarTuple, Unpack, override
 
-from .component import Component, WalkableComponent
-from .partial_components import PartialComponent, PartialWalkableComponent
+from .component import Component, WalkableComponentMixin
+from .partial_components import PartialComponent, PartialWalkableComponentMixin
 from .type_aliases import AnyComponent, AnyPartialComponent
 
 Ts = TypeVarTuple(
@@ -37,7 +37,7 @@ class ComponentsHolder(tuple[Unpack[Ts]], Generic[Unpack[Ts]]):
             elif isinstance(component_id, int) and getattr(component, "id", None) == component_id:
                 return component
 
-            if isinstance(component, (WalkableComponent, PartialWalkableComponent)):
+            if isinstance(component, (WalkableComponentMixin, PartialWalkableComponentMixin)):
                 if found := component.get_by_id(component_id):
                     return found
         return None
