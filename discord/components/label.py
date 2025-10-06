@@ -32,7 +32,7 @@ from typing_extensions import override
 
 from ..enums import ComponentType
 from ..types.component_types import LabelComponent as LabelComponentPayload
-from .component import ModalComponentMixin, WalkableComponent
+from .component import Component, ModalComponentMixin, WalkableComponentMixin
 
 if TYPE_CHECKING:
     from typing_extensions import Self
@@ -48,7 +48,9 @@ if TYPE_CHECKING:
 
 
 class Label(
-    WalkableComponent["LabelComponentPayload", "AllowedLabelComponents"], ModalComponentMixin["LabelComponentPayload"]
+    Component["LabelComponentPayload"],
+    WalkableComponentMixin["AllowedLabelComponents"],
+    ModalComponentMixin["LabelComponentPayload"],
 ):
     """Represents a Label component.
 
@@ -97,7 +99,6 @@ class Label(
         description: str | None = None,
         id: int | None = None,
     ):
-        self.components: list = []  # pyright: ignore[reportMissingTypeArgument]
         self.label: str = label
         self.description: str | None = description
         self.component: AllowedLabelComponents = component

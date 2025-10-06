@@ -109,42 +109,52 @@ class StateComponentMixin(Component[P], ABC):
         ...
 
 
-class WalkableComponent(Component[P], ABC, Generic[P, C]):
+class WalkableComponentMixin(ABC, Generic[C]):
     """A component that can be walked through.
 
     This is an abstract class and cannot be instantiated directly.
     It is used to represent components that can be walked through, such as :class:`ActionRow`, :class:`Container` and :class:`Section`.
     """
 
-    __slots__: tuple[str, ...] = ("components",)  # pyright: ignore[reportIncompatibleUnannotatedOverride]
-    components: list[C]
-
-    def walk_components(self) -> Iterator[C]:
-        """Walks through the components in this component."""
-        for component in self.components:
-            if isinstance(component, WalkableComponent):
-                yield from component.walk_components()
-            else:
-                yield component
+    @abstractmethod
+    def walk_components(self) -> Iterator[C]: ...
 
     __iter__: Callable[[Self], Iterator[C]] = walk_components
 
-    @override
+    @abstractmethod
+    def is_v2(self) -> bool: ...
+
+    @abstractmethod
+    def is_dispatchable(self) -> bool: ...
+
     def any_is_v2(self) -> bool:
         """Whether this component or any of its children were introduced in Components V2."""
         return self.is_v2() or any(c.any_is_v2() for c in self.walk_components())
 
-    @override
     def any_is_dispatchable(self) -> bool:
         """Whether this component or any of its children can be interacted with and lead to a :class:`Interaction`"""
         return self.is_dispatchable() or any(c.any_is_dispatchable() for c in self.walk_components())
 
     def get_by_id(self, component_id: str | int) -> C | None:
+        """Gets a component by its ID or custom ID.
+
+        Parameters
+        ----------
+        component_id:
+            The ID (int) or custom ID (str) of the component to get.
+
+        Returns
+        -------
+        :class:`AllowedComponents` | :class:`None`
+            The children component with the given ID or custom ID, or :data:`None` if not found.
+        """
         for component in self.walk_components():
             if isinstance(component_id, str) and getattr(component, "custom_id", None) == component_id:
                 return component
             elif isinstance(component_id, int) and getattr(component, "id", None) == component_id:
                 return component
+
+        return None
 
 
 class ModalComponentMixin(ABC, Generic[P]):

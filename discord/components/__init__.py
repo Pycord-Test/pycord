@@ -26,7 +26,7 @@ from ._component_factory import _component_factory  # pyright: ignore[reportPriv
 from .action_row import ActionRow
 from .button import Button
 from .channel_select_menu import ChannelSelect
-from .component import Component, ModalComponentMixin, StateComponentMixin, WalkableComponent
+from .component import Component, ModalComponentMixin, StateComponentMixin, WalkableComponentMixin
 from .components_holder import ComponentsHolder
 from .container import Container
 from .default_select_option import DefaultSelectOption
@@ -80,7 +80,7 @@ from .user_select_menu import UserSelect
 __all__ = (
     "Component",
     "StateComponentMixin",
-    "WalkableComponent",
+    "WalkableComponentMixin",
     "ModalComponentMixin",
     "ComponentsHolder",
     "ActionRow",

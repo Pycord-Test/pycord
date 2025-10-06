@@ -25,13 +25,14 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar, Literal, TypeAlias, cast
+from typing import TYPE_CHECKING, ClassVar, Iterator, Literal, TypeAlias, cast
 
 from typing_extensions import override
 
 from ..enums import ComponentType
 from ..types.component_types import ActionRow as ActionRowPayload
-from .component import WalkableComponent
+from .component import Component, WalkableComponentMixin
+from .types import C
 
 if TYPE_CHECKING:
     from typing_extensions import Self
@@ -49,7 +50,7 @@ AllowedActionRowComponents: TypeAlias = (
 )
 
 
-class ActionRow(WalkableComponent["ActionRowPayload", "AllowedActionRowComponents"]):
+class ActionRow(Component["ActionRowPayload"], WalkableComponentMixin["AllowedActionRowComponents"]):
     """Represents a Discord Bot UI Kit Action Row.
 
     This is a component that holds up to 5 children components in a row.
@@ -89,6 +90,10 @@ class ActionRow(WalkableComponent["ActionRowPayload", "AllowedActionRowComponent
     def __init__(self, *components: AllowedActionRowComponents, id: int | None = None) -> None:
         self.components: list[AllowedActionRowComponents] = list(components)
         super().__init__(id=id)
+
+    @override
+    def walk_components(self) -> Iterator[AllowedActionRowComponents]:
+        yield from self.components
 
     @classmethod
     @override

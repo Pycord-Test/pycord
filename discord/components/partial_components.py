@@ -78,7 +78,7 @@ class PartialComponent(ABC, Generic[T, P]):
 C = TypeVar("C", bound="AnyPartialComponent", covariant=True)
 
 
-class PartialWalkableComponent(PartialComponent[T, P], ABC, Generic[T, P, C]):
+class PartialWalkableComponentMixin(ABC, Generic[C]):
     @abstractmethod
     def walk_components(self) -> Iterator[C]: ...
 
@@ -313,7 +313,8 @@ L_c = TypeVar("L_c", bound=AllowedPartialLabelComponents, default=AllowedPartial
 
 @dataclass
 class PartialLabel(
-    PartialWalkableComponent[Literal[ComponentType.label], PartialLabelPayload, AllowedPartialLabelComponents],
+    PartialComponent[Literal[ComponentType.label], PartialLabelPayload],
+    PartialWalkableComponentMixin[AllowedPartialLabelComponents],
     Generic[L_c],
 ):
     """Represents a :class:`Label` component as returned by Discord during a :class:`Interaction` of type :data:`InteractionType.modal_submit`.
@@ -347,7 +348,7 @@ class PartialLabel(
     @override
     def walk_components(self) -> Iterator[AllowedPartialLabelComponents]:
         yield self.component
-        if isinstance(self.component, PartialWalkableComponent):
+        if isinstance(self.component, PartialWalkableComponentMixin):
             yield from self.component.walk_components()  # pyright: ignore[reportReturnType]
 
 

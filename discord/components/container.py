@@ -24,14 +24,15 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar, Literal, TypeAlias, cast
+from typing import TYPE_CHECKING, ClassVar, Iterator, Literal, TypeAlias, cast
 
 from typing_extensions import override
 
 from ..colour import Colour
 from ..enums import ComponentType
 from ..types.component_types import ContainerComponent as ContainerComponentPayload
-from .component import WalkableComponent
+from .component import Component, WalkableComponentMixin
+from .types import C
 
 if TYPE_CHECKING:
     from typing_extensions import Self
@@ -48,7 +49,7 @@ if TYPE_CHECKING:
 AllowedContainerComponents: TypeAlias = "ActionRow | TextDisplay | Section | MediaGallery | Separator | FileComponent"
 
 
-class Container(WalkableComponent["ContainerComponentPayload", "AllowedContainerComponents"]):
+class Container(Component["ContainerComponentPayload"], WalkableComponentMixin["AllowedContainerComponents"]):
     """Represents a Container from Components V2.
 
     This is a component that contains different :class:`Component` objects.
@@ -113,6 +114,10 @@ class Container(WalkableComponent["ContainerComponentPayload", "AllowedContainer
         self.spoiler: bool | None = spoiler
         self.components: list[AllowedContainerComponents] = list(components)
         super().__init__(id=id)
+
+    @override
+    def walk_components(self) -> Iterator[AllowedContainerComponents]:
+        yield from self.components
 
     @override
     def to_dict(self) -> ContainerComponentPayload:

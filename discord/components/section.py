@@ -32,7 +32,7 @@ from typing_extensions import override
 
 from ..enums import ComponentType
 from ..types.component_types import SectionComponent as SectionComponentPayload
-from .component import WalkableComponent
+from .component import Component, WalkableComponentMixin
 
 if TYPE_CHECKING:
     from typing_extensions import Self
@@ -48,7 +48,8 @@ if TYPE_CHECKING:
 
 
 class Section(
-    WalkableComponent["SectionComponentPayload", "AllowedSectionComponents | AllowedSectionAccessoryComponents"],
+    Component["SectionComponentPayload"],
+    WalkableComponentMixin["AllowedSectionComponents | AllowedSectionAccessoryComponents"],
 ):
     """Represents a Section from Components V2.
 
@@ -128,6 +129,6 @@ class Section(
 
     @override
     def walk_components(self) -> Iterator[AllowedSectionComponents | AllowedSectionAccessoryComponents]:
-        yield from super().walk_components()
+        yield from self.components
         if self.accessory:
             yield self.accessory
