@@ -51,7 +51,7 @@ from .partial_components import (
     PartialTextDisplay,
     PartialTextInput,
     PartialUserSelect,
-    PartialWalkableComponent,
+    PartialWalkableComponentMixin,
     UnknownPartialComponent,
     _partial_component_factory,  # pyright: ignore[reportPrivateUsage]
 )
@@ -128,5 +128,5 @@ __all__ = (
     "AnyTopLevelMessageComponent",
     "AnyPartialComponent",
     "AnyTopLevelModalPartialComponent",
-    "PartialWalkableComponent",
+    "PartialWalkableComponentMixin",
 )
