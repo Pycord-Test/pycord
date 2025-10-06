@@ -343,4 +343,4 @@ async def on_ready():
     print(f"Bot ready! Logged in as {bot.user}")
 
 
-bot.run(os.getenv("TOKEN_2"))
+bot.run(os.getenv("TOKEN"))
