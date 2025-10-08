@@ -27,7 +27,9 @@ from __future__ import annotations
 
 import types
 from enum import Enum as EnumBase
-from typing import Any, Self, TypeVar, Union
+from typing import Any, TypeVar, Union
+
+from typing_extensions import Self
 
 E = TypeVar("E", bound="Enum")
 
