@@ -778,6 +778,10 @@ class MediaGalleryItem:
 
     @property
     def url(self) -> str:
+        """The URL of this gallery item.
+
+        This can either be an arbitrary URL or an ``attachment://`` URL to work with local files.
+        """
         return self.media.url
 
     def is_dispatchable(self) -> bool:
