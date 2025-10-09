@@ -35,7 +35,7 @@ from .types.channel import (
     VoiceChannelEffectSendEvent as VoiceChannelEffectSendEventPayload,
 )
 from .types.soundboard import SoundboardSound as SoundboardSoundPayload
-from .utils import cached_slot_property
+from .utils.private import cached_slot_property
 
 if TYPE_CHECKING:
     from .guild import Guild
