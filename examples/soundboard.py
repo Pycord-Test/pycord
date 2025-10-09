@@ -72,7 +72,7 @@ class SoundboardCog(discord.Cog):
 
             new_sound = await ctx.guild.create_sound(name=name, sound=sound_bytes, volume=1.0, emoji=emoji)
 
-            await ctx.respons(f"Added new sound: {new_sound.emoji} {new_sound.name}")
+            await ctx.respond(f"Added new sound: {new_sound.emoji} {new_sound.name}")
         except Exception as e:
             await ctx.respond(f"Failed to add sound: {e!s}")
 
