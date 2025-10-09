@@ -2988,25 +2988,6 @@ class CategoryChannel(discord.abc.GuildChannel, Hashable):
         """
         return await self.guild.create_forum_channel(name, category=self, **options)
 
-    @utils.deprecated(
-        since="2.7",
-        removed="3.0",
-        reference="NSFW categories are not available in the Discord API.",
-    )
-    def is_nsfw(self) -> bool:
-        return False
-
-    # TODO: Remove in 3.0
-
-    @property
-    @utils.deprecated(
-        since="2.7",
-        removed="3.0",
-        reference="NSFW categories are not available in the Discord API.",
-    )
-    def nsfw(self) -> bool:
-        return False
-
 
 DMC = TypeVar("DMC", bound="DMChannel")
 
