@@ -90,7 +90,7 @@ class PartialSoundboardSound(Hashable):
 
     @override
     def __eq__(self, other: PartialSoundboardSound) -> bool:  # pyright: ignore[reportIncompatibleMethodOverride]
-        if isinstance(other, self, __class__):
+        if isinstance(other, self.__class__):
             return self.id == other.id
         return NotImplemented
 
