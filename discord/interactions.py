@@ -839,17 +839,15 @@ class InteractionResponse:
         if defer_type:
             adapter = async_context.get()
             http = parent._state.http
-            callback_response: InteractionCallbackResponse = (
-                await self._locked_response(
-                    adapter.create_interaction_response(
-                        parent.id,
-                        parent.token,
-                        session=parent._session,
-                        type=defer_type,
-                        data=data,
-                        proxy=http.proxy,
-                        proxy_auth=http.proxy_auth,
-                    )
+            callback_response: InteractionCallbackResponse = await self._locked_response(
+                adapter.create_interaction_response(
+                    parent.id,
+                    parent.token,
+                    session=parent._session,
+                    type=defer_type,
+                    data=data,
+                    proxy=http.proxy,
+                    proxy_auth=http.proxy_auth,
                 )
             )
             self._responded = True
@@ -876,24 +874,20 @@ class InteractionResponse:
         if parent.type is InteractionType.ping:
             adapter = async_context.get()
             http = parent._state.http
-            callback_response: InteractionCallbackResponse = (
-                await self._locked_response(
-                    adapter.create_interaction_response(
-                        parent.id,
-                        parent.token,
-                        session=parent._session,
-                        proxy=http.proxy,
-                        proxy_auth=http.proxy_auth,
-                        type=InteractionResponseType.pong.value,
-                    )
+            callback_response: InteractionCallbackResponse = await self._locked_response(
+                adapter.create_interaction_response(
+                    parent.id,
+                    parent.token,
+                    session=parent._session,
+                    proxy=http.proxy,
+                    proxy_auth=http.proxy_auth,
+                    type=InteractionResponseType.pong.value,
                 )
             )
             self._responded = True
             await self._process_callback_response(callback_response)
 
-    async def _process_callback_response(
-        self, callback_response: InteractionCallbackResponse
-    ):
+    async def _process_callback_response(self, callback_response: InteractionCallbackResponse):
         if callback_response.get("resource", {}).get("message"):
             # TODO: fix later to not raise?
             channel = self._parent.channel
@@ -1041,18 +1035,16 @@ class InteractionResponse:
         adapter = async_context.get()
         http = parent._state.http
         try:
-            callback_response: InteractionCallbackResponse = (
-                await self._locked_response(
-                    adapter.create_interaction_response(
-                        parent.id,
-                        parent.token,
-                        session=parent._session,
-                        type=InteractionResponseType.channel_message.value,
-                        proxy=http.proxy,
-                        proxy_auth=http.proxy_auth,
-                        data=payload,
-                        files=files,
-                    )
+            callback_response: InteractionCallbackResponse = await self._locked_response(
+                adapter.create_interaction_response(
+                    parent.id,
+                    parent.token,
+                    session=parent._session,
+                    type=InteractionResponseType.channel_message.value,
+                    proxy=http.proxy,
+                    proxy_auth=http.proxy_auth,
+                    data=payload,
+                    files=files,
                 )
             )
         finally:
@@ -1201,18 +1193,16 @@ class InteractionResponse:
         adapter = async_context.get()
         http = parent._state.http
         try:
-            callback_response: InteractionCallbackResponse = (
-                await self._locked_response(
-                    adapter.create_interaction_response(
-                        parent.id,
-                        parent.token,
-                        session=parent._session,
-                        type=InteractionResponseType.message_update.value,
-                        proxy=http.proxy,
-                        proxy_auth=http.proxy_auth,
-                        data=payload,
-                        files=files,
-                    )
+            callback_response: InteractionCallbackResponse = await self._locked_response(
+                adapter.create_interaction_response(
+                    parent.id,
+                    parent.token,
+                    session=parent._session,
+                    type=InteractionResponseType.message_update.value,
+                    proxy=http.proxy,
+                    proxy_auth=http.proxy_auth,
+                    data=payload,
+                    files=files,
                 )
             )
         finally:
@@ -1705,12 +1695,8 @@ class InteractionCallback:
     """
 
     def __init__(self, data: InteractionCallbackPayload):
-        self._response_message_loading: bool = data.get(
-            "response_message_loading", False
-        )
-        self._response_message_ephemeral: bool = data.get(
-            "response_message_ephemeral", False
-        )
+        self._response_message_loading: bool = data.get("response_message_loading", False)
+        self._response_message_ephemeral: bool = data.get("response_message_ephemeral", False)
 
     def __repr__(self):
         return (

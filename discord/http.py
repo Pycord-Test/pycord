@@ -880,9 +880,7 @@ class HTTPClient:
 
         return self.request(r, params=params)
 
-    def legacy_pins_from(
-        self, channel_id: Snowflake
-    ) -> Response[list[message.Message]]:
+    def legacy_pins_from(self, channel_id: Snowflake) -> Response[list[message.Message]]:
         return self.request(Route("GET", "/channels/{channel_id}/pins", channel_id=channel_id))
 
     # Member management
@@ -3028,9 +3026,7 @@ class HTTPClient:
     def get_user(self, user_id: Snowflake) -> Response[user.User]:
         return self.request(Route("GET", "/users/{user_id}", user_id=user_id))
 
-    def delete_sound(
-        self, sound: SoundboardSound, *, reason: str | None
-    ) -> Response[None]:
+    def delete_sound(self, sound: SoundboardSound, *, reason: str | None) -> Response[None]:
         return self.request(
             Route(
                 "DELETE",
@@ -3063,16 +3059,10 @@ class HTTPClient:
             reason=reason,
         )
 
-    def get_all_guild_sounds(
-        self, guild_id: Snowflake
-    ) -> Response[list[SoundboardSoundPayload]]:
-        return self.request(
-            Route("GET", "/guilds/{guild_id}/soundboard-sounds", guild_id=guild_id)
-        )
+    def get_all_guild_sounds(self, guild_id: Snowflake) -> Response[list[SoundboardSoundPayload]]:
+        return self.request(Route("GET", "/guilds/{guild_id}/soundboard-sounds", guild_id=guild_id))
 
-    def get_guild_sound(
-        self, guild_id: Snowflake, sound_id: Snowflake
-    ) -> Response[SoundboardSoundPayload]:
+    def get_guild_sound(self, guild_id: Snowflake, sound_id: Snowflake) -> Response[SoundboardSoundPayload]:
         return self.request(
             Route(
                 "GET",
@@ -3105,9 +3095,7 @@ class HTTPClient:
             reason=reason,
         )
 
-    def send_soundboard_sound(
-        self, channel_id: int, sound: PartialSoundboardSound
-    ) -> Response[None]:
+    def send_soundboard_sound(self, channel_id: int, sound: PartialSoundboardSound) -> Response[None]:
         payload = {
             "sound_id": sound.id,
         }

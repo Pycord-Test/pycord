@@ -49,14 +49,12 @@ from .enums import (
     InviteTarget,
     SortOrder,
     StagePrivacyLevel,
-)
-from .enums import ThreadArchiveDuration as ThreadArchiveDurationEnum
-from .enums import (
     VideoQualityMode,
     VoiceChannelEffectAnimationType,
     VoiceRegion,
     try_enum,
 )
+from .enums import ThreadArchiveDuration as ThreadArchiveDurationEnum
 from .errors import ClientException, InvalidArgument
 from .file import File
 from .flags import ChannelFlags, MessageFlags
@@ -1062,9 +1060,7 @@ class ForumChannel(_TextChannel):
         sync_permissions: bool = ...,
         category: CategoryChannel | None = ...,
         slowmode_delay: int = ...,
-        default_auto_archive_duration: (
-            ThreadArchiveDuration | ThreadArchiveDurationEnum
-        ) = ...,
+        default_auto_archive_duration: (ThreadArchiveDuration | ThreadArchiveDurationEnum) = ...,
         default_thread_slowmode_delay: int = ...,
         default_sort_order: SortOrder = ...,
         default_reaction_emoji: GuildEmoji | int | str | None = ...,
@@ -2801,9 +2797,7 @@ class CategoryChannel(discord.abc.GuildChannel, Hashable):
         self._update(guild, data)
 
     def __repr__(self) -> str:
-        return (
-            f"<CategoryChannel id={self.id} name={self.name!r} position={self.position}"
-        )
+        return f"<CategoryChannel id={self.id} name={self.name!r} position={self.position}"
 
     def _update(self, guild: Guild, data: CategoryChannelPayload) -> None:
         # This data will always exist

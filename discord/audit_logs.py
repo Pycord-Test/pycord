@@ -196,9 +196,7 @@ def _transform_trigger_metadata(
         return AutoModTriggerMetadata.from_dict(data)
 
 
-def _transform_communication_disabled_until(
-    entry: AuditLogEntry, data: str
-) -> datetime.datetime | None:
+def _transform_communication_disabled_until(entry: AuditLogEntry, data: str) -> datetime.datetime | None:
     if data:
         return datetime.datetime.fromisoformat(data)
     return None

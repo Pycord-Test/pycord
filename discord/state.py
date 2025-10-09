@@ -1908,11 +1908,7 @@ class ConnectionState:
     def parse_soundboard_sounds(self, data) -> None:
         guild_id = int(data["guild_id"])
         for sound_data in data["soundboard_sounds"]:
-            self._add_sound(
-                SoundboardSound(
-                    state=self, http=self.http, data=sound_data, guild_id=guild_id
-                )
-            )
+            self._add_sound(SoundboardSound(state=self, http=self.http, data=sound_data, guild_id=guild_id))
 
     def parse_guild_soundboard_sounds_update(self, data):
         before_sounds = []
@@ -1943,9 +1939,7 @@ class ConnectionState:
         if sound is not None:
             self._remove_sound(sound)
             self.dispatch("soundboard_sound_delete", sound)
-        self.dispatch(
-            "raw_soundboard_sound_delete", RawSoundboardSoundDeleteEvent(data)
-        )
+        self.dispatch("raw_soundboard_sound_delete", RawSoundboardSoundDeleteEvent(data))
 
     async def _add_default_sounds(self) -> None:
         default_sounds = await self.http.get_default_sounds()

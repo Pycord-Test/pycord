@@ -147,9 +147,7 @@ class BaseUser(_UserTag):
             self.nameplate = None
         primary_guild_payload = data.get("primary_guild", None)
         if primary_guild_payload and primary_guild_payload.get("identity_enabled"):
-            self.primary_guild = PrimaryGuild(
-                data=primary_guild_payload, state=self._state
-            )
+            self.primary_guild = PrimaryGuild(data=primary_guild_payload, state=self._state)
         else:
             self.primary_guild = None
         self._public_flags = data.get("public_flags", 0)

@@ -634,7 +634,7 @@ class VoiceClient(VoiceProtocol):
         nonce[:4] = data[-4:]
         data = data[:-4]
 
-        r =box.decrypt(bytes(data), bytes(header), bytes(nonce))# Discord adds 8 bytes of data before the opus data.
+        r = box.decrypt(bytes(data), bytes(header), bytes(nonce))  # Discord adds 8 bytes of data before the opus data.
         # This can be removed, and at this time, discarded as it is unclear what they are for.
         return r[8:]
 

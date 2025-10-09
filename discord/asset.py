@@ -207,9 +207,7 @@ class Asset(AssetMixin):
         )
 
     @classmethod
-    def _from_user_primary_guild_tag(
-        cls, state: ConnectionState, identity_guild_id: int, badge_id: str
-    ) -> Asset:
+    def _from_user_primary_guild_tag(cls, state: ConnectionState, identity_guild_id: int, badge_id: str) -> Asset:
         """Creates an Asset for a user's primary guild (tag) badge.
 
         Parameters
@@ -274,9 +272,7 @@ class Asset(AssetMixin):
         )
 
     @classmethod
-    def _from_collectible(
-        cls, state: ConnectionState, asset: str, animated: bool = False
-    ) -> Asset:
+    def _from_collectible(cls, state: ConnectionState, asset: str, animated: bool = False) -> Asset:
         name = "static.png" if not animated else "asset.webm"
         return cls(
             state,

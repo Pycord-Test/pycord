@@ -32,11 +32,9 @@ from discord import utils
 from .abc import Messageable, _purge_messages_helper
 from .enums import (
     ChannelType,
-)
-from .enums import ThreadArchiveDuration as ThreadArchiveDurationEnum
-from .enums import (
     try_enum,
 )
+from .enums import ThreadArchiveDuration as ThreadArchiveDurationEnum
 from .errors import ClientException
 from .flags import ChannelFlags
 from .mixins import Hashable

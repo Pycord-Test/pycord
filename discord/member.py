@@ -940,9 +940,7 @@ class Member(discord.abc.Messageable, _UserTag):
             bot_payload["bio"] = bio or ""
 
         if bot_payload and not me:
-            raise InvalidArgument(
-                "Can only edit avatar, banner, or bio for the bot's member."
-            )
+            raise InvalidArgument("Can only edit avatar, banner, or bio for the bot's member.")
 
         if payload:
             data = await http.edit_member(guild_id, self.id, reason=reason, **payload)

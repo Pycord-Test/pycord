@@ -292,21 +292,11 @@ class Guild(Hashable):
     )
 
     _PREMIUM_GUILD_LIMITS: ClassVar[dict[int | None, _GuildLimit]] = {
-        None: _GuildLimit(
-            emoji=50, stickers=5, soundboard=8, bitrate=96e3, filesize=10_485_760
-        ),
-        0: _GuildLimit(
-            emoji=50, stickers=5, soundboard=8, bitrate=96e3, filesize=10_485_760
-        ),
-        1: _GuildLimit(
-            emoji=100, stickers=15, soundboard=24, bitrate=128e3, filesize=10_485_760
-        ),
-        2: _GuildLimit(
-            emoji=150, stickers=30, soundboard=36, bitrate=256e3, filesize=52_428_800
-        ),
-        3: _GuildLimit(
-            emoji=250, stickers=60, soundboard=48, bitrate=384e3, filesize=104_857_600
-        ),
+        None: _GuildLimit(emoji=50, stickers=5, soundboard=8, bitrate=96e3, filesize=10_485_760),
+        0: _GuildLimit(emoji=50, stickers=5, soundboard=8, bitrate=96e3, filesize=10_485_760),
+        1: _GuildLimit(emoji=100, stickers=15, soundboard=24, bitrate=128e3, filesize=10_485_760),
+        2: _GuildLimit(emoji=150, stickers=30, soundboard=36, bitrate=256e3, filesize=52_428_800),
+        3: _GuildLimit(emoji=250, stickers=60, soundboard=48, bitrate=384e3, filesize=104_857_600),
     }
 
     def __init__(self, *, data: GuildPayload, state: ConnectionState):
@@ -650,9 +640,7 @@ class Guild(Hashable):
                 else:
                     payload["emoji_id"] = partial_emoji.id
 
-        data = await self._state.http.create_guild_sound(
-            self.id, reason=reason, **payload
-        )
+        data = await self._state.http.create_guild_sound(self.id, reason=reason, **payload)
         return SoundboardSound(
             state=self._state,
             http=self._state.http,
@@ -951,9 +939,7 @@ class Guild(Hashable):
         .. versionadded:: 2.7
         """
         more_soundboard = 48 if "MORE_SOUNDBOARD" in self.features else 0
-        return max(
-            more_soundboard, self._PREMIUM_GUILD_LIMITS[self.premium_tier].soundboard
-        )
+        return max(more_soundboard, self._PREMIUM_GUILD_LIMITS[self.premium_tier].soundboard)
 
     @property
     def bitrate_limit(self) -> int:
@@ -1734,9 +1720,7 @@ class Guild(Hashable):
             options["available_tags"] = [tag.to_dict() for tag in available_tags]
 
         if default_sort_order is not MISSING:
-            options["default_sort_order"] = (
-                default_sort_order.value if default_sort_order else None
-            )
+            options["default_sort_order"] = default_sort_order.value if default_sort_order else None
 
         if default_thread_slowmode_delay is not MISSING:
             options["default_thread_slowmode_delay"] = default_thread_slowmode_delay
@@ -1757,9 +1741,7 @@ class Guild(Hashable):
                 raise InvalidArgument("default_reaction_emoji must be of type: GuildEmoji | int | str | None")
 
             options["default_reaction_emoji"] = (
-                default_reaction_emoji._to_forum_reaction_payload()
-                if default_reaction_emoji
-                else None
+                default_reaction_emoji._to_forum_reaction_payload() if default_reaction_emoji else None
             )
 
         data = await self._create_channel(

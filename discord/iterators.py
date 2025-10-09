@@ -1194,8 +1194,8 @@ class MessagePinIterator(_AsyncIterator["MessagePin"]):
 
         try:
             return self.queue.get_nowait()
-        except asyncio.QueueEmpty:
-            raise NoMoreItems()
+        except asyncio.QueueEmpty as e:
+            raise NoMoreItems() from e
 
     @staticmethod
     def get_last_pinned(data: MessagePinPayload) -> str:
@@ -1226,7 +1226,7 @@ class MessagePinIterator(_AsyncIterator["MessagePin"]):
             self.before = self.update_before(pins[-1])
 
     def create_pin(self, data: MessagePinPayload) -> MessagePin:
-        from .message import MessagePin
+        from .message import MessagePin  # noqa: PLC0415
 
         return MessagePin(state=self.channel._state, channel=self.channel, data=data)
 

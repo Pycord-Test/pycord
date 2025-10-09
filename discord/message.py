@@ -784,9 +784,7 @@ class MessagePin:
     ):
         self._state: ConnectionState = state
         self._pinned_at: datetime.datetime = utils.parse_time(data["pinned_at"])
-        self._message: Message = state.create_message(
-            channel=channel, data=data["message"]
-        )
+        self._message: Message = state.create_message(channel=channel, data=data["message"])
 
     @property
     def message(self) -> Message:
