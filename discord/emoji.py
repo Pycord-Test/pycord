@@ -54,9 +54,7 @@ class BaseEmoji(_EmojiTag, AssetMixin):
         "require_colons",
         "animated",
         "managed",
-        "id",
         "name",
-        "_state",
         "user",
         "available",
     )

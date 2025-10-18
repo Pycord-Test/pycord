@@ -219,7 +219,6 @@ class InputText(Component):
     """
 
     __slots__: tuple[str, ...] = (
-        "type",
         "style",
         "custom_id",
         "label",
@@ -228,7 +227,6 @@ class InputText(Component):
         "max_length",
         "required",
         "value",
-        "id",
     )
 
     __repr_info__: ClassVar[tuple[str, ...]] = __slots__

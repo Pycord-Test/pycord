@@ -153,13 +153,9 @@ class WidgetMember(BaseUser):
     """
 
     __slots__ = (
-        "name",
         "status",
         "nick",
         "avatar",
-        "discriminator",
-        "id",
-        "bot",
         "activity",
         "deafened",
         "suppress",
