@@ -35,6 +35,7 @@ from .colour import Colour
 from .flags import PublicUserFlags
 from .iterators import EntitlementIterator
 from .monetization import Entitlement
+from .primary_guild import PrimaryGuild
 from .utils import MISSING, Undefined, snowflake_time
 from .utils.private import bytes_to_base64_data
 
@@ -79,6 +80,7 @@ class BaseUser(_UserTag):
         "_avatar_decoration",
         "_state",
         "nameplate",
+        "primary_guild",
     )
 
     if TYPE_CHECKING:
@@ -95,6 +97,7 @@ class BaseUser(_UserTag):
         _avatar_decoration: dict | None
         _public_flags: int
         nameplate: Nameplate | None
+        primary_guild: PrimaryGuild | None
 
     def __init__(self, *, state: ConnectionState, data: UserPayload | PartialUserPayload) -> None:
         self._state = state
@@ -142,6 +145,11 @@ class BaseUser(_UserTag):
             self.nameplate = Nameplate(data=nameplate, state=self._state)
         else:
             self.nameplate = None
+        primary_guild_payload = data.get("primary_guild", None)
+        if primary_guild_payload and primary_guild_payload.get("identity_enabled"):
+            self.primary_guild = PrimaryGuild(data=primary_guild_payload, state=self._state)
+        else:
+            self.primary_guild = None
         self._public_flags = data.get("public_flags", 0)
         self.bot = data.get("bot", False)
         self.system = data.get("system", False)
@@ -161,6 +169,7 @@ class BaseUser(_UserTag):
         self.bot = user.bot
         self._state = user._state
         self._public_flags = user._public_flags
+        self.primary_guild = user.primary_guild
 
         return self
 

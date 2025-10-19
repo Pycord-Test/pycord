@@ -381,7 +381,7 @@ class Role(Hashable):
         self._permissions: int = int(data.get("permissions", 0))
         self.position: int = data.get("position", 0)
         self._colour: int = data.get("color", 0)
-        self.colours: RoleColours | None = RoleColours._from_payload(data["colors"])
+        self.colours: RoleColours = RoleColours._from_payload(data["colors"])
         self.hoist: bool = data.get("hoist", False)
         self.managed: bool = data.get("managed", False)
         self.mentionable: bool = data.get("mentionable", False)
@@ -543,8 +543,8 @@ class Role(Hashable):
         permissions: Permissions | utils.Undefined = MISSING,
         colour: Colour | int | utils.Undefined = MISSING,
         color: Colour | int | utils.Undefined = MISSING,
-        colours: RoleColours | None | utils.Undefined = MISSING,
-        colors: RoleColours | None | utils.Undefined = MISSING,
+        colours: RoleColours | utils.Undefined = MISSING,
+        colors: RoleColours | utils.Undefined = MISSING,
         holographic: bool | utils.Undefined = MISSING,
         hoist: bool | utils.Undefined = MISSING,
         mentionable: bool | utils.Undefined = MISSING,
