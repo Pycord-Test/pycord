@@ -79,7 +79,7 @@ def get_as_snowflake(data: Any, key: str) -> int | None:
         return value and int(value)
 
 
-def get_mime_type_for_image(data: bytes):
+def get_mime_type_for_file(data: bytes):
     if data.startswith(b"\x89\x50\x4e\x47\x0d\x0a\x1a\x0a"):
         return "image/png"
     elif data[0:3] == b"\xff\xd8\xff" or data[6:10] in (b"JFIF", b"Exif"):
@@ -88,13 +88,15 @@ def get_mime_type_for_image(data: bytes):
         return "image/gif"
     elif data.startswith(b"RIFF") and data[8:12] == b"WEBP":
         return "image/webp"
+    elif data.startswith((b"\x49\x44\x33", b"\xff\xfb")):
+        return "audio/mpeg"
     else:
-        raise InvalidArgument("Unsupported image type given")
+        raise InvalidArgument("Unsupported file type given")
 
 
 def bytes_to_base64_data(data: bytes) -> str:
     fmt = "data:{mime};base64,{data}"
-    mime = get_mime_type_for_image(data)
+    mime = get_mime_type_for_file(data)
     b64 = b64encode(data).decode("ascii")
     return fmt.format(mime=mime, data=b64)
 
@@ -150,7 +152,7 @@ def resolve_template(code: Template | str) -> str:
 __all__ = (
     "resolve_invite",
     "get_as_snowflake",
-    "get_mime_type_for_image",
+    "get_mime_type_for_file",
     "bytes_to_base64_data",
     "parse_ratelimit_header",
     "string_width",

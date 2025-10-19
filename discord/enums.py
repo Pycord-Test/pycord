@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import types
 from enum import Enum as EnumBase
+from enum import IntEnum
 from typing import Any, Self, TypeVar, Union
 
 E = TypeVar("E", bound="Enum")
@@ -73,6 +74,7 @@ __all__ = (
     "PromptType",
     "OnboardingMode",
     "ReactionType",
+    "VoiceChannelEffectAnimationType",
     "SKUType",
     "EntitlementType",
     "EntitlementOwnerType",
@@ -80,6 +82,7 @@ __all__ = (
     "InteractionContextType",
     "PollLayoutType",
     "MessageReferenceType",
+    "ThreadArchiveDuration",
     "SubscriptionStatus",
     "SeparatorSpacingSize",
 )
@@ -992,6 +995,16 @@ class PollLayoutType(Enum):
     default = 1
 
 
+class VoiceChannelEffectAnimationType(Enum):
+    """Voice channel effect animation type.
+
+    .. versionadded:: 2.7
+    """
+
+    premium = 0
+    basic = 1
+
+
 class MessageReferenceType(Enum):
     """The type of the message reference object"""
 
@@ -1005,6 +1018,15 @@ class SubscriptionStatus(Enum):
     active = 0
     ending = 1
     inactive = 2
+
+
+class ThreadArchiveDuration(IntEnum):
+    """The time set until a thread is automatically archived."""
+
+    one_hour = 60
+    one_day = 1440
+    three_days = 4320
+    one_week = 10080
 
 
 class SeparatorSpacingSize(Enum):

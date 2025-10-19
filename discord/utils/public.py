@@ -5,6 +5,7 @@ import datetime
 import importlib.resources
 import itertools
 import json
+import logging
 import re
 from collections.abc import Awaitable, Callable, Iterable
 from enum import Enum, auto
@@ -15,6 +16,8 @@ if TYPE_CHECKING:
     from ..commands.context import AutocompleteContext
     from ..commands.options import OptionChoice
     from ..permissions import Permissions
+
+_log = logging.getLogger(__name__)
 
 T = TypeVar("T")
 
@@ -542,7 +545,13 @@ def find(predicate: Callable[[T], Any], seq: Iterable[T]) -> T | None:
     return None
 
 
-with importlib.resources.files(__package__).joinpath("../emojis.json").open(encoding="utf-8") as f:
-    EMOJIS_MAP = json.load(f)
+try:
+    with importlib.resources.files(__package__).joinpath("../emojis.json").open(encoding="utf-8") as f:
+        EMOJIS_MAP = json.load(f)
+except FileNotFoundError:
+    _log.debug(
+        "Couldn't find emojis.json. Is the package data missing? Discord emojis names will not work.",
+    )
 
+EMOJIS_MAP = {}
 UNICODE_EMOJIS = set(EMOJIS_MAP.values())
