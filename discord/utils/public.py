@@ -546,12 +546,11 @@ def find(predicate: Callable[[T], Any], seq: Iterable[T]) -> T | None:
 
 
 try:
-    with importlib.resources.files(__package__).joinpath("../emojis.json").open(encoding="utf-8") as f:
-        EMOJIS_MAP = json.load(f)
+    with importlib.resources.files(__package__).joinpath("../emojis.json").open(encoding="utf-8") as f:  # pyright: ignore[reportArgumentType] # __package__ will always be discord.utils
+        EMOJIS_MAP: dict[str, str] = json.load(f)
 except FileNotFoundError:
     _log.debug(
         "Couldn't find emojis.json. Is the package data missing? Discord emojis names will not work.",
     )
-
-EMOJIS_MAP = {}
+    EMOJIS_MAP = {}  # pyright: ignore[reportConstantRedefinition]
 UNICODE_EMOJIS = set(EMOJIS_MAP.values())

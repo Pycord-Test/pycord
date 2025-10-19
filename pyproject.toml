@@ -71,10 +71,16 @@ dev = [
     "coverage~=7.8",
     "mypy~=1.18.1",
     "pre-commit==4.3.0",
-    "pytest~=8.4.1",
-    "pytest-asyncio~=0.26.0",
     "python-dotenv>=1.1.1",
-    "ruff>=0.11.9",
+    "ruff>=0.12.12",
+    "tox>=4.27.0",
+    "tox-gh>=1.5.0",
+    "tox-uv>=1.26.1",
+]
+
+test = [# Not in `dev` because we use tox for testing. Tox will install these dependencies.
+    "pytest~=8.3.5",
+    "pytest-asyncio~=0.24.0",
 ]
 ci = [
     "pygithub>=2.7.0",
@@ -304,3 +310,20 @@ ignore_errors = true
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.tox]
+requires = ["tox>=4"]
+env_list = ["3.13", "3.12", "3.11", "3.10"]
+
+[tool.tox.env_run_base]
+description = "run unit tests"
+commands = [["pytest", { replace = "posargs", default = ["tests"], extend = true }]]
+dependency_groups = ["test"]
+
+# GitHub actions
+[tool.tox.gh.python]
+"3.13" = ["3.13"]
+"3.12" = ["3.12"]
+"3.11" = ["3.11"]
+"3.10" = ["3.10"]

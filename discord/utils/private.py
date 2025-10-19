@@ -412,7 +412,21 @@ async def sane_wait_for(futures: Iterable[Awaitable[T]], *, timeout: float) -> s
     return done
 
 
-class SnowflakeList(array.array[int]):
+# array.array is generic only since Python 3.12
+# ref: https://docs.python.org/3/whatsnew/3.12.html#array
+# We use the method suggested by mypy
+# ref: https://mypy.readthedocs.io/en/stable/runtime_troubles.html#using-classes-that-are-generic-in-stubs-but-not-at-runtime
+
+if TYPE_CHECKING:
+    SnowflakeListBase = array.array[int]
+else:
+    if sys.version_info >= (3, 12):
+        SnowflakeListBase = array.array[int]
+    else:
+        SnowflakeListBase = array.array
+
+
+class SnowflakeList(SnowflakeListBase):
     """Internal data storage class to efficiently store a list of snowflakes.
 
     This should have the following characteristics:
@@ -425,10 +439,6 @@ class SnowflakeList(array.array[int]):
     """
 
     __slots__ = ()
-
-    if TYPE_CHECKING:
-
-        def __init__(self, data: Iterable[int], *, is_sorted: bool = False): ...
 
     def __new__(cls, data: Iterable[int], *, is_sorted: bool = False):
         return super().__new__(cls, "Q", data if is_sorted else sorted(data))
