@@ -106,7 +106,7 @@ class TextInput(Component[TextInputComponentPayload], ModalComponentMixin[TextIn
         self,
         style: int | TextInputStyle,
         custom_id: str,
-        min_lenght: int | None = None,
+        min_length: int | None = None,
         max_length: int | None = None,
         placeholder: str | None = None,
         required: bool = True,
@@ -115,7 +115,7 @@ class TextInput(Component[TextInputComponentPayload], ModalComponentMixin[TextIn
     ) -> None:
         self.style: TextInputStyle = style  # pyright: ignore[reportAttributeAccessIssue]
         self.custom_id: str = custom_id
-        self.min_length: int | None = min_lenght
+        self.min_length: int | None = min_length
         self.max_length: int | None = max_length
         self.placeholder: str | None = placeholder
         self.required: bool = required
