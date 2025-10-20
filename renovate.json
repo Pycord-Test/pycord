@@ -9,7 +9,7 @@
   "forkProcessing": "enabled",
   "packageRules": [
     {
-      "groupName": "GitHub Packages",
+      "groupName": null,
       "matchDatasources": ["github-tags","github-releases"],
       "automerge": false
     }
