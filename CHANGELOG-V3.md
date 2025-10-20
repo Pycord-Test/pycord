@@ -4,18 +4,26 @@ These changes are part of `pycord-test/pycord`, and are candidates for the next 
 release.
 
 ### Added
-- `Interaction.components` available only during modal submissions
+
+- `ModalInteraction` provided to modal listeners during modal submit interactions
+- `ComponentInteraction` provided to component listeners during component interactions
+- `discord.components` module and its items
 
 ### Fixed
 
 ### Changed
 
 - Removed the custom `enums.Enum` implementation in favor of a stdlib `enum.Enum` subclass.
+- `InputText` use `TextInput` instead
+- `ComponentType.input_text` use `ComponentType.text_input` instead
+- `InputTextStyle` use `TextInputStyle` instead
+- `TextInputStyle.singleline` use `TextInputStyle.short` instead
+- `TextInputStyle.multiline` and `TextInputStyle.long` use `TextInputStyle.paragraph` instead
+- `ComponentType.select` use `ComponentType.string_select` instead
 
 ### Deprecated
 
 ### Removed
-
 
 - `Interaction.original_message` use `Interaction.original_response` instead
 - `Interaction.edit_original_message` use `Interaction.edit_original_response` instead
@@ -49,13 +57,6 @@ which provides a more flexible and powerful way to create interactive components
 can read more in the migration guide.
 
 <!-- TODO: Add link to migration guide -->
-
-- `InputText` use `TextInput` instead
-- `ComponentType.input_text` use `ComponentType.text_input` instead
-- `InputTextStyle` use `TextInputStyle` instead
-- `TextInputStyle.singleline` use `TextInputStyle.short` instead
-- `TextInputStyle.multiline` and `TextInputStyle.long` use `TextInputStyle.paragraph` instead
-- `ComponentType.select` use `ComponentType.string_select` instead
 
 #### `discord.ext.pages`
 
