@@ -30,7 +30,11 @@ from typing import TYPE_CHECKING, Callable, Iterable
 from discord import utils
 
 from .abc import Messageable, _purge_messages_helper
-from .enums import ChannelType, try_enum
+from .enums import (
+    ChannelType,
+    try_enum,
+)
+from .enums import ThreadArchiveDuration as ThreadArchiveDurationEnum
 from .errors import ClientException
 from .flags import ChannelFlags
 from .mixins import Hashable
@@ -575,7 +579,7 @@ class Thread(Messageable, Hashable):
         locked: bool | utils.Undefined = MISSING,
         invitable: bool | utils.Undefined = MISSING,
         slowmode_delay: int | utils.Undefined = MISSING,
-        auto_archive_duration: ThreadArchiveDuration | utils.Undefined = MISSING,
+        auto_archive_duration: ThreadArchiveDuration | ThreadArchiveDurationEnum | utils.Undefined = MISSING,
         pinned: bool | utils.Undefined = MISSING,
         applied_tags: list[ForumTag] | utils.Undefined = MISSING,
         reason: str | None = None,
@@ -605,6 +609,7 @@ class Thread(Messageable, Hashable):
         auto_archive_duration: :class:`int`
             The new duration in minutes before a thread is automatically archived for inactivity.
             Must be one of ``60``, ``1440``, ``4320``, or ``10080``.
+            :class:`ThreadArchiveDuration` can be used alternatively.
         slowmode_delay: :class:`int`
             Specifies the slowmode rate limit for user in this thread, in seconds.
             A value of ``0`` disables slowmode. The maximum value possible is ``21600``.
