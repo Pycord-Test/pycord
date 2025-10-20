@@ -28,12 +28,15 @@ import inspect
 import logging
 import sys
 import types
+from collections.abc import Awaitable, Callable, Iterable
 from enum import Enum
 from typing import (
     TYPE_CHECKING,
+    Any,
     Literal,
     Optional,
     Type,
+    TypeVar,
     Union,
     get_args,
 )
@@ -54,12 +57,13 @@ from ..channel import (
     Thread,
     VoiceChannel,
 )
-from ..commands import ApplicationContext
+from ..commands import ApplicationContext, AutocompleteContext
 from ..enums import ChannelType, SlashCommandOptionType
 from ..enums import Enum as DiscordEnum
 from ..utils import MISSING, Undefined, basic_autocomplete
 
 if TYPE_CHECKING:
+    from ..cog import Cog
     from ..ext.commands import Converter
     from ..member import Member
     from ..message import Attachment
@@ -84,6 +88,25 @@ if TYPE_CHECKING:
         | Type[Enum]
         | Type[DiscordEnum]
     )
+
+    AutocompleteReturnType = Union[
+        Iterable["OptionChoice"], Iterable[str], Iterable[int], Iterable[float]
+    ]
+    T = TypeVar("T", bound=AutocompleteReturnType)
+    MaybeAwaitable = Union[T, Awaitable[T]]
+    AutocompleteFunction = Union[
+        Callable[[AutocompleteContext], MaybeAwaitable[AutocompleteReturnType]],
+        Callable[[Cog, AutocompleteContext], MaybeAwaitable[AutocompleteReturnType]],
+        Callable[
+            [AutocompleteContext, Any],  # pyright: ignore [reportExplicitAny]
+            MaybeAwaitable[AutocompleteReturnType],
+        ],
+        Callable[
+            [Cog, AutocompleteContext, Any],  # pyright: ignore [reportExplicitAny]
+            MaybeAwaitable[AutocompleteReturnType],
+        ],
+    ]
+
 
 __all__ = (
     "ThreadOption",
@@ -161,15 +184,6 @@ class Option:
     max_length: Optional[:class:`int`]
         The maximum length of the string that can be entered. Must be between 1 and 6000 (inclusive).
         Only applies to Options with an :attr:`input_type` of :class:`str`.
-    autocomplete: Optional[Callable[[:class:`.AutocompleteContext`], Awaitable[Union[Iterable[:class:`.OptionChoice`], Iterable[:class:`str`], Iterable[:class:`int`], Iterable[:class:`float`]]]]]
-        The autocomplete handler for the option. Accepts a callable (sync or async)
-        that takes a single argument of :class:`AutocompleteContext`.
-        The callable must return an iterable of :class:`str` or :class:`OptionChoice`.
-        Alternatively, :func:`discord.utils.basic_autocomplete` may be used in place of the callable.
-
-        .. note::
-
-            Does not validate the input value against the autocomplete results.
     channel_types: list[:class:`discord.ChannelType`] | None
         A list of channel types that can be selected in this option.
         Only applies to Options with an :attr:`input_type` of :class:`discord.SlashCommandOptionType.channel`.
@@ -273,6 +287,7 @@ class Option:
         self.required: bool = kwargs.pop("required", True) if "default" not in kwargs else False
         self.default = kwargs.pop("default", None)
 
+        self._autocomplete: AutocompleteFunction | None = None
         self.autocomplete = kwargs.pop("autocomplete", None)
         if len(enum_choices) > 25:
             self.choices: list[OptionChoice] = []
@@ -406,6 +421,43 @@ class Option:
 
     def __repr__(self):
         return f"<discord.commands.{self.__class__.__name__} name={self.name}>"
+
+    @property
+    def autocomplete(self) -> AutocompleteFunction | None:
+        """
+        The autocomplete handler for the option. Accepts a callable (sync or async)
+        that takes a single required argument of :class:`AutocompleteContext` or two arguments
+        of :class:`discord.Cog` (being the command's cog) and :class:`AutocompleteContext`.
+        The callable must return an iterable of :class:`str` or :class:`OptionChoice`.
+        Alternatively, :func:`discord.utils.basic_autocomplete` may be used in place of the callable.
+
+        Returns
+        -------
+        Optional[AutocompleteFunction]
+
+        .. versionchanged:: 2.7
+
+        .. note::
+            Does not validate the input value against the autocomplete results.
+        """
+        return self._autocomplete
+
+    @autocomplete.setter
+    def autocomplete(self, value: AutocompleteFunction | None) -> None:
+        self._autocomplete = value
+        # this is done here so it does not have to be computed every time the autocomplete is invoked
+        if self._autocomplete is not None:
+            self._autocomplete._is_instance_method = (  # pyright: ignore [reportFunctionMemberAccess]
+                sum(
+                    1
+                    for param in inspect.signature(
+                        self._autocomplete
+                    ).parameters.values()
+                    if param.default == param.empty  # pyright: ignore[reportAny]
+                    and param.kind not in (param.VAR_POSITIONAL, param.VAR_KEYWORD)
+                )
+                == 2
+            )
 
 
 class OptionChoice:
