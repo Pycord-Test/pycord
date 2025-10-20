@@ -2951,6 +2951,19 @@ class HTTPClient:
             reason=reason,
         )
 
+    def modify_guild_incident_actions(
+        self,
+        guild_id: Snowflake,
+        payload: guild.ModifyIncidents,
+        *,
+        reason: str | None = None,
+    ) -> Response[guild.IncidentsData]:
+        return self.request(
+            Route("PUT", "/guilds/{guild_id}/incident-actions", guild_id=guild_id),
+            json=payload,
+            reason=reason,
+        )
+
     # Polls
 
     def expire_poll(self, channel_id: Snowflake, message_id: Snowflake) -> Response[message.Message]:
