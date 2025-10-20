@@ -25,14 +25,14 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar, Iterator, Literal, TypeAlias, cast
+from collections.abc import Iterator
+from typing import TYPE_CHECKING, ClassVar, Literal, TypeAlias, TypeVar, cast
 
 from typing_extensions import override
 
 from ..enums import ComponentType
 from ..types.component_types import ActionRow as ActionRowPayload
 from .component import Component, WalkableComponentMixin
-from .types import C
 
 if TYPE_CHECKING:
     from typing_extensions import Self

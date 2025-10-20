@@ -27,17 +27,20 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
-from typing import TYPE_CHECKING, Callable, ClassVar, Generic
+from typing import TYPE_CHECKING, Callable, ClassVar, Generic, TypeVar
 
 from typing_extensions import override
 
 from ..enums import ComponentType
-from .types import C, P
 
 if TYPE_CHECKING:
     from typing_extensions import Self
 
     from ..state import ConnectionState
+    from ..types.component_types import Component as ComponentPayload
+    from .type_aliases import AnyComponent
+
+P = TypeVar("P", bound="ComponentPayload")
 
 
 class Component(ABC, Generic[P]):
@@ -107,6 +110,9 @@ class StateComponentMixin(Component[P], ABC):
     @override
     def from_payload(cls, payload: P, state: ConnectionState | None = None) -> Self:  # pyright: ignore[reportGeneralTypeIssues]
         ...
+
+
+C = TypeVar("C", bound="AnyComponent")
 
 
 class WalkableComponentMixin(ABC, Generic[C]):

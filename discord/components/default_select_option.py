@@ -24,12 +24,13 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import Generic
+from typing import Generic, Literal, TypeVar
 
 from typing_extensions import override
 
 from ..types.component_types import SelectDefaultValue
-from .types import DT
+
+DT = TypeVar("DT", bound='Literal["user", "role", "channel"]')
 
 
 class DefaultSelectOption(Generic[DT]):

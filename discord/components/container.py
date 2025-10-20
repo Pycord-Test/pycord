@@ -32,7 +32,6 @@ from ..colour import Colour
 from ..enums import ComponentType
 from ..types.component_types import ContainerComponent as ContainerComponentPayload
 from .component import Component, WalkableComponentMixin
-from .types import C
 
 if TYPE_CHECKING:
     from typing_extensions import Self

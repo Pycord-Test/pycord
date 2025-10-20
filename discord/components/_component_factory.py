@@ -25,7 +25,7 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypeVar
 
 from .action_row import ActionRow
 from .button import Button
@@ -44,12 +44,14 @@ from .separator import Separator
 from .string_select_menu import StringSelect
 from .text_display import TextDisplay
 from .thumbnail import Thumbnail
-from .types import P
 from .unknown_component import UnknownComponent
 from .user_select_menu import UserSelect
 
 if TYPE_CHECKING:
     from ..state import ConnectionState
+    from ..types.component_types import Component as ComponentPayload
+
+P = TypeVar("P", bound="ComponentPayload")
 
 
 COMPONENT_MAPPINGS = {
