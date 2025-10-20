@@ -17,7 +17,7 @@ jobs:
     name: "Check PR Dependencies"
     steps:
       - name: PR Dependency Check
-        uses: gregsdennis/dependencies-action@v1.4.1
+        uses: gregsdennis/dependencies-action@ae6e0529ef70f1366a21972f40b1ad0e1b5e3218 # v1.4.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   semantic-title:
@@ -25,6 +25,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: "Check Semantic Pull Request"
-        uses: amannn/action-semantic-pull-request@v6.1.1
+        uses: amannn/action-semantic-pull-request@fdd4d3ddf614fbcd8c29e4b106d3bbe0cb2c605d # v6.1.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
