@@ -72,8 +72,6 @@ COMPONENT_MAPPINGS = {
     19: FileUpload,
 }
 
-STATE_COMPONENTS = (Section, Container, Thumbnail, MediaGallery, FileComponent)
-
 
 def _component_factory(data: P, state: ConnectionState | None = None) -> Component[P]:
     component_type = data["type"]
