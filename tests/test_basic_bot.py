@@ -1,7 +1,6 @@
 """
 The MIT License (MIT)
 
-Copyright (c) 2015-2021 Rapptz
 Copyright (c) 2021-present Pycord Development
 
 Permission is hereby granted, free of charge, to any person obtaining a
@@ -23,44 +22,29 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
 
-from __future__ import annotations
+import pytest
 
-from .public import (
-    DISCORD_EPOCH,
-    MISSING,
-    UNICODE_EMOJIS,
-    Undefined,
-    basic_autocomplete,
-    escape_markdown,
-    escape_mentions,
-    find,
-    format_dt,
-    generate_snowflake,
-    oauth_url,
-    raw_channel_mentions,
-    raw_mentions,
-    raw_role_mentions,
-    remove_markdown,
-    snowflake_time,
-    utcnow,
-)
+import discord
 
-__all__ = (
-    "oauth_url",
-    "snowflake_time",
-    "find",
-    "utcnow",
-    "remove_markdown",
-    "escape_markdown",
-    "escape_mentions",
-    "raw_mentions",
-    "raw_channel_mentions",
-    "raw_role_mentions",
-    "format_dt",
-    "generate_snowflake",
-    "basic_autocomplete",
-    "Undefined",
-    "MISSING",
-    "DISCORD_EPOCH",
-    "UNICODE_EMOJIS",
-)
+
+@pytest.mark.asyncio
+async def test_bot_login_failure_login():
+    bot = discord.Bot()
+
+    with pytest.raises(discord.LoginFailure):
+        await bot.login("invalid_token")
+
+
+@pytest.mark.asyncio
+async def test_bot_login_failure_start():
+    bot = discord.Bot()
+
+    with pytest.raises(discord.LoginFailure):
+        await bot.start("invalid_token")
+
+
+def test_bot_login_failure_run():
+    bot = discord.Bot()
+
+    with pytest.raises(discord.LoginFailure):
+        bot.run("invalid_token")

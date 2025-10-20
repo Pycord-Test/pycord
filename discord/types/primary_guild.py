@@ -1,7 +1,6 @@
 """
 The MIT License (MIT)
 
-Copyright (c) 2015-2021 Rapptz
 Copyright (c) 2021-present Pycord Development
 
 Permission is hereby granted, free of charge, to any person obtaining a
@@ -25,42 +24,13 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from .public import (
-    DISCORD_EPOCH,
-    MISSING,
-    UNICODE_EMOJIS,
-    Undefined,
-    basic_autocomplete,
-    escape_markdown,
-    escape_mentions,
-    find,
-    format_dt,
-    generate_snowflake,
-    oauth_url,
-    raw_channel_mentions,
-    raw_mentions,
-    raw_role_mentions,
-    remove_markdown,
-    snowflake_time,
-    utcnow,
-)
+from typing import TypedDict
 
-__all__ = (
-    "oauth_url",
-    "snowflake_time",
-    "find",
-    "utcnow",
-    "remove_markdown",
-    "escape_markdown",
-    "escape_mentions",
-    "raw_mentions",
-    "raw_channel_mentions",
-    "raw_role_mentions",
-    "format_dt",
-    "generate_snowflake",
-    "basic_autocomplete",
-    "Undefined",
-    "MISSING",
-    "DISCORD_EPOCH",
-    "UNICODE_EMOJIS",
-)
+from .snowflake import Snowflake
+
+
+class PrimaryGuild(TypedDict):
+    identity_guild_id: Snowflake
+    identity_enabled: bool | None
+    tag: str
+    badge: str
