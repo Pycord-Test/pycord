@@ -68,7 +68,8 @@ from ..object import Object
 from ..role import Role
 from ..threads import Thread
 from ..user import User
-from ..utils import MISSING, async_all, find, maybe_coroutine, utcnow, warn_deprecated
+from ..utils import MISSING, find, utcnow
+from ..utils.private import async_all, maybe_awaitable, warn_deprecated
 from .context import ApplicationContext, AutocompleteContext
 from .options import Option, OptionChoice
 
@@ -432,7 +433,7 @@ class ApplicationCommand(_BaseCommand, Generic[CogT, P, T]):
         if cog is not None:
             local_check = cog._get_overridden_method(cog.cog_check)
             if local_check is not None:
-                ret = await maybe_coroutine(local_check, ctx)
+                ret = await maybe_awaitable(local_check, ctx)
                 if not ret:
                     return False
 
@@ -762,8 +763,8 @@ class SlashCommand(ApplicationCommand):
         for p in required_params:
             try:
                 next(params)
-            except StopIteration:
-                raise ClientException(f'Callback for {self.name} command is missing "{p}" parameter.')
+            except StopIteration as e:
+                raise ClientException(f'Callback for {self.name} command is missing "{p}" parameter.') from e
 
         return params
 
@@ -779,6 +780,7 @@ class SlashCommand(ApplicationCommand):
             if option == inspect.Parameter.empty:
                 option = str
 
+            option = Option._strip_none_type(option)
             if self._is_typing_literal(option):
                 literal_values = get_args(option)
                 if not all(isinstance(v, (str, int, float)) for v in literal_values):
@@ -848,7 +850,7 @@ class SlashCommand(ApplicationCommand):
             lambda o, a: o.input_type == SlashCommandOptionType.string
             and o.converter is not None,  # pass on converters
             lambda o, a: isinstance(o.input_type, SlashCommandOptionType),  # pass on slash cmd option type enums
-            lambda o, a: isinstance(o._raw_type, tuple) and a == Union[o._raw_type],  # type: ignore # union types
+            lambda o, a: isinstance(o._raw_type, tuple) and a == Union[o._raw_type],  # type: ignore # union types  # noqa: UP007
             lambda o, a: self._is_typing_optional(a) and not o.required and o._raw_type in a.__args__,  # optional
             lambda o, a: isinstance(a, type) and issubclass(a, o._raw_type),  # 'normal' types
         ]
@@ -857,8 +859,8 @@ class SlashCommand(ApplicationCommand):
             _validate_descriptions(o)
             try:
                 p_name, p_obj = next(params)
-            except StopIteration:  # not enough params for all the options
-                raise ClientException("Too many arguments passed to the options kwarg.")
+            except StopIteration as e:  # not enough params for all the options
+                raise ClientException("Too many arguments passed to the options kwarg.") from e
             p_obj = p_obj.annotation
 
             if not any(check(o, p_obj) for check in check_annotations):
@@ -935,7 +937,8 @@ class SlashCommand(ApplicationCommand):
         # TODO: Parse the args better
         kwargs = {}
         for arg in ctx.interaction.data.get("options", []):
-            op = find(lambda x: x.name == arg["name"], self.options)
+            # name is used because loop variables leak in surrounding scope
+            op = find(lambda x, name=arg["name"]: x.name == name, self.options)
             if op is None:
                 continue
             arg = arg["value"]
@@ -1020,7 +1023,8 @@ class SlashCommand(ApplicationCommand):
                         arg = op._raw_type(int(arg))
                     except ValueError:
                         arg = op._raw_type(arg)
-                elif choice := find(lambda c: c.value == arg, op.choices):
+                # _arg is used because loop variables leak in surrounding scope
+                elif choice := find(lambda c, _arg=arg: c.value == _arg, op.choices):
                     arg = getattr(op._raw_type, choice.name)
 
             kwargs[op._parameter_name] = arg
@@ -1041,7 +1045,8 @@ class SlashCommand(ApplicationCommand):
 
         for op in ctx.interaction.data.get("options", []):
             if op.get("focused", False):
-                option = find(lambda o: o.name == op["name"], self.options)
+                # op_name is used because loop variables leak in surrounding scope
+                option = find(lambda o, op_name=op["name"]: o.name == op_name, self.options)
                 values.update({i["name"]: i["value"] for i in ctx.interaction.data["options"]})
                 ctx.command = self
                 ctx.focused = option
@@ -1154,7 +1159,7 @@ class SlashCommandGroup(ApplicationCommand):
         self.__original_kwargs__ = kwargs.copy()
 
         self.__initial_commands__ = []
-        for i, c in cls.__dict__.items():
+        for _, c in cls.__dict__.items():
             if isinstance(c, type) and SlashCommandGroup in c.__bases__:
                 c = c(
                     c.__name__,
@@ -1586,15 +1591,15 @@ class ContextMenuCommand(ApplicationCommand):
         # next we have the 'ctx' as the next parameter
         try:
             next(params)
-        except StopIteration:
-            raise ClientException(f'Callback for {self.name} command is missing "ctx" parameter.')
+        except StopIteration as e:
+            raise ClientException(f'Callback for {self.name} command is missing "ctx" parameter.') from e
 
         # next we have the 'user/message' as the next parameter
         try:
             next(params)
-        except StopIteration:
+        except StopIteration as e:
             cmd = "user" if type(self) == UserCommand else "message"
-            raise ClientException(f'Callback for {self.name} command is missing "{cmd}" parameter.')
+            raise ClientException(f'Callback for {self.name} command is missing "{cmd}" parameter.') from e
 
         # next there should be no more parameters
         try:

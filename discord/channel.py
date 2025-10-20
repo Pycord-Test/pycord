@@ -32,6 +32,7 @@ from typing import (
     Callable,
     Iterable,
     Mapping,
+    NamedTuple,
     Sequence,
     TypeVar,
     overload,
@@ -49,9 +50,11 @@ from .enums import (
     SortOrder,
     StagePrivacyLevel,
     VideoQualityMode,
+    VoiceChannelEffectAnimationType,
     VoiceRegion,
     try_enum,
 )
+from .enums import ThreadArchiveDuration as ThreadArchiveDurationEnum
 from .errors import ClientException, InvalidArgument
 from .file import File
 from .flags import ChannelFlags, MessageFlags
@@ -61,9 +64,11 @@ from .mixins import Hashable
 from .object import Object
 from .partial_emoji import PartialEmoji, _EmojiTag
 from .permissions import PermissionOverwrite, Permissions
+from .soundboard import PartialSoundboardSound, SoundboardSound
 from .stage_instance import StageInstance
 from .threads import Thread
 from .utils import MISSING
+from .utils.private import bytes_to_base64_data, copy_doc, get_as_snowflake
 
 __all__ = (
     "TextChannel",
@@ -76,6 +81,7 @@ __all__ = (
     "ForumChannel",
     "MediaChannel",
     "ForumTag",
+    "VoiceChannelEffectSendEvent",
 )
 
 if TYPE_CHECKING:
@@ -97,6 +103,7 @@ if TYPE_CHECKING:
     from .types.channel import StageChannel as StageChannelPayload
     from .types.channel import TextChannel as TextChannelPayload
     from .types.channel import VoiceChannel as VoiceChannelPayload
+    from .types.channel import VoiceChannelEffectSendEvent as VoiceChannelEffectSend
     from .types.snowflake import SnowflakeList
     from .types.threads import ThreadArchiveDuration
     from .ui.view import View
@@ -170,7 +177,7 @@ class ForumTag(Hashable):
         self.moderated = data.get("moderated", False)
 
         emoji_name = data["emoji_name"] or ""
-        emoji_id = utils._get_as_snowflake(data, "emoji_id") or None
+        emoji_id = get_as_snowflake(data, "emoji_id") or None
         self.emoji = PartialEmoji.with_state(state=state, name=emoji_name, id=emoji_id)
         return self
 
@@ -221,7 +228,7 @@ class _TextChannel(discord.abc.GuildChannel, Hashable):
 
     @property
     def _repr_attrs(self) -> tuple[str, ...]:
-        return "id", "name", "position", "nsfw", "category_id"
+        return "id", "name", "position", "category_id"
 
     def __repr__(self) -> str:
         attrs = [(val, getattr(self, val)) for val in self._repr_attrs]
@@ -232,7 +239,7 @@ class _TextChannel(discord.abc.GuildChannel, Hashable):
         # This data will always exist
         self.guild: Guild = guild
         self.name: str = data["name"]
-        self.category_id: int | None = utils._get_as_snowflake(data, "parent_id")
+        self.category_id: int | None = get_as_snowflake(data, "parent_id")
         self._type: int = data["type"]
         # This data may be missing depending on how this object is being created/updated
         if not data.pop("_invoke_flag", False):
@@ -243,7 +250,7 @@ class _TextChannel(discord.abc.GuildChannel, Hashable):
             self.slowmode_delay: int = data.get("rate_limit_per_user", 0)
             self.default_auto_archive_duration: ThreadArchiveDuration = data.get("default_auto_archive_duration", 1440)
             self.default_thread_slowmode_delay: int | None = data.get("default_thread_rate_limit_per_user")
-            self.last_message_id: int | None = utils._get_as_snowflake(data, "last_message_id")
+            self.last_message_id: int | None = get_as_snowflake(data, "last_message_id")
             self.flags: ChannelFlags = ChannelFlags._from_value(data.get("flags", 0))
             self._fill_overwrites(data)
 
@@ -256,7 +263,7 @@ class _TextChannel(discord.abc.GuildChannel, Hashable):
     def _sorting_bucket(self) -> int:
         return ChannelType.text.value
 
-    @utils.copy_doc(discord.abc.GuildChannel.permissions_for)
+    @copy_doc(discord.abc.GuildChannel.permissions_for)
     def permissions_for(self, obj: Member | Role, /) -> Permissions:
         base = super().permissions_for(obj)
 
@@ -307,7 +314,7 @@ class _TextChannel(discord.abc.GuildChannel, Hashable):
         """Edits the channel."""
         raise NotImplementedError
 
-    @utils.copy_doc(discord.abc.GuildChannel.clone)
+    @copy_doc(discord.abc.GuildChannel.clone)
     async def clone(self, *, name: str | None = None, reason: str | None = None) -> TextChannel:
         return await self._clone_impl(
             {
@@ -511,7 +518,7 @@ class _TextChannel(discord.abc.GuildChannel, Hashable):
         from .webhook import Webhook  # noqa: PLC0415
 
         if avatar is not None:
-            avatar = utils._bytes_to_base64_data(avatar)  # type: ignore
+            avatar = bytes_to_base64_data(avatar)  # type: ignore
 
         data = await self._state.http.create_webhook(self.id, name=str(name), avatar=avatar, reason=reason)
         return Webhook.from_state(data, state=self._state)
@@ -786,7 +793,7 @@ class TextChannel(discord.abc.Messageable, _TextChannel):
         position: :class:`int`
             The new channel's position.
         nsfw: :class:`bool`
-            To mark the channel as NSFW or not.
+            Whether the channel is marked as NSFW.
         sync_permissions: :class:`bool`
             Whether to sync permissions with the channel's new or pre-existing
             category. Defaults to ``False``.
@@ -1008,15 +1015,15 @@ class ForumChannel(_TextChannel):
         if self.default_sort_order is not None:
             self.default_sort_order = try_enum(SortOrder, self.default_sort_order)
 
+        self.default_reaction_emoji = None
+
         reaction_emoji_ctx: dict = data.get("default_reaction_emoji")
         if reaction_emoji_ctx is not None:
             emoji_name = reaction_emoji_ctx.get("emoji_name")
             if emoji_name is not None:
                 self.default_reaction_emoji = reaction_emoji_ctx["emoji_name"]
             else:
-                self.default_reaction_emoji = self._state.get_emoji(
-                    utils._get_as_snowflake(reaction_emoji_ctx, "emoji_id")
-                )
+                self.default_reaction_emoji = self._state.get_emoji(get_as_snowflake(reaction_emoji_ctx, "emoji_id"))
 
     @property
     def guidelines(self) -> str | None:
@@ -1039,7 +1046,7 @@ class ForumChannel(_TextChannel):
 
         .. versionadded:: 2.3
         """
-        return utils.get(self.available_tags, id=id)
+        return utils.find(lambda t: t.id == id, self.available_tags)
 
     @overload
     async def edit(
@@ -1053,7 +1060,7 @@ class ForumChannel(_TextChannel):
         sync_permissions: bool = ...,
         category: CategoryChannel | None = ...,
         slowmode_delay: int = ...,
-        default_auto_archive_duration: ThreadArchiveDuration = ...,
+        default_auto_archive_duration: (ThreadArchiveDuration | ThreadArchiveDurationEnum) = ...,
         default_thread_slowmode_delay: int = ...,
         default_sort_order: SortOrder = ...,
         default_reaction_emoji: GuildEmoji | int | str | None = ...,
@@ -1082,7 +1089,7 @@ class ForumChannel(_TextChannel):
         position: :class:`int`
             The new channel's position.
         nsfw: :class:`bool`
-            To mark the channel as NSFW or not.
+            Whether the channel is marked as NSFW.
         sync_permissions: :class:`bool`
             Whether to sync permissions with the channel's new or pre-existing
             category. Defaults to ``False``.
@@ -1099,6 +1106,7 @@ class ForumChannel(_TextChannel):
         default_auto_archive_duration: :class:`int`
             The new default auto archive duration in minutes for threads created in this channel.
             Must be one of ``60``, ``1440``, ``4320``, or ``10080``.
+            :class:`ThreadArchiveDuration` can be used alternatively.
         default_thread_slowmode_delay: :class:`int`
             The new default slowmode delay in seconds for threads created in this channel.
 
@@ -1446,7 +1454,7 @@ class MediaChannel(ForumChannel):
         position: :class:`int`
             The new channel's position.
         nsfw: :class:`bool`
-            To mark the channel as NSFW or not.
+            Whether the channel is marked as NSFW.
         sync_permissions: :class:`bool`
             Whether to sync permissions with the channel's new or pre-existing
             category. Defaults to ``False``.
@@ -1554,14 +1562,14 @@ class VocalGuildChannel(discord.abc.Connectable, discord.abc.GuildChannel, Hasha
         # This data will always exist
         self.guild = guild
         self.name: str = data["name"]
-        self.category_id: int | None = utils._get_as_snowflake(data, "parent_id")
+        self.category_id: int | None = get_as_snowflake(data, "parent_id")
 
         # This data may be missing depending on how this object is being created/updated
         if not data.pop("_invoke_flag", False):
             rtc = data.get("rtc_region")
             self.rtc_region: VoiceRegion | None = try_enum(VoiceRegion, rtc) if rtc is not None else None
             self.video_quality_mode: VideoQualityMode = try_enum(VideoQualityMode, data.get("video_quality_mode", 1))
-            self.last_message_id: int | None = utils._get_as_snowflake(data, "last_message_id")
+            self.last_message_id: int | None = get_as_snowflake(data, "last_message_id")
             self.position: int = data.get("position")
             self.slowmode_delay = data.get("rate_limit_per_user", 0)
             self.bitrate: int = data.get("bitrate")
@@ -1607,7 +1615,7 @@ class VocalGuildChannel(discord.abc.Connectable, discord.abc.GuildChannel, Hasha
             if value.channel and value.channel.id == self.id
         }
 
-    @utils.copy_doc(discord.abc.GuildChannel.permissions_for)
+    @copy_doc(discord.abc.GuildChannel.permissions_for)
     def permissions_for(self, obj: Member | Role, /) -> Permissions:
         base = super().permissions_for(obj)
 
@@ -1686,6 +1694,11 @@ class VoiceChannel(discord.abc.Messageable, VocalGuildChannel):
         Extra features of the channel.
 
         .. versionadded:: 2.0
+
+    nsfw: :class:`bool`
+        Whether the channel is marked as NSFW.
+
+        .. versionadded:: 2.7
     """
 
     def __init__(
@@ -1961,7 +1974,7 @@ class VoiceChannel(discord.abc.Messageable, VocalGuildChannel):
         from .webhook import Webhook  # noqa: PLC0415
 
         if avatar is not None:
-            avatar = utils._bytes_to_base64_data(avatar)  # type: ignore
+            avatar = bytes_to_base64_data(avatar)  # type: ignore
 
         data = await self._state.http.create_webhook(self.id, name=str(name), avatar=avatar, reason=reason)
         return Webhook.from_state(data, state=self._state)
@@ -1971,7 +1984,7 @@ class VoiceChannel(discord.abc.Messageable, VocalGuildChannel):
         """The channel's Discord type."""
         return ChannelType.voice
 
-    @utils.copy_doc(discord.abc.GuildChannel.clone)
+    @copy_doc(discord.abc.GuildChannel.clone)
     async def clone(self, *, name: str | None = None, reason: str | None = None) -> VoiceChannel:
         return await self._clone_impl(
             {"bitrate": self.bitrate, "user_limit": self.user_limit},
@@ -1993,6 +2006,7 @@ class VoiceChannel(discord.abc.Messageable, VocalGuildChannel):
         rtc_region: VoiceRegion | None = ...,
         video_quality_mode: VideoQualityMode = ...,
         slowmode_delay: int = ...,
+        nsfw: bool = ...,
         reason: str | None = ...,
     ) -> VoiceChannel | None: ...
 
@@ -2042,6 +2056,15 @@ class VoiceChannel(discord.abc.Messageable, VocalGuildChannel):
             The camera video quality for the voice channel's participants.
 
             .. versionadded:: 2.0
+
+        slowmode_delay: :class:`int`
+            Specifies the slowmode rate limit for user in this channel, in seconds.
+            A value of `0` disables slowmode. The maximum value possible is `21600`.
+
+        nsfw: :class:`bool`
+            Whether the channel is marked as NSFW.
+
+            .. versionadded:: 2.7
 
         Returns
         -------
@@ -2140,6 +2163,25 @@ class VoiceChannel(discord.abc.Messageable, VocalGuildChannel):
         """
         await self._state.http.set_voice_channel_status(self.id, status, reason=reason)
 
+    async def send_soundboard_sound(self, sound: PartialSoundboardSound) -> None:
+        """|coro|
+
+        Sends a soundboard sound to the voice channel.
+
+        Parameters
+        ----------
+        sound: :class:`PartialSoundboardSound`
+            The soundboard sound to send.
+
+        Raises
+        ------
+        Forbidden
+            You do not have proper permissions to send the soundboard sound.
+        HTTPException
+            Sending the soundboard sound failed.
+        """
+        await self._state.http.send_soundboard_sound(self.id, sound)
+
 
 class StageChannel(discord.abc.Messageable, VocalGuildChannel):
     """Represents a Discord guild stage channel.
@@ -2197,6 +2239,15 @@ class StageChannel(discord.abc.Messageable, VocalGuildChannel):
     last_message_id: Optional[:class:`int`]
         The ID of the last message sent to this channel. It may not always point to an existing or valid message.
         .. versionadded:: 2.5
+
+    slowmode_delay: :class:`int`
+        Specifies the slowmode rate limit for user in this channel, in seconds.
+        The maximum value possible is `21600`.
+
+    nsfw: :class:`bool`
+        Whether the channel is marked as NSFW.
+
+        .. versionadded:: 2.7
     """
 
     __slots__ = ("topic",)
@@ -2488,7 +2539,7 @@ class StageChannel(discord.abc.Messageable, VocalGuildChannel):
         from .webhook import Webhook  # noqa: PLC0415
 
         if avatar is not None:
-            avatar = utils._bytes_to_base64_data(avatar)  # type: ignore
+            avatar = bytes_to_base64_data(avatar)  # type: ignore
 
         data = await self._state.http.create_webhook(self.id, name=str(name), avatar=avatar, reason=reason)
         return Webhook.from_state(data, state=self._state)
@@ -2507,7 +2558,7 @@ class StageChannel(discord.abc.Messageable, VocalGuildChannel):
         """The channel's Discord type."""
         return ChannelType.stage_voice
 
-    @utils.copy_doc(discord.abc.GuildChannel.clone)
+    @copy_doc(discord.abc.GuildChannel.clone)
     async def clone(self, *, name: str | None = None, reason: str | None = None) -> StageChannel:
         return await self._clone_impl({}, name=name, reason=reason)
 
@@ -2517,7 +2568,7 @@ class StageChannel(discord.abc.Messageable, VocalGuildChannel):
 
         .. versionadded:: 2.0
         """
-        return utils.get(self.guild.stage_instances, channel_id=self.id)
+        return utils.find(lambda s: s.channel_id == self.id, self.guild.stage_instances)
 
     async def create_instance(
         self,
@@ -2656,6 +2707,16 @@ class StageChannel(discord.abc.Messageable, VocalGuildChannel):
 
             .. versionadded:: 2.0
 
+        bitrate: :class:`int`
+            The channel's preferred audio bitrate in bits per second.
+
+        user_limit: :class:`int`
+            The channel's limit for number of members that can be in a voice channel.
+
+        slowmode_delay: :class:`int`
+            Specifies the slowmode rate limit for user in this channel, in seconds.
+            A value of `0` disables slowmode. The maximum value possible is `21600`.
+
         Returns
         -------
         Optional[:class:`.StageChannel`]
@@ -2712,12 +2773,7 @@ class CategoryChannel(discord.abc.GuildChannel, Hashable):
     position: Optional[:class:`int`]
         The position in the category list. This is a number that starts at 0. e.g. the
         top category is position 0. Can be ``None`` if the channel was received in an interaction.
-    nsfw: :class:`bool`
-        If the channel is marked as "not safe for work".
 
-        .. note::
-
-            To check if the channel or the guild of that channel are marked as NSFW, consider :meth:`is_nsfw` instead.
     flags: :class:`ChannelFlags`
         Extra features of the channel.
 
@@ -2728,7 +2784,6 @@ class CategoryChannel(discord.abc.GuildChannel, Hashable):
         "name",
         "id",
         "guild",
-        "nsfw",
         "_state",
         "position",
         "_overwrites",
@@ -2742,17 +2797,16 @@ class CategoryChannel(discord.abc.GuildChannel, Hashable):
         self._update(guild, data)
 
     def __repr__(self) -> str:
-        return f"<CategoryChannel id={self.id} name={self.name!r} position={self.position} nsfw={self.nsfw}>"
+        return f"<CategoryChannel id={self.id} name={self.name!r} position={self.position}>"
 
     def _update(self, guild: Guild, data: CategoryChannelPayload) -> None:
         # This data will always exist
         self.guild: Guild = guild
         self.name: str = data["name"]
-        self.category_id: int | None = utils._get_as_snowflake(data, "parent_id")
+        self.category_id: int | None = get_as_snowflake(data, "parent_id")
 
         # This data may be missing depending on how this object is being created/updated
         if not data.pop("_invoke_flag", False):
-            self.nsfw: bool = data.get("nsfw", False)
             self.position: int = data.get("position")
             self.flags: ChannelFlags = ChannelFlags._from_value(data.get("flags", 0))
             self._fill_overwrites(data)
@@ -2766,13 +2820,9 @@ class CategoryChannel(discord.abc.GuildChannel, Hashable):
         """The channel's Discord type."""
         return ChannelType.category
 
-    def is_nsfw(self) -> bool:
-        """Checks if the category is NSFW."""
-        return self.nsfw
-
-    @utils.copy_doc(discord.abc.GuildChannel.clone)
+    @copy_doc(discord.abc.GuildChannel.clone)
     async def clone(self, *, name: str | None = None, reason: str | None = None) -> CategoryChannel:
-        return await self._clone_impl({"nsfw": self.nsfw}, name=name, reason=reason)
+        return await self._clone_impl({}, name=name, reason=reason)
 
     @overload
     async def edit(
@@ -2780,7 +2830,6 @@ class CategoryChannel(discord.abc.GuildChannel, Hashable):
         *,
         name: str = ...,
         position: int = ...,
-        nsfw: bool = ...,
         overwrites: Mapping[Role | Member, PermissionOverwrite] = ...,
         reason: str | None = ...,
     ) -> CategoryChannel | None: ...
@@ -2808,8 +2857,6 @@ class CategoryChannel(discord.abc.GuildChannel, Hashable):
             The new category's name.
         position: :class:`int`
             The new category's position.
-        nsfw: :class:`bool`
-            To mark the category as NSFW or not.
         reason: Optional[:class:`str`]
             The reason for editing this category. Shows up on the audit log.
         overwrites: Dict[Union[:class:`Role`, :class:`Member`, :class:`~discord.abc.Snowflake`], :class:`PermissionOverwrite`]
@@ -2836,7 +2883,7 @@ class CategoryChannel(discord.abc.GuildChannel, Hashable):
             # the payload will always be the proper channel payload
             return self.__class__(state=self._state, guild=self.guild, data=payload)  # type: ignore
 
-    @utils.copy_doc(discord.abc.GuildChannel.move)
+    @copy_doc(discord.abc.GuildChannel.move)
     async def move(self, **kwargs):
         kwargs.pop("category", None)
         await super().move(**kwargs)
@@ -3138,7 +3185,7 @@ class GroupChannel(discord.abc.Messageable, Hashable):
         self._update_group(data)
 
     def _update_group(self, data: GroupChannelPayload) -> None:
-        self.owner_id: int | None = utils._get_as_snowflake(data, "owner_id")
+        self.owner_id: int | None = get_as_snowflake(data, "owner_id")
         self._icon: str | None = data.get("icon")
         self.name: str | None = data.get("name")
         self.recipients: list[User] = [self._state.store_user(u) for u in data.get("recipients", [])]
@@ -3305,6 +3352,84 @@ class PartialMessageable(discord.abc.Messageable, Hashable):
 
     def __repr__(self) -> str:
         return f"<PartialMessageable id={self.id} type={self.type!r}>"
+
+
+class VoiceChannelEffectAnimation(NamedTuple):
+    """Represents an animation that can be sent to a voice channel.
+
+    .. versionadded:: 2.7
+    """
+
+    id: int
+    type: VoiceChannelEffectAnimationType
+
+
+class VoiceChannelSoundEffect(PartialSoundboardSound): ...
+
+
+class VoiceChannelEffectSendEvent:
+    """Represents the payload for an :func:`on_voice_channel_effect_send`.
+
+    .. versionadded:: 2.7
+
+    Attributes
+    ----------
+    animation_type: :class:`int`
+        The type of animation that is being sent.
+    animation_id: :class:`int`
+        The ID of the animation that is being sent.
+    sound: Optional[:class:`SoundboardSound`]
+        The sound that is being sent, could be ``None`` if the effect is not a sound effect.
+    guild: :class:`Guild`
+        The guild in which the sound is being sent.
+    user: :class:`Member`
+        The member that sent the sound.
+    channel: :class:`VoiceChannel`
+        The voice channel in which the sound is being sent.
+    data: :class:`dict`
+        The raw data sent by the gateway.
+    """
+
+    __slots__ = (
+        "_state",
+        "animation_type",
+        "animation_id",
+        "sound",
+        "guild",
+        "user",
+        "channel",
+        "data",
+        "emoji",
+    )
+
+    def __init__(
+        self,
+        data: VoiceChannelEffectSend,
+        state: ConnectionState,
+        sound: SoundboardSound | PartialSoundboardSound | None = None,
+    ) -> None:
+        self._state = state
+        channel_id = int(data["channel_id"])
+        user_id = int(data["user_id"])
+        guild_id = int(data["guild_id"])
+        self.animation_type: VoiceChannelEffectAnimationType = try_enum(
+            VoiceChannelEffectAnimationType, data["animation_type"]
+        )
+        self.animation_id = int(data["animation_id"])
+        self.sound = sound
+        self.guild = state._get_guild(guild_id)
+        self.user = self.guild.get_member(user_id)
+        self.channel = self.guild.get_channel(channel_id)
+        self.emoji = (
+            PartialEmoji(
+                name=data["emoji"]["name"],
+                animated=data["emoji"]["animated"],
+                id=data["emoji"]["id"],
+            )
+            if data.get("emoji", None)
+            else None
+        )
+        self.data = data
 
 
 def _guild_channel_factory(channel_type: int):

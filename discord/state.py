@@ -66,12 +66,14 @@ from .poll import Poll, PollAnswerCount
 from .raw_models import *
 from .role import Role
 from .scheduled_events import ScheduledEvent
+from .soundboard import PartialSoundboardSound, SoundboardSound
 from .stage_instance import StageInstance
 from .sticker import GuildSticker
 from .threads import Thread, ThreadMember
 from .ui.modal import Modal, ModalStore
 from .ui.view import View, ViewStore
 from .user import ClientUser, User
+from .utils.private import get_as_snowflake, parse_time, sane_wait_for
 
 if TYPE_CHECKING:
     from .abc import PrivateChannel
@@ -92,7 +94,7 @@ if TYPE_CHECKING:
 
     T = TypeVar("T")
     CS = TypeVar("CS", bound="ConnectionState")
-    Channel = Union[GuildChannel, VocalGuildChannel, PrivateChannel, PartialMessageable]
+    Channel = GuildChannel | VocalGuildChannel | PrivateChannel | P | rtialMessageable
 
 
 class ChunkRequest:
@@ -180,7 +182,7 @@ class ConnectionState:
         self.hooks: dict[str, Callable] = hooks
         self.shard_count: int | None = None
         self._ready_task: asyncio.Task | None = None
-        self.application_id: int | None = utils._get_as_snowflake(options, "application_id")
+        self.application_id: int | None = get_as_snowflake(options, "application_id")
         self.heartbeat_timeout: float = options.get("heartbeat_timeout", 60.0)
         self.guild_ready_timeout: float = options.get("guild_ready_timeout", 2.0)
         if self.guild_ready_timeout < 0:
@@ -269,6 +271,7 @@ class ConnectionState:
             self._view_store: ViewStore = ViewStore(self)
         self._modal_store: ModalStore = ModalStore(self)
         self._voice_clients: dict[int, VoiceClient] = {}
+        self._sounds: dict[int, SoundboardSound] = {}
 
         # LRU of max size 128
         self._private_channels: OrderedDict[int, PrivateChannel] = OrderedDict()
@@ -615,6 +618,7 @@ class ConnectionState:
         except asyncio.CancelledError:
             pass
         else:
+            await self._add_default_sounds()
             # dispatch the event
             self.call_handlers("ready")
             self.dispatch("ready")
@@ -636,7 +640,7 @@ class ConnectionState:
             except KeyError:
                 pass
             else:
-                self.application_id = utils._get_as_snowflake(application, "id")
+                self.application_id = get_as_snowflake(application, "id")
                 # flags will always be present here
                 self.application_flags = ApplicationFlags._from_value(application["flags"])  # type: ignore
 
@@ -755,7 +759,7 @@ class ConnectionState:
 
     def parse_message_reaction_add(self, data) -> None:
         emoji = data["emoji"]
-        emoji_id = utils._get_as_snowflake(emoji, "id")
+        emoji_id = get_as_snowflake(emoji, "id")
         emoji = PartialEmoji.with_state(self, id=emoji_id, animated=emoji.get("animated", False), name=emoji["name"])
         raw = RawReactionActionEvent(data, emoji, "REACTION_ADD")
 
@@ -792,7 +796,7 @@ class ConnectionState:
 
     def parse_message_reaction_remove(self, data) -> None:
         emoji = data["emoji"]
-        emoji_id = utils._get_as_snowflake(emoji, "id")
+        emoji_id = get_as_snowflake(emoji, "id")
         emoji = PartialEmoji.with_state(self, id=emoji_id, name=emoji["name"])
         raw = RawReactionActionEvent(data, emoji, "REACTION_REMOVE")
 
@@ -822,7 +826,7 @@ class ConnectionState:
 
     def parse_message_reaction_remove_emoji(self, data) -> None:
         emoji = data["emoji"]
-        emoji_id = utils._get_as_snowflake(emoji, "id")
+        emoji_id = get_as_snowflake(emoji, "id")
         emoji = PartialEmoji.with_state(self, id=emoji_id, name=emoji["name"])
         raw = RawReactionClearEmojiEvent(data, emoji)
         self.dispatch("raw_reaction_clear_emoji", raw)
@@ -901,7 +905,7 @@ class ConnectionState:
         self.dispatch("interaction", interaction)
 
     def parse_presence_update(self, data) -> None:
-        guild_id = utils._get_as_snowflake(data, "guild_id")
+        guild_id = get_as_snowflake(data, "guild_id")
         # guild_id won't be None here
         guild = self._get_guild(guild_id)
         if guild is None:
@@ -945,7 +949,7 @@ class ConnectionState:
         self.dispatch("invite_delete", invite)
 
     def parse_channel_delete(self, data) -> None:
-        guild = self._get_guild(utils._get_as_snowflake(data, "guild_id"))
+        guild = self._get_guild(get_as_snowflake(data, "guild_id"))
         channel_id = int(data["id"])
         if guild is not None:
             channel = guild.get_channel(channel_id)
@@ -964,7 +968,7 @@ class ConnectionState:
             self.dispatch("private_channel_update", old_channel, channel)
             return
 
-        guild_id = utils._get_as_snowflake(data, "guild_id")
+        guild_id = get_as_snowflake(data, "guild_id")
         guild = self._get_guild(guild_id)
         if guild is not None:
             channel = guild.get_channel(channel_id)
@@ -984,7 +988,7 @@ class ConnectionState:
             )
 
     def parse_channel_create(self, data) -> None:
-        factory, ch_type = _channel_factory(data["type"])
+        factory, _ch_type = _channel_factory(data["type"])
         if factory is None:
             _log.debug(
                 "CHANNEL_CREATE referencing an unknown channel type %s. Discarding.",
@@ -992,7 +996,7 @@ class ConnectionState:
             )
             return
 
-        guild_id = utils._get_as_snowflake(data, "guild_id")
+        guild_id = get_as_snowflake(data, "guild_id")
         guild = self._get_guild(guild_id)
         if guild is not None:
             # the factory can't be a DMChannel or GroupChannel here
@@ -1023,7 +1027,7 @@ class ConnectionState:
             )
             return
 
-        last_pin = utils.parse_time(data["last_pin_timestamp"]) if data["last_pin_timestamp"] else None
+        last_pin = parse_time(data["last_pin_timestamp"]) if data["last_pin_timestamp"] else None
 
         if guild is None:
             self.dispatch("private_channel_pins_update", channel, last_pin)
@@ -1737,8 +1741,8 @@ class ConnectionState:
             )
 
     def parse_voice_state_update(self, data) -> None:
-        guild = self._get_guild(utils._get_as_snowflake(data, "guild_id"))
-        channel_id = utils._get_as_snowflake(data, "channel_id")
+        guild = self._get_guild(get_as_snowflake(data, "guild_id"))
+        channel_id = get_as_snowflake(data, "channel_id")
         flags = self.member_cache_flags
         # self.user is *always* cached when this is called
         self_id = self.user.id  # type: ignore
@@ -1837,7 +1841,7 @@ class ConnectionState:
         return self.get_user(user_id)
 
     def get_reaction_emoji(self, data) -> GuildEmoji | AppEmoji | PartialEmoji:
-        emoji_id = utils._get_as_snowflake(data, "id")
+        emoji_id = get_as_snowflake(data, "id")
 
         if not emoji_id:
             return data["name"]
@@ -1881,6 +1885,77 @@ class ConnectionState:
         data: MessagePayload,
     ) -> Message:
         return Message(state=self, channel=channel, data=data)
+
+    def parse_voice_channel_effect_send(self, data) -> None:
+        if sound_id := int(data.get("sound_id", 0)):
+            sound = self._get_sound(sound_id)
+            if sound is None:
+                sound = PartialSoundboardSound(data, self, self.http)
+            raw = VoiceChannelEffectSendEvent(data, self, sound)
+        else:
+            raw = VoiceChannelEffectSendEvent(data, self, None)
+
+        self.dispatch("voice_channel_effect_send", raw)
+
+    def _get_sound(self, sound_id: int) -> SoundboardSound | None:
+        return self._sounds.get(sound_id)
+
+    def _update_sound(self, sound: SoundboardSound) -> SoundboardSound | None:
+        before = self._sounds.get(sound.id)
+        self._sounds[sound.id] = sound
+        return before
+
+    def parse_soundboard_sounds(self, data) -> None:
+        guild_id = int(data["guild_id"])
+        for sound_data in data["soundboard_sounds"]:
+            self._add_sound(SoundboardSound(state=self, http=self.http, data=sound_data, guild_id=guild_id))
+
+    def parse_guild_soundboard_sounds_update(self, data):
+        before_sounds = []
+        after_sounds = []
+        for sound_data in data["soundboard_sounds"]:
+            after = SoundboardSound(state=self, http=self.http, data=sound_data)
+            if before := self._update_sound(after):
+                before_sounds.append(before)
+            after_sounds.append(after)
+        if len(before_sounds) == len(after_sounds):
+            self.dispatch("soundboard_sounds_update", before_sounds, after_sounds)
+        self.dispatch("raw_soundboard_sounds_update", after_sounds)
+
+    def parse_guild_soundboard_sound_update(self, data):
+        after = SoundboardSound(state=self, http=self.http, data=data)
+        if before := self._update_sound(after):
+            self.dispatch("soundboard_sound_update", before, after)
+        self.dispatch("raw_soundboard_sound_update", after)
+
+    def parse_guild_soundboard_sound_create(self, data):
+        sound = SoundboardSound(state=self, http=self.http, data=data)
+        self._add_sound(sound)
+        self.dispatch("soundboard_sound_create", sound)
+
+    def parse_guild_soundboard_sound_delete(self, data):
+        sound_id = int(data["sound_id"])
+        sound = self._get_sound(sound_id)
+        if sound is not None:
+            self._remove_sound(sound)
+            self.dispatch("soundboard_sound_delete", sound)
+        self.dispatch("raw_soundboard_sound_delete", RawSoundboardSoundDeleteEvent(data))
+
+    async def _add_default_sounds(self) -> None:
+        default_sounds = await self.http.get_default_sounds()
+        for default_sound in default_sounds:
+            sound = SoundboardSound(state=self, http=self.http, data=default_sound)
+            self._add_sound(sound)
+
+    def _add_sound(self, sound: SoundboardSound) -> None:
+        self._sounds[sound.id] = sound
+
+    def _remove_sound(self, sound: SoundboardSound) -> None:
+        self._sounds.pop(sound.id, None)
+
+    @property
+    def sounds(self) -> list[SoundboardSound]:
+        return list(self._sounds.values())
 
 
 class AutoShardedConnectionState(ConnectionState):
@@ -1935,7 +2010,7 @@ class AutoShardedConnectionState(ConnectionState):
                     )
                     if len(current_bucket) >= max_concurrency:
                         try:
-                            await utils.sane_wait_for(current_bucket, timeout=max_concurrency * 70.0)
+                            await sane_wait_for(current_bucket, timeout=max_concurrency * 70.0)
                         except asyncio.TimeoutError:
                             fmt = "Shard ID %s failed to wait for chunks from a sub-bucket with length %d"
                             _log.warning(fmt, guild.shard_id, len(current_bucket))
@@ -1953,11 +2028,11 @@ class AutoShardedConnectionState(ConnectionState):
 
         guilds = sorted(processed, key=lambda g: g[0].shard_id)
         for shard_id, info in itertools.groupby(guilds, key=lambda g: g[0].shard_id):
-            children, futures = zip(*info)
+            children, futures = zip(*info, strict=False)
             # 110 reqs/minute w/ 1 req/guild plus some buffer
             timeout = 61 * (len(children) / 110)
             try:
-                await utils.sane_wait_for(futures, timeout=timeout)
+                await sane_wait_for(futures, timeout=timeout)
             except asyncio.TimeoutError:
                 _log.warning(
                     ("Shard ID %s failed to wait for chunks (timeout=%.2f) for %d guilds"),
@@ -2005,7 +2080,7 @@ class AutoShardedConnectionState(ConnectionState):
             except KeyError:
                 pass
             else:
-                self.application_id = utils._get_as_snowflake(application, "id")
+                self.application_id = get_as_snowflake(application, "id")
                 self.application_flags = ApplicationFlags._from_value(application["flags"])
 
         for guild_data in data["guilds"]:

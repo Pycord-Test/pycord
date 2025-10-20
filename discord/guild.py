@@ -56,8 +56,10 @@ from .enums import (
     EntitlementOwnerType,
     NotificationLevel,
     NSFWLevel,
+    OnboardingMode,
     ScheduledEventLocationType,
     ScheduledEventPrivacyLevel,
+    SortOrder,
     VerificationLevel,
     VideoQualityMode,
     VoiceRegion,
@@ -81,10 +83,12 @@ from .onboarding import Onboarding
 from .permissions import PermissionOverwrite
 from .role import Role, RoleColours
 from .scheduled_events import ScheduledEvent, ScheduledEventLocation
+from .soundboard import SoundboardSound
 from .stage_instance import StageInstance
 from .sticker import GuildSticker
 from .threads import Thread, ThreadMember
 from .user import User
+from .utils.private import bytes_to_base64_data, get_as_snowflake
 from .welcome_screen import WelcomeScreen, WelcomeScreenChannel
 from .widget import Widget
 
@@ -103,6 +107,7 @@ if TYPE_CHECKING:
         TextChannel,
         VoiceChannel,
     )
+    from .onboarding import OnboardingPrompt
     from .permissions import Permissions
     from .state import ConnectionState
     from .template import Template
@@ -115,9 +120,9 @@ if TYPE_CHECKING:
     from .voice_client import VoiceClient
     from .webhook import Webhook
 
-    VocalGuildChannel = Union[VoiceChannel, StageChannel]
-    GuildChannel = Union[VoiceChannel, StageChannel, TextChannel, ForumChannel, CategoryChannel]
-    ByCategoryItem = Tuple[Optional[CategoryChannel], List[GuildChannel]]
+    VocalGuildChannel = VoiceChannel | StageChannel
+    GuildChannel = VoiceChannel | StageChannel | TextChannel | ForumChannel | CategoryChannel
+    ByCategoryItem = Tuple[CategoryChannel | None, List[GuildChannel]]
 
 
 class BanEntry(NamedTuple):
@@ -128,6 +133,7 @@ class BanEntry(NamedTuple):
 class _GuildLimit(NamedTuple):
     emoji: int
     stickers: int
+    soundboard: int
     bitrate: float
     filesize: int
 
@@ -171,8 +177,6 @@ class Guild(Hashable):
         The channel that denotes the AFK channel. ``None`` if it doesn't exist.
     id: :class:`int`
         The guild's ID.
-    invites_disabled: :class:`bool`
-        Indicates if the guild invites are disabled.
     owner_id: :class:`int`
         The guild owner's ID. Use :attr:`Guild.owner` instead.
     unavailable: :class:`bool`
@@ -284,14 +288,15 @@ class Guild(Hashable):
         "_threads",
         "approximate_member_count",
         "approximate_presence_count",
+        "_sounds",
     )
 
     _PREMIUM_GUILD_LIMITS: ClassVar[dict[int | None, _GuildLimit]] = {
-        None: _GuildLimit(emoji=50, stickers=5, bitrate=96e3, filesize=10_485_760),
-        0: _GuildLimit(emoji=50, stickers=5, bitrate=96e3, filesize=10_485_760),
-        1: _GuildLimit(emoji=100, stickers=15, bitrate=128e3, filesize=10_485_760),
-        2: _GuildLimit(emoji=150, stickers=30, bitrate=256e3, filesize=52_428_800),
-        3: _GuildLimit(emoji=250, stickers=60, bitrate=384e3, filesize=104_857_600),
+        None: _GuildLimit(emoji=50, stickers=5, soundboard=8, bitrate=96e3, filesize=10_485_760),
+        0: _GuildLimit(emoji=50, stickers=5, soundboard=8, bitrate=96e3, filesize=10_485_760),
+        1: _GuildLimit(emoji=100, stickers=15, soundboard=24, bitrate=128e3, filesize=10_485_760),
+        2: _GuildLimit(emoji=150, stickers=30, soundboard=36, bitrate=256e3, filesize=52_428_800),
+        3: _GuildLimit(emoji=250, stickers=60, soundboard=48, bitrate=384e3, filesize=104_857_600),
     }
 
     def __init__(self, *, data: GuildPayload, state: ConnectionState):
@@ -306,6 +311,7 @@ class Guild(Hashable):
         self._voice_states: dict[int, VoiceState] = {}
         self._threads: dict[int, Thread] = {}
         self._state: ConnectionState = state
+        self._sounds: dict[int, SoundboardSound] = {}
         self._from_data(data)
 
     def _add_channel(self, channel: GuildChannel, /) -> None:
@@ -472,7 +478,7 @@ class Guild(Hashable):
         )
         self.features: list[GuildFeature] = guild.get("features", [])
         self._splash: str | None = guild.get("splash")
-        self._system_channel_id: int | None = utils._get_as_snowflake(guild, "system_channel_id")
+        self._system_channel_id: int | None = get_as_snowflake(guild, "system_channel_id")
         self.description: str | None = guild.get("description")
         self.max_presences: int | None = guild.get("max_presences")
         self.max_members: int | None = guild.get("max_members")
@@ -483,8 +489,8 @@ class Guild(Hashable):
         self._system_channel_flags: int = guild.get("system_channel_flags", 0)
         self.preferred_locale: str | None = guild.get("preferred_locale")
         self._discovery_splash: str | None = guild.get("discovery_splash")
-        self._rules_channel_id: int | None = utils._get_as_snowflake(guild, "rules_channel_id")
-        self._public_updates_channel_id: int | None = utils._get_as_snowflake(guild, "public_updates_channel_id")
+        self._rules_channel_id: int | None = get_as_snowflake(guild, "rules_channel_id")
+        self._public_updates_channel_id: int | None = get_as_snowflake(guild, "public_updates_channel_id")
         self.nsfw_level: NSFWLevel = try_enum(NSFWLevel, guild.get("nsfw_level", 0))
         self.approximate_presence_count = guild.get("approximate_presence_count")
         self.approximate_member_count = guild.get("approximate_member_count")
@@ -510,11 +516,136 @@ class Guild(Hashable):
         self._sync(guild)
         self._large: bool | None = None if self._member_count is None else self._member_count >= 250
 
-        self.owner_id: int | None = utils._get_as_snowflake(guild, "owner_id")
-        self.afk_channel: VoiceChannel | None = self.get_channel(utils._get_as_snowflake(guild, "afk_channel_id"))  # type: ignore
+        self.owner_id: int | None = get_as_snowflake(guild, "owner_id")
+        self.afk_channel: VoiceChannel | None = self.get_channel(get_as_snowflake(guild, "afk_channel_id"))  # type: ignore
 
         for obj in guild.get("voice_states", []):
             self._update_voice_state(obj, int(obj["channel_id"]))
+
+        for sound in guild.get("soundboard_sounds", []):
+            sound = SoundboardSound(state=state, http=state.http, data=sound)
+            self._add_sound(sound)
+
+    def _add_sound(self, sound: SoundboardSound) -> None:
+        self._sounds[sound.id] = sound
+        self._state._add_sound(sound)
+
+    def _remove_sound(self, sound_id: int) -> None:
+        self._sounds.pop(sound_id, None)
+
+    async def fetch_sounds(self) -> list[SoundboardSound]:
+        """|coro|
+        Fetches all the soundboard sounds in the guild.
+
+        .. versionadded:: 2.7
+
+        Returns
+        -------
+        List[:class:`SoundboardSound`]
+            The sounds in the guild.
+        """
+        data = await self._state.http.get_all_guild_sounds(self.id)
+        return [
+            SoundboardSound(
+                state=self._state,
+                http=self._state.http,
+                data=sound,
+            )
+            for sound in data["items"]
+        ]
+
+    async def fetch_sound(self, sound_id: int) -> SoundboardSound:
+        """|coro|
+        Fetches a soundboard sound in the guild.
+
+        .. versionadded:: 2.7
+
+        Parameters
+        ----------
+        sound_id: :class:`int`
+            The ID of the sound.
+
+        Returns
+        -------
+        :class:`SoundboardSound`
+            The sound.
+        """
+        data = await self._state.http.get_guild_sound(self.id, sound_id)
+        return SoundboardSound(
+            state=self._state,
+            http=self._state.http,
+            data=data,
+        )
+
+    async def create_sound(
+        self,
+        name: str,
+        sound: bytes,
+        volume: float = 1.0,
+        emoji: PartialEmoji | GuildEmoji | str | None = None,
+        reason: str | None = None,
+    ) -> SoundboardSound:
+        """|coro|
+        Creates a :class:`SoundboardSound` in the guild.
+        You must have :attr:`Permissions.manage_expressions` permission to use this.
+
+        .. versionadded:: 2.7
+
+        Parameters
+        ----------
+        name: :class:`str`
+            The name of the sound.
+        sound: :class:`bytes`
+            The :term:`py:bytes-like object` representing the sound data.
+            Only MP3 sound files that are less than 5.2 seconds long are supported.
+        volume: :class:`float`
+            The volume of the sound. Defaults to 1.0.
+        emoji: Optional[Union[:class:`PartialEmoji`, :class:`GuildEmoji`, :class:`str`]]
+            The emoji of the sound.
+        reason: Optional[:class:`str`]
+            The reason for creating this sound. Shows up on the audit log.
+
+        Returns
+        -------
+        :class:`SoundboardSound`
+            The created sound.
+
+        Raises
+        ------
+        :exc:`HTTPException`
+            Creating the sound failed.
+        :exc:`Forbidden`
+            You do not have permissions to create sounds.
+        """
+
+        payload: dict[str, Any] = {
+            "name": name,
+            "sound": bytes_to_base64_data(sound),
+            "volume": volume,
+            "emoji_id": None,
+            "emoji_name": None,
+        }
+
+        if emoji is not None:
+            if isinstance(emoji, _EmojiTag):
+                partial_emoji = emoji._to_partial()
+            elif isinstance(emoji, str):
+                partial_emoji = PartialEmoji.from_str(emoji)
+            else:
+                partial_emoji = None
+
+            if partial_emoji is not None:
+                if partial_emoji.id is None:
+                    payload["emoji_name"] = partial_emoji.name
+                else:
+                    payload["emoji_id"] = partial_emoji.id
+
+        data = await self._state.http.create_guild_sound(self.id, reason=reason, **payload)
+        return SoundboardSound(
+            state=self._state,
+            http=self._state.http,
+            data=data,
+        )
 
     # TODO: refactor/remove?
     def _sync(self, data: GuildPayload) -> None:
@@ -533,7 +664,7 @@ class Guild(Hashable):
         if "channels" in data:
             channels = data["channels"]
             for c in channels:
-                factory, ch_type = _guild_channel_factory(c["type"])
+                factory, _ch_type = _guild_channel_factory(c["type"])
                 if factory:
                     self._add_channel(factory(guild=self, data=c, state=self._state))  # type: ignore
 
@@ -640,6 +771,17 @@ class Guild(Hashable):
         """
         r = [ch for ch in self._channels.values() if isinstance(ch, CategoryChannel)]
         r.sort(key=lambda c: (c.position or -1, c.id))
+        return r
+
+    @property
+    def sounds(self) -> list[SoundboardSound]:
+        """A list of soundboard sounds that belong to this guild.
+
+        .. versionadded:: 2.7
+
+        This is sorted by the position and are in UI order from top to bottom.
+        """
+        r = list(self._sounds.values())
         return r
 
     def by_category(self) -> list[ByCategoryItem]:
@@ -789,6 +931,15 @@ class Guild(Hashable):
         """
         more_stickers = 60 if "MORE_STICKERS" in self.features else 0
         return max(more_stickers, self._PREMIUM_GUILD_LIMITS[self.premium_tier].stickers)
+
+    @property
+    def soundboard_limit(self) -> int:
+        """The maximum number of soundboard slots this guild has.
+
+        .. versionadded:: 2.7
+        """
+        more_soundboard = 48 if "MORE_SOUNDBOARD" in self.features else 0
+        return max(more_soundboard, self._PREMIUM_GUILD_LIMITS[self.premium_tier].soundboard)
 
     @property
     def bitrate_limit(self) -> int:
@@ -979,7 +1130,7 @@ class Guild(Hashable):
 
     @property
     def invites_disabled(self) -> bool:
-        """Returns a boolean indicating if the guild invites are disabled."""
+        """A boolean indicating whether the guild invites are disabled."""
         return "INVITES_DISABLED" in self.features
 
     def get_member_named(self, name: str, /) -> Member | None:
@@ -1019,7 +1170,10 @@ class Guild(Hashable):
 
             # do the actual lookup and return if found
             # if it isn't found then we'll do a full name lookup below.
-            result = utils.get(members, name=name[:-5], discriminator=potential_discriminator)
+            result = utils.find(
+                lambda m: m.name == name[:-5] and discriminator == potential_discriminator,
+                members,
+            )
             if result is not None:
                 return result
 
@@ -1074,6 +1228,8 @@ class Guild(Hashable):
         slowmode_delay: int | utils.Undefined = MISSING,
         nsfw: bool | utils.Undefined = MISSING,
         overwrites: dict[Role | Member, PermissionOverwrite] | utils.Undefined = MISSING,
+        default_thread_slowmode_delay: int | None = MISSING,
+        default_auto_archive_duration: int = MISSING,
     ) -> TextChannel:
         """|coro|
 
@@ -1110,11 +1266,21 @@ class Guild(Hashable):
             The new channel's topic.
         slowmode_delay: :class:`int`
             Specifies the slowmode rate limit for user in this channel, in seconds.
-            The maximum value possible is `21600`.
+            A value of `0` disables slowmode. The maximum value possible is `21600`.
         nsfw: :class:`bool`
-            To mark the channel as NSFW or not.
+            Whether the channel is marked as NSFW.
         reason: Optional[:class:`str`]
             The reason for creating this channel. Shows up on the audit log.
+
+        default_thread_slowmode_delay: Optional[:class:`int`]
+            The initial slowmode delay to set on newly created threads in this channel.
+
+            .. versionadded:: 2.7
+
+        default_auto_archive_duration: :class:`int`
+            The default auto archive duration in minutes for threads created in this channel.
+
+            .. versionadded:: 2.7
 
         Returns
         -------
@@ -1164,6 +1330,12 @@ class Guild(Hashable):
         if nsfw is not MISSING:
             options["nsfw"] = nsfw
 
+        if default_thread_slowmode_delay is not MISSING:
+            options["default_thread_slowmode_delay"] = default_thread_slowmode_delay
+
+        if default_auto_archive_duration is not MISSING:
+            options["default_auto_archive_duration"] = default_auto_archive_duration
+
         data = await self._create_channel(
             name,
             overwrites=overwrites,
@@ -1190,6 +1362,8 @@ class Guild(Hashable):
         rtc_region: VoiceRegion | None | utils.Undefined = MISSING,
         video_quality_mode: VideoQualityMode | utils.Undefined = MISSING,
         overwrites: dict[Role | Member, PermissionOverwrite] | utils.Undefined = MISSING,
+        slowmode_delay: int = MISSING,
+        nsfw: bool = MISSING,
     ) -> VoiceChannel:
         """|coro|
 
@@ -1224,6 +1398,17 @@ class Guild(Hashable):
         reason: Optional[:class:`str`]
             The reason for creating this channel. Shows up on the audit log.
 
+        slowmode_delay: :class:`int`
+            Specifies the slowmode rate limit for user in this channel, in seconds.
+            A value of ``0`` disables slowmode. The maximum value possible is ``21600``.
+
+            .. versionadded:: 2.7
+
+        nsfw: :class:`bool`
+            Whether the channel is marked as NSFW.
+
+            .. versionadded:: 2.7
+
         Returns
         -------
         :class:`VoiceChannel`
@@ -1254,6 +1439,12 @@ class Guild(Hashable):
         if video_quality_mode is not MISSING:
             options["video_quality_mode"] = video_quality_mode.value
 
+        if slowmode_delay is not MISSING:
+            options["rate_limit_per_user"] = slowmode_delay
+
+        if nsfw is not MISSING:
+            options["nsfw"] = nsfw
+
         data = await self._create_channel(
             name,
             overwrites=overwrites,
@@ -1277,6 +1468,12 @@ class Guild(Hashable):
         overwrites: dict[Role | Member, PermissionOverwrite] | utils.Undefined = MISSING,
         category: CategoryChannel | None = None,
         reason: str | None = None,
+        bitrate: int = MISSING,
+        user_limit: int = MISSING,
+        rtc_region: VoiceRegion | None = MISSING,
+        video_quality_mode: VideoQualityMode = MISSING,
+        slowmode_delay: int = MISSING,
+        nsfw: bool = MISSING,
     ) -> StageChannel:
         """|coro|
 
@@ -1302,6 +1499,38 @@ class Guild(Hashable):
         reason: Optional[:class:`str`]
             The reason for creating this channel. Shows up on the audit log.
 
+        bitrate: :class:`int`
+            The channel's preferred audio bitrate in bits per second.
+
+            .. versionadded:: 2.7
+
+        user_limit: :class:`int`
+            The channel's limit for number of members that can be in a voice channel.
+
+            .. versionadded:: 2.7
+
+        rtc_region: Optional[:class:`VoiceRegion`]
+            The region for the voice channel's voice communication.
+            A value of ``None`` indicates automatic voice region detection.
+
+            .. versionadded:: 2.7
+
+        video_quality_mode: :class:`VideoQualityMode`
+            The camera video quality for the voice channel's participants.
+
+            .. versionadded:: 2.7
+
+        slowmode_delay: :class:`int`
+            Specifies the slowmode rate limit for user in this channel, in seconds.
+            A value of ``0`` disables slowmode. The maximum value possible is ``21600``.
+
+            .. versionadded:: 2.7
+
+        nsfw: :class:`bool`
+            Whether the channel is marked as NSFW.
+
+            .. versionadded:: 2.7
+
         Returns
         -------
         :class:`StageChannel`
@@ -1322,6 +1551,24 @@ class Guild(Hashable):
         }
         if position is not MISSING:
             options["position"] = position
+
+        if bitrate is not MISSING:
+            options["bitrate"] = bitrate
+
+        if user_limit is not MISSING:
+            options["user_limit"] = user_limit
+
+        if rtc_region is not MISSING:
+            options["rtc_region"] = None if rtc_region is None else str(rtc_region)
+
+        if video_quality_mode is not MISSING:
+            options["video_quality_mode"] = video_quality_mode.value
+
+        if slowmode_delay is not MISSING:
+            options["rate_limit_per_user"] = slowmode_delay
+
+        if nsfw is not MISSING:
+            options["nsfw"] = nsfw
 
         data = await self._create_channel(
             name,
@@ -1349,6 +1596,10 @@ class Guild(Hashable):
         nsfw: bool | utils.Undefined = MISSING,
         overwrites: dict[Role | Member, PermissionOverwrite] | utils.Undefined = MISSING,
         default_reaction_emoji: GuildEmoji | int | str | utils.Undefined = MISSING,
+        available_tags: list[ForumTag] = MISSING,
+        default_sort_order: SortOrder | None = MISSING,
+        default_thread_slowmode_delay: int | None = MISSING,
+        default_auto_archive_duration: int = MISSING,
     ) -> ForumChannel:
         """|coro|
 
@@ -1385,9 +1636,9 @@ class Guild(Hashable):
             The new channel's topic.
         slowmode_delay: :class:`int`
             Specifies the slowmode rate limit for user in this channel, in seconds.
-            The maximum value possible is `21600`.
+            A value of ``0`` disables slowmode. The maximum value possible is ``21600``.
         nsfw: :class:`bool`
-            To mark the channel as NSFW or not.
+            Whether the channel is marked as NSFW.
         reason: Optional[:class:`str`]
             The reason for creating this channel. Shows up on the audit log.
         default_reaction_emoji: Optional[:class:`GuildEmoji` | :class:`int` | :class:`str`]
@@ -1396,6 +1647,26 @@ class Guild(Hashable):
             :class:`GuildEmoji`, snowflake ID, string representation (eg. '<a:emoji_name:emoji_id>').
 
             .. versionadded:: v2.5
+
+        available_tags: List[:class:`ForumTag`]
+            The set of tags that can be used in a forum channel.
+
+            .. versionadded:: 2.7
+
+        default_sort_order: Optional[:class:`SortOrder`]
+            The default sort order type used to order posts in this channel.
+
+            .. versionadded:: 2.7
+
+        default_thread_slowmode_delay: Optional[:class:`int`]
+            The initial slowmode delay to set on newly created threads in this channel.
+
+            .. versionadded:: 2.7
+
+        default_auto_archive_duration: :class:`int`
+            The default auto archive duration in minutes for threads created in this channel.
+
+            .. versionadded:: 2.7
 
         Returns
         -------
@@ -1445,6 +1716,18 @@ class Guild(Hashable):
         if nsfw is not MISSING:
             options["nsfw"] = nsfw
 
+        if available_tags is not MISSING:
+            options["available_tags"] = [tag.to_dict() for tag in available_tags]
+
+        if default_sort_order is not MISSING:
+            options["default_sort_order"] = default_sort_order.value if default_sort_order else None
+
+        if default_thread_slowmode_delay is not MISSING:
+            options["default_thread_slowmode_delay"] = default_thread_slowmode_delay
+
+        if default_auto_archive_duration is not MISSING:
+            options["default_auto_archive_duration"] = default_auto_archive_duration
+
         if default_reaction_emoji is not MISSING:
             if isinstance(default_reaction_emoji, _EmojiTag):  # GuildEmoji, PartialEmoji
                 default_reaction_emoji = default_reaction_emoji._to_partial()
@@ -1452,10 +1735,14 @@ class Guild(Hashable):
                 default_reaction_emoji = PartialEmoji(name=None, id=default_reaction_emoji)
             elif isinstance(default_reaction_emoji, str):
                 default_reaction_emoji = PartialEmoji.from_str(default_reaction_emoji)
+            elif default_reaction_emoji is None:
+                pass
             else:
-                raise InvalidArgument("default_reaction_emoji must be of type: GuildEmoji | int | str")
+                raise InvalidArgument("default_reaction_emoji must be of type: GuildEmoji | int | str | None")
 
-            options["default_reaction_emoji"] = default_reaction_emoji._to_forum_reaction_payload()
+            options["default_reaction_emoji"] = (
+                default_reaction_emoji._to_forum_reaction_payload() if default_reaction_emoji else None
+            )
 
         data = await self._create_channel(
             name,
@@ -1722,24 +2009,24 @@ class Guild(Hashable):
             fields["afk_timeout"] = afk_timeout
 
         if icon is not MISSING:
-            fields["icon"] = icon if icon is None else utils._bytes_to_base64_data(icon)
+            fields["icon"] = icon if icon is None else bytes_to_base64_data(icon)
         if banner is not MISSING:
             if banner is None:
                 fields["banner"] = banner
             else:
-                fields["banner"] = utils._bytes_to_base64_data(banner)
+                fields["banner"] = bytes_to_base64_data(banner)
 
         if splash is not MISSING:
             if splash is None:
                 fields["splash"] = splash
             else:
-                fields["splash"] = utils._bytes_to_base64_data(splash)
+                fields["splash"] = bytes_to_base64_data(splash)
 
         if discovery_splash is not MISSING:
             if discovery_splash is None:
                 fields["discovery_splash"] = discovery_splash
             else:
-                fields["discovery_splash"] = utils._bytes_to_base64_data(discovery_splash)
+                fields["discovery_splash"] = bytes_to_base64_data(discovery_splash)
 
         if default_notifications is not MISSING:
             if not isinstance(default_notifications, NotificationLevel):
@@ -1884,7 +2171,7 @@ class Guild(Hashable):
         data = await self._state.http.get_all_guild_channels(self.id)
 
         def convert(d):
-            factory, ch_type = _guild_channel_factory(d["type"])
+            factory, _ch_type = _guild_channel_factory(d["type"])
             if factory is None:
                 raise InvalidData("Unknown channel type {type} for channel ID {id}.".format_map(d))
 
@@ -2684,7 +2971,7 @@ class Guild(Hashable):
             The created emoji.
         """
 
-        img = utils._bytes_to_base64_data(image)
+        img = bytes_to_base64_data(image)
         role_ids = [role.id for role in roles] if roles else []
         data = await self._state.http.create_custom_emoji(self.id, name, img, roles=role_ids, reason=reason)
         return self._state.store_emoji(self, data)
@@ -2935,7 +3222,7 @@ class Guild(Hashable):
             if icon is None:
                 fields["icon"] = None
             else:
-                fields["icon"] = utils._bytes_to_base64_data(icon)
+                fields["icon"] = bytes_to_base64_data(icon)
                 fields["unicode_emoji"] = None
 
         if unicode_emoji is not MISSING:
@@ -3311,7 +3598,10 @@ class Guild(Hashable):
         return Widget(state=self._state, data=data)
 
     async def edit_widget(
-        self, *, enabled: bool | utils.Undefined = MISSING, channel: Snowflake | None | utils.Undefined = MISSING
+        self,
+        *,
+        enabled: bool | utils.Undefined = MISSING,
+        channel: Snowflake | None | utils.Undefined = MISSING,
     ) -> None:
         """|coro|
 
@@ -3673,8 +3963,8 @@ class Guild(Hashable):
         *,
         name: str,
         description: str | utils.Undefined = MISSING,
-        start_time: datetime,
-        end_time: datetime | utils.Undefined = MISSING,
+        start_time: datetime.datetime,
+        end_time: datetime.datetime | utils.Undefined = MISSING,
         location: str | int | VoiceChannel | StageChannel | ScheduledEventLocation,
         privacy_level: ScheduledEventPrivacyLevel = ScheduledEventPrivacyLevel.guild_only,
         reason: str | None = None,
@@ -3741,7 +4031,7 @@ class Guild(Hashable):
             payload["scheduled_end_time"] = end_time.isoformat()
 
         if image is not MISSING:
-            payload["image"] = utils._bytes_to_base64_data(image)
+            payload["image"] = bytes_to_base64_data(image)
 
         data = await self._state.http.create_scheduled_event(guild_id=self.id, reason=reason, **payload)
         event = ScheduledEvent(state=self._state, guild=self, creator=self.me, data=data)
@@ -4044,3 +4334,20 @@ class Guild(Hashable):
             guild_id=self.id,
             exclude_ended=exclude_ended,
         )
+
+    def get_sound(self, sound_id: int) -> SoundboardSound | None:
+        """Returns a sound with the given ID.
+
+        .. versionadded :: 2.7
+
+        Parameters
+        ----------
+        sound_id: :class:`int`
+            The ID to search for.
+
+        Returns
+        -------
+        Optional[:class:`SoundboardSound`]
+            The sound or ``None`` if not found.
+        """
+        return self._sounds.get(sound_id)

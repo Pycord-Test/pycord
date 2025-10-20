@@ -39,11 +39,13 @@ from .activity import ActivityTypes, create_activity
 from .asset import Asset
 from .colour import Colour
 from .enums import Status, try_enum
+from .errors import InvalidArgument
 from .flags import MemberFlags
 from .object import Object
 from .permissions import Permissions
 from .user import BaseUser, User, _UserTag
 from .utils import MISSING
+from .utils.private import SnowflakeList, copy_doc, parse_time
 
 __all__ = (
     "VoiceState",
@@ -66,7 +68,7 @@ if TYPE_CHECKING:
     from .types.voice import GuildVoiceState as GuildVoiceStatePayload
     from .types.voice import VoiceState as VoiceStatePayload
 
-    VocalGuildChannel = Union[VoiceChannel, StageChannel]
+    VocalGuildChannel = VoiceChannel | StageChannel
 
 
 class VoiceState:
@@ -148,7 +150,7 @@ class VoiceState:
         self.mute: bool = data.get("mute", False)
         self.deaf: bool = data.get("deaf", False)
         self.suppress: bool = data.get("suppress", False)
-        self.requested_to_speak_at: datetime.datetime | None = utils.parse_time(data.get("request_to_speak_timestamp"))
+        self.requested_to_speak_at: datetime.datetime | None = parse_time(data.get("request_to_speak_timestamp"))
         self.channel: VocalGuildChannel | None = channel
 
     def __repr__(self) -> str:
@@ -184,9 +186,11 @@ def flatten_user(cls):
             # However I'm not sure how I feel about "functions" returning properties
             # It probably breaks something in Sphinx.
             # probably a member function by now
-            def generate_function(x):
+
+            # current_value is used because loop variables leak in surrounding scope
+            def generate_function(x, current_value=value):
                 # We want sphinx to properly show coroutine functions as coroutines
-                if inspect.iscoroutinefunction(value):
+                if inspect.iscoroutinefunction(current_value):
 
                     async def general(self, *args, **kwargs):  # type: ignore
                         return await getattr(self._user, x)(*args, **kwargs)
@@ -200,7 +204,7 @@ def flatten_user(cls):
                 return general
 
             func = generate_function(attr)
-            func = utils.copy_doc(value)(func)
+            func = copy_doc(value)(func)
             setattr(cls, attr, func)
 
     return cls
@@ -309,16 +313,16 @@ class Member(discord.abc.Messageable, _UserTag):
         self._state: ConnectionState = state
         self._user: User = state.store_user(data["user"])
         self.guild: Guild = guild
-        self.joined_at: datetime.datetime | None = utils.parse_time(data.get("joined_at"))
-        self.premium_since: datetime.datetime | None = utils.parse_time(data.get("premium_since"))
-        self._roles: utils.SnowflakeList = utils.SnowflakeList(map(int, data["roles"]))
+        self.joined_at: datetime.datetime | None = parse_time(data.get("joined_at"))
+        self.premium_since: datetime.datetime | None = parse_time(data.get("premium_since"))
+        self._roles: SnowflakeList = SnowflakeList(map(int, data["roles"]))
         self._client_status: dict[str | None, str] = {None: "offline"}
         self.activities: tuple[ActivityTypes, ...] = ()
         self.nick: str | None = data.get("nick", None)
         self.pending: bool = data.get("pending", False)
         self._avatar: str | None = data.get("avatar")
         self._banner: str | None = data.get("banner")
-        self.communication_disabled_until: datetime.datetime | None = utils.parse_time(
+        self.communication_disabled_until: datetime.datetime | None = parse_time(
             data.get("communication_disabled_until")
         )
         self.flags: MemberFlags = MemberFlags._from_value(data.get("flags", 0))
@@ -359,9 +363,9 @@ class Member(discord.abc.Messageable, _UserTag):
         return cls(data=data, guild=message.guild, state=message._state)  # type: ignore
 
     def _update_from_message(self, data: MemberPayload) -> None:
-        self.joined_at = utils.parse_time(data.get("joined_at"))
-        self.premium_since = utils.parse_time(data.get("premium_since"))
-        self._roles = utils.SnowflakeList(map(int, data["roles"]))
+        self.joined_at = parse_time(data.get("joined_at"))
+        self.premium_since = parse_time(data.get("premium_since"))
+        self._roles = SnowflakeList(map(int, data["roles"]))
         self.nick = data.get("nick", None)
         self.pending = data.get("pending", False)
 
@@ -386,7 +390,7 @@ class Member(discord.abc.Messageable, _UserTag):
     def _copy(cls: type[M], member: M) -> M:
         self: M = cls.__new__(cls)  # to bypass __init__
 
-        self._roles = utils.SnowflakeList(member._roles, is_sorted=True)
+        self._roles = SnowflakeList(member._roles, is_sorted=True)
         self.joined_at = member.joined_at
         self.premium_since = member.premium_since
         self._client_status = member._client_status.copy()
@@ -422,11 +426,11 @@ class Member(discord.abc.Messageable, _UserTag):
         except KeyError:
             pass
 
-        self.premium_since = utils.parse_time(data.get("premium_since"))
-        self._roles = utils.SnowflakeList(map(int, data["roles"]))
+        self.premium_since = parse_time(data.get("premium_since"))
+        self._roles = SnowflakeList(map(int, data["roles"]))
         self._avatar = data.get("avatar")
         self._banner = data.get("banner")
-        self.communication_disabled_until = utils.parse_time(data.get("communication_disabled_until"))
+        self.communication_disabled_until = parse_time(data.get("communication_disabled_until"))
         self.flags = MemberFlags._from_value(data.get("flags", 0))
 
     def _presence_update(self, data: PartialPresenceUpdate, user: UserPayload) -> tuple[User, User] | None:
@@ -749,6 +753,9 @@ class Member(discord.abc.Messageable, _UserTag):
         reason: str | None = None,
         communication_disabled_until: datetime.datetime | None | utils.Undefined = MISSING,
         bypass_verification: bool | None | utils.Undefined = MISSING,
+        banner: bytes | None = MISSING,
+        avatar: bytes | None = MISSING,
+        bio: str | None = MISSING,
     ) -> Member | None:
         """|coro|
 
@@ -783,6 +790,14 @@ class Member(discord.abc.Messageable, _UserTag):
             - Client has :attr:`Permissions.manage_roles`
 
             - Client has ALL THREE of :attr:`Permissions.moderate_members`, :attr:`Permissions.kick_members`, and :attr:`Permissions.ban_members`
+
+        .. note::
+
+            The following parameters are only available when editing the bot's own member:
+
+            - ``avatar``
+            - ``banner``
+            - ``bio``
 
         All parameters are optional.
 
@@ -821,6 +836,26 @@ class Member(discord.abc.Messageable, _UserTag):
             Indicates if the member should bypass the guild's verification requirements.
 
             .. versionadded:: 2.6
+        banner: Optional[:class:`bytes`]
+            A :term:`py:bytes-like object` representing the banner.
+            Could be ``None`` to denote removal of the banner.
+
+            This is only available when editing the bot's own member (i.e. :attr:`Guild.me`).
+
+            .. versionadded:: 2.7
+        avatar: Optional[:class:`bytes`]
+            A :term:`py:bytes-like object` representing the avatar.
+            Could be ``None`` to denote removal of the avatar.
+
+            This is only available when editing the bot's own member (i.e. :attr:`Guild.me`).
+
+            .. versionadded:: 2.7
+        bio: Optional[:class:`str`]
+            The new bio for the member. Could be ``None`` to denote removal of the bio.
+
+            This is only available when editing the bot's own member (i.e. :attr:`Guild.me`).
+
+            .. versionadded:: 2.7
 
         Returns
         -------
@@ -834,16 +869,19 @@ class Member(discord.abc.Messageable, _UserTag):
             You do not have the proper permissions to the action requested.
         HTTPException
             The operation failed.
+        InvalidArgument
+            You tried to edit the avatar, banner, or bio of a member that is not the bot.
         """
         http = self._state.http
         guild_id = self.guild.id
         me = self._state.self_id == self.id
         payload: dict[str, Any] = {}
+        bot_payload: dict[str, Any] = {}
 
         if nick is not MISSING:
             nick = nick or ""
             if me:
-                await http.change_my_nickname(guild_id, nick, reason=reason)
+                bot_payload["nick"] = nick
             else:
                 payload["nick"] = nick
 
@@ -886,9 +924,32 @@ class Member(discord.abc.Messageable, _UserTag):
             flags.bypasses_verification = bypass_verification
             payload["flags"] = flags.value
 
+        if avatar is not MISSING:
+            if avatar is None:
+                bot_payload["avatar"] = None
+            else:
+                bot_payload["avatar"] = utils._bytes_to_base64_data(avatar)
+
+        if banner is not MISSING:
+            if banner is None:
+                bot_payload["banner"] = None
+            else:
+                bot_payload["banner"] = utils._bytes_to_base64_data(banner)
+
+        if bio is not MISSING:
+            bot_payload["bio"] = bio or ""
+
+        if bot_payload and not me:
+            raise InvalidArgument("Can only edit avatar, banner, or bio for the bot's member.")
+
         if payload:
             data = await http.edit_member(guild_id, self.id, reason=reason, **payload)
-            return Member(data=data, guild=self.guild, state=self._state)
+        elif bot_payload:
+            data = await http.edit_member(guild_id, "@me", reason=reason, **bot_payload)
+        else:
+            return None
+
+        return Member(data=data, guild=self.guild, state=self._state)
 
     async def timeout(self, until: datetime.datetime | None, *, reason: str | None = None) -> None:
         """|coro|
@@ -1047,7 +1108,7 @@ class Member(discord.abc.Messageable, _UserTag):
         """
 
         if not atomic:
-            new_roles = utils._unique(Object(id=r.id) for s in (self.roles[1:], roles) for r in s)
+            new_roles = list({Object(id=r.id) for s in (self.roles[1:], roles) for r in s})
             await self.edit(roles=new_roles, reason=reason)
         else:
             req = self._state.http.add_role

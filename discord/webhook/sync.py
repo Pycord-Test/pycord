@@ -53,6 +53,7 @@ from ..http import Route
 from ..message import Message
 from ..object import Object
 from ..threads import Thread
+from ..utils.private import bytes_to_base64_data, parse_ratelimit_header, to_json
 from .async_ import BaseWebhook, _WebhookState, handle_message_parameters
 
 __all__ = (
@@ -124,7 +125,7 @@ class WebhookAdapter:
 
         if payload is not None:
             headers["Content-Type"] = "application/json"
-            to_send = utils._to_json(payload)
+            to_send = to_json(payload)
 
         if auth_token is not None:
             headers["Authorization"] = f"Bot {auth_token}"
@@ -183,7 +184,7 @@ class WebhookAdapter:
 
                         remaining = response.headers.get("X-Ratelimit-Remaining")
                         if remaining == "0" and response.status_code != 429:
-                            delta = utils._parse_ratelimit_header(response)
+                            delta = parse_ratelimit_header(response)
                             _log.debug(
                                 ("Webhook ID %s has been pre-emptively rate limited, waiting %.2f seconds"),
                                 webhook_id,
@@ -846,7 +847,7 @@ class SyncWebhook(BaseWebhook):
             payload["name"] = str(name) if name is not None else None
 
         if avatar is not MISSING:
-            payload["avatar"] = utils._bytes_to_base64_data(avatar) if avatar is not None else None
+            payload["avatar"] = bytes_to_base64_data(avatar) if avatar is not None else None
 
         adapter: WebhookAdapter = _get_webhook_adapter()
 

@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, ClassVar, Iterator, TypeVar
 from ..components import Section as SectionComponent
 from ..components import _component_factory
 from ..enums import ComponentType
-from ..utils import find, get
+from ..utils import find
 from .button import Button
 from .item import Item, ItemCallbackType
 from .text_display import TextDisplay
@@ -263,7 +263,7 @@ class Section(Item[V]):
 
     def refresh_component(self, component: SectionComponent) -> None:
         self._underlying = component
-        for x, y in zip(self.items, component.components):
+        for x, y in zip(self.items, component.components, strict=False):
             x.refresh_component(y)
         if self.accessory and component.accessory:
             self.accessory.refresh_component(component.accessory)

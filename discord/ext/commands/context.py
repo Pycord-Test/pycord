@@ -30,8 +30,9 @@ import re
 from typing import TYPE_CHECKING, Any, Generic, TypeVar, Union
 
 import discord.abc
-import discord.utils
 from discord.message import Message
+from discord.utils import MISSING, Undefined
+from discord.utils.private import copy_doc
 
 if TYPE_CHECKING:
     from typing_extensions import ParamSpec
@@ -50,11 +51,9 @@ if TYPE_CHECKING:
 
 __all__ = ("Context",)
 
-MISSING: Any = discord.utils.MISSING
-
 
 T = TypeVar("T")
-BotT = TypeVar("BotT", bound="Union[Bot, AutoShardedBot]")
+BotT = TypeVar("BotT", bound="Bot | AutoShardedBot")
 CogT = TypeVar("CogT", bound="Cog")
 
 if TYPE_CHECKING:
@@ -125,12 +124,12 @@ class Context(discord.abc.Messageable, Generic[BotT]):
         message: Message,
         bot: BotT,
         view: StringView,
-        args: list[Any] | discord.utils.Undefined = MISSING,
-        kwargs: dict[str, Any] | discord.utils.Undefined = MISSING,
+        args: list[Any] | Undefined = MISSING,
+        kwargs: dict[str, Any] | Undefined = MISSING,
         prefix: str | None = None,
         command: Command | None = None,
         invoked_with: str | None = None,
-        invoked_parents: list[str] | discord.utils.Undefined = MISSING,
+        invoked_parents: list[str] | Undefined = MISSING,
         invoked_subcommand: Command | None = None,
         subcommand_passed: str | None = None,
         command_failed: bool = False,
@@ -375,9 +374,8 @@ class Context(discord.abc.Messageable, Generic[BotT]):
         if entity is None:
             return None
 
-        try:
-            entity.qualified_name
-        except AttributeError:
+        if not hasattr(entity, "qualified_name"):
+            # TODO: this is ugly shit please make it better like isinstance idk
             # if we're here then it's not a cog, group, or command.
             return None
 
@@ -398,10 +396,10 @@ class Context(discord.abc.Messageable, Generic[BotT]):
         except CommandError as e:
             await cmd.on_help_command_error(self, e)
 
-    @discord.utils.copy_doc(Message.reply)
+    @copy_doc(Message.reply)
     async def reply(self, content: str | None = None, **kwargs: Any) -> Message:
         return await self.message.reply(content, **kwargs)
 
-    @discord.utils.copy_doc(Message.forward_to)
+    @copy_doc(Message.forward_to)
     async def forward_to(self, channel: discord.abc.Messageable, **kwargs: Any) -> Message:
         return await self.message.forward_to(channel, **kwargs)

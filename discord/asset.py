@@ -39,12 +39,19 @@ __all__ = ("Asset",)
 if TYPE_CHECKING:
     ValidStaticFormatTypes = Literal["webp", "jpeg", "jpg", "png"]
     ValidAssetFormatTypes = Literal["webp", "jpeg", "jpg", "png", "gif"]
+    from .state import ConnectionState
+
 
 VALID_STATIC_FORMATS = frozenset({"jpeg", "jpg", "webp", "png"})
 VALID_ASSET_FORMATS = VALID_STATIC_FORMATS | {"gif"}
 
 
 MISSING = utils.MISSING
+
+
+def _valid_icon_size(size: int) -> bool:
+    """Icons must be power of 2 within [16, 4096]."""
+    return not size & (size - 1) and 4096 >= size >= 16
 
 
 class AssetMixin:
@@ -200,6 +207,31 @@ class Asset(AssetMixin):
         )
 
     @classmethod
+    def _from_user_primary_guild_tag(cls, state: ConnectionState, identity_guild_id: int, badge_id: str) -> Asset:
+        """Creates an Asset for a user's primary guild (tag) badge.
+
+        Parameters
+        ----------
+        state: ConnectionState
+            The connection state.
+        identity_guild_id: int
+            The ID of the guild.
+        badge_id: str
+            The badge hash/id.
+
+        Returns
+        -------
+        :class:`Asset`
+            The primary guild badge asset.
+        """
+        return cls(
+            state,
+            url=f"{Asset.BASE}/guild-tag-badges/{identity_guild_id}/{badge_id}.png?size=256",
+            key=badge_id,
+            animated=False,
+        )
+
+    @classmethod
     def _from_guild_avatar(cls, state, guild_id: int, member_id: int, avatar: str) -> Asset:
         animated = avatar.startswith("a_")
         format = "gif" if animated else "png"
@@ -237,6 +269,16 @@ class Asset(AssetMixin):
             url=f"{cls.BASE}/app-assets/{object_id}/store/{cover_image_hash}.png?size=1024",
             key=cover_image_hash,
             animated=False,
+        )
+
+    @classmethod
+    def _from_collectible(cls, state: ConnectionState, asset: str, animated: bool = False) -> Asset:
+        name = "static.png" if not animated else "asset.webm"
+        return cls(
+            state,
+            url=f"{cls.BASE}/assets/collectibles/{asset}{name}",
+            key=asset,
+            animated=animated,
         )
 
     @classmethod
@@ -292,6 +334,14 @@ class Asset(AssetMixin):
             url=f"{cls.BASE}/guild-events/{event_id}/{cover_hash}.png",
             key=cover_hash,
             animated=False,
+        )
+
+    @classmethod
+    def _from_soundboard_sound(cls, state, sound_id: int) -> Asset:
+        return cls(
+            state,
+            url=f"{cls.BASE}/soundboard-sounds/{sound_id}",
+            key=str(sound_id),
         )
 
     def __str__(self) -> str:
@@ -373,7 +423,7 @@ class Asset(AssetMixin):
             url = url.with_path(f"{path}.{static_format}")
 
         if size is not MISSING:
-            if not utils.valid_icon_size(size):
+            if not _valid_icon_size(size):
                 raise InvalidArgument("size must be a power of 2 between 16 and 4096")
             url = url.with_query(size=size)
         else:
@@ -400,7 +450,7 @@ class Asset(AssetMixin):
         InvalidArgument
             The asset had an invalid size.
         """
-        if not utils.valid_icon_size(size):
+        if not _valid_icon_size(size):
             raise InvalidArgument("size must be a power of 2 between 16 and 4096")
 
         url = str(yarl.URL(self._url).with_query(size=size))

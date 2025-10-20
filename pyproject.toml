@@ -9,7 +9,7 @@ authors = [
 ]
 description = "A Python wrapper for the Discord API"
 readme = {content-type = "text/x-rst", file = "README.rst"}
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.14"
 license = "MIT"
 license-files = ["LICENSE"]
 classifiers = [
@@ -69,12 +69,18 @@ docs = [
 dev = [
     "codespell==2.4.1",
     "coverage~=7.8",
-    "mypy~=1.17.1",
+    "mypy~=1.18.1",
     "pre-commit==4.3.0",
-    "pytest~=8.4.1",
-    "pytest-asyncio~=0.26.0",
     "python-dotenv>=1.1.1",
-    "ruff>=0.11.9",
+    "ruff>=0.12.12",
+    "tox>=4.27.0",
+    "tox-gh>=1.5.0",
+    "tox-uv>=1.26.1",
+]
+
+test = [# Not in `dev` because we use tox for testing. Tox will install these dependencies.
+    "pytest~=8.3.5",
+    "pytest-asyncio~=0.24.0",
 ]
 ci = [
     "pygithub>=2.7.0",
@@ -89,20 +95,15 @@ version-file = "discord/_version.py"
 [tool.hatch.build.targets.wheel]
 only-packages = true
 packages = ["discord"]
-only-include = ["discord", "LICENSE", "pyproject.toml", "discord/bin/*.dll", "discord/ibanner.txt", "discord/banner.txt", "discord/chan/ART.txt"]
-artifacts = ["discord/bin/*.dll", "discord/ibanner.txt", "discord/banner.txt", "discord/chan/ART.txt"]
+only-include = ["discord", "README.rst", "LICENSE", "pyproject.toml", "discord/bin/*.dll", "discord/emojis.json", "discord/ibanner.txt", "discord/banner.txt", "discord/chan/ART.txt",]
 
 [tool.hatch.build.targets.sdist]
 only-packages = true
 packages = ["discord"]
-only-include = ["discord", "README.rst", "LICENSE", "pyproject.toml", "discord/bin/*.dll"]
-artifacts = ["discord/bin/*.dll"]
-
-[tool.black]
-target-version = ['py310', 'py311', 'py312', 'py313']
+only-include = ["discord", "README.rst", "LICENSE", "pyproject.toml", "discord/bin/*.dll", "discord/emojis.json", "discord/ibanner.txt", "discord/banner.txt", "discord/chan/ART.txt",]
 
 [tool.ruff]
-target-version = "py39"
+target-version = "py310"
 line-length = 120
 indent-width = 4
 
@@ -142,17 +143,6 @@ extend-ignore = [
     "ARG004",
     "ARG005",
     "ASYNC230",
-    "B006",
-    "B007",
-    "B009",
-    "B010",
-    "B012",
-    "B018",
-    "B023",
-    "B026",
-    "B034",
-    "B039",
-    "B904",
     "BLE001",
     "C416",
     "C417",
@@ -203,12 +193,12 @@ extend-ignore = [
     "FIX002",
     "FURB167",
     "FURB188",
-    "I001",
     "ISC001",
     "N801",
     "N803",
     "N804",
     "N806",
+    "N807", # Function name should not start and end with `__` (dunder)
     "N811",
     "N818",
     "PERF102",
@@ -320,3 +310,20 @@ ignore_errors = true
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.tox]
+requires = ["tox>=4"]
+env_list = ["3.13", "3.12", "3.11", "3.10"]
+
+[tool.tox.env_run_base]
+description = "run unit tests"
+commands = [["pytest", { replace = "posargs", default = ["tests"], extend = true }]]
+dependency_groups = ["test"]
+
+# GitHub actions
+[tool.tox.gh.python]
+"3.13" = ["3.13"]
+"3.12" = ["3.12"]
+"3.11" = ["3.11"]
+"3.10" = ["3.10"]

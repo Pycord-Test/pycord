@@ -1,0 +1,67 @@
+name: 'Sync UV Action'
+description: 'Install and sync UV with specified groups and extras'
+author: 'Pycord Development <admin@pycord.dev>'
+inputs:
+  groups:
+    description: "Comma-separated list of groups to sync"
+    required: false
+    default: ''
+  extras:
+    description: "Comma-separated list of extras to sync"
+    required: false
+    default: ''
+  frozen:
+    description: "Whether to sync with frozen dependencies"
+    required: false
+    default: 'true'
+  no_python_downloads:
+    description: "Whether to avoid downloading Python versions"
+    required: false
+    default: 'true'
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Install uv"
+      uses: astral-sh/setup-uv@v6
+      with:
+        enable-cache: true
+
+    - name: "Run UV sync"
+      shell: bash
+      run: |
+        cmd_args=("uv" "sync")
+        
+        # groups
+        set +e
+        if [ -n "${{ inputs.groups }}" ]; then
+          IFS=',' read -ra PARSED_GROUPS <<< "${{ inputs.groups }}"
+          for group in "${PARSED_GROUPS[@]}"; do
+            group=$(echo "$group" | xargs)
+            if [ -n "$group" ]; then
+              cmd_args+=("--group" "$group")
+            fi
+          done
+        fi
+        set -e
+        echo "Groups: ${PARSED_GROUPS[*]}"
+        
+        # extras
+        set +e
+        if [ -n "${{ inputs.extras }}" ]; then
+          IFS=',' read -ra PARSED_EXTRAS <<< "${{ inputs.extras }}"
+          for extra in "${PARSED_EXTRAS[@]}"; do
+            extra=$(echo "$extra" | xargs)
+            if [ -n "$extra" ]; then
+              cmd_args+=("--extra" "$extra")
+            fi
+          done
+        fi
+        set -e
+        echo "Extras: ${PARSED_EXTRAS[*]}"
+        
+        echo "Executing: ${cmd_args[*]}"
+        "${cmd_args[@]}"
+      env:
+        UV_NO_PYTHON_DOWNLOADS: ${{ inputs.no_python_downloads == 'true' && '1' || '' }}
+        UV_FROZEN: ${{ inputs.frozen == 'true' && '1' || '' }}

@@ -46,7 +46,9 @@ from .errors import (
 )
 from .file import VoiceMessage
 from .gateway import DiscordClientWebSocketResponse
-from .utils import MISSING, warn_deprecated
+from .soundboard import PartialSoundboardSound, SoundboardSound
+from .utils import MISSING
+from .utils.private import from_json, get_mime_type_for_file, to_json, warn_deprecated
 
 _log = logging.getLogger(__name__)
 
@@ -84,6 +86,7 @@ if TYPE_CHECKING:
         widget,
     )
     from .types.snowflake import Snowflake, SnowflakeList
+    from .types.soundboard import SoundboardSound as SoundboardSoundPayload
 
     T = TypeVar("T")
     BE = TypeVar("BE", bound=BaseException)
@@ -96,7 +99,7 @@ async def json_or_text(response: aiohttp.ClientResponse) -> dict[str, Any] | str
     text = await response.text(encoding="utf-8")
     try:
         if response.headers["content-type"] == "application/json":
-            return utils._from_json(text)
+            return from_json(text)
     except KeyError:
         # Thanks Cloudflare
         pass
@@ -259,7 +262,7 @@ class HTTPClient:
         # some checking if it's a JSON request
         if "json" in kwargs:
             headers["Content-Type"] = "application/json"
-            kwargs["data"] = utils._to_json(kwargs.pop("json"))
+            kwargs["data"] = to_json(kwargs.pop("json"))
 
         try:
             reason = kwargs.pop("reason")
@@ -567,7 +570,7 @@ class HTTPClient:
                 }
             )
         payload["attachments"] = attachments
-        form[0]["value"] = utils._to_json(payload)
+        form[0]["value"] = to_json(payload)
         return self.request(route, form=form, files=files)
 
     def send_files(
@@ -640,7 +643,7 @@ class HTTPClient:
             payload["attachments"] = attachments
         else:
             payload["attachments"].extend(attachments)
-        form[0]["value"] = utils._to_json(payload)
+        form[0]["value"] = to_json(payload)
 
         return self.request(route, form=form, files=files)
 
@@ -847,7 +850,7 @@ class HTTPClient:
     def pin_message(self, channel_id: Snowflake, message_id: Snowflake, reason: str | None = None) -> Response[None]:
         r = Route(
             "PUT",
-            "/channels/{channel_id}/pins/{message_id}",
+            "/channels/{channel_id}/messages/pins/{message_id}",
             channel_id=channel_id,
             message_id=message_id,
         )
@@ -856,13 +859,28 @@ class HTTPClient:
     def unpin_message(self, channel_id: Snowflake, message_id: Snowflake, reason: str | None = None) -> Response[None]:
         r = Route(
             "DELETE",
-            "/channels/{channel_id}/pins/{message_id}",
+            "/channels/{channel_id}/messages/pins/{message_id}",
             channel_id=channel_id,
             message_id=message_id,
         )
         return self.request(r, reason=reason)
 
-    def pins_from(self, channel_id: Snowflake) -> Response[list[message.Message]]:
+    def pins_from(
+        self,
+        channel_id: Snowflake,
+        limit: int | None = None,
+        before: str | None = None,
+    ) -> Response[message.MessagePinPagination]:
+        r = Route("GET", "/channels/{channel_id}/messages/pins", channel_id=channel_id)
+        params = {}
+        if limit:
+            params["limit"] = limit
+        if before:
+            params["before"] = before
+
+        return self.request(r, params=params)
+
+    def legacy_pins_from(self, channel_id: Snowflake) -> Response[list[message.Message]]:
         return self.request(Route("GET", "/channels/{channel_id}/pins", channel_id=channel_id))
 
     # Member management
@@ -951,38 +969,6 @@ class HTTPClient:
 
     def edit_profile(self, payload: dict[str, Any]) -> Response[user.User]:
         return self.request(Route("PATCH", "/users/@me"), json=payload)
-
-    def change_my_nickname(
-        self,
-        guild_id: Snowflake,
-        nickname: str,
-        *,
-        reason: str | None = None,
-    ) -> Response[member.Nickname]:
-        r = Route("PATCH", "/guilds/{guild_id}/members/@me", guild_id=guild_id)
-        payload = {
-            "nick": nickname,
-        }
-        return self.request(r, json=payload, reason=reason)
-
-    def change_nickname(
-        self,
-        guild_id: Snowflake,
-        user_id: Snowflake,
-        nickname: str,
-        *,
-        reason: str | None = None,
-    ) -> Response[member.Member]:
-        r = Route(
-            "PATCH",
-            "/guilds/{guild_id}/members/{user_id}",
-            guild_id=guild_id,
-            user_id=user_id,
-        )
-        payload = {
-            "nick": nickname,
-        }
-        return self.request(r, json=payload, reason=reason)
 
     def edit_my_voice_state(self, guild_id: Snowflake, payload: dict[str, Any]) -> Response[None]:
         r = Route("PATCH", "/guilds/{guild_id}/voice-states/@me", guild_id=guild_id)
@@ -1244,7 +1230,7 @@ class HTTPClient:
                 )
 
             payload["attachments"] = attachments
-            form[0]["value"] = utils._to_json(payload)
+            form[0]["value"] = to_json(payload)
             return self.request(route, form=form, reason=reason)
         return self.request(route, json=payload, reason=reason)
 
@@ -1653,7 +1639,7 @@ class HTTPClient:
         initial_bytes = file.fp.read(16)
 
         try:
-            mime_type = utils._get_mime_type_for_image(initial_bytes)
+            mime_type = get_mime_type_for_file(initial_bytes)
         except InvalidArgument:
             if initial_bytes.startswith(b"{"):
                 mime_type = "application/json"
@@ -2592,7 +2578,7 @@ class HTTPClient:
         form: list[dict[str, Any]] = [
             {
                 "name": "payload_json",
-                "value": utils._to_json(payload),
+                "value": to_json(payload),
             }
         ]
 
@@ -3039,3 +3025,88 @@ class HTTPClient:
 
     def get_user(self, user_id: Snowflake) -> Response[user.User]:
         return self.request(Route("GET", "/users/{user_id}", user_id=user_id))
+
+    def delete_sound(self, sound: SoundboardSound, *, reason: str | None) -> Response[None]:
+        return self.request(
+            Route(
+                "DELETE",
+                "/guilds/{guild_id}/soundboard-sounds/{sound_id}",
+                guild_id=sound.guild.id,
+                sound_id=sound.id,
+            ),
+            reason=reason,
+        )
+
+    def get_default_sounds(self) -> Response[list[SoundboardSoundPayload]]:
+        return self.request(Route("GET", "/soundboard-default-sounds"))
+
+    def create_guild_sound(
+        self, guild_id: Snowflake, reason: str | None, **payload
+    ) -> Response[SoundboardSoundPayload]:
+        keys = (
+            "name",
+            "sound",
+            "volume",
+            "emoji_id",
+            "emoji_name",
+        )
+
+        payload = {k: v for k, v in payload.items() if k in keys and v is not None}
+
+        return self.request(
+            Route("POST", "/guilds/{guild_id}/soundboard-sounds", guild_id=guild_id),
+            json=payload,
+            reason=reason,
+        )
+
+    def get_all_guild_sounds(self, guild_id: Snowflake) -> Response[list[SoundboardSoundPayload]]:
+        return self.request(Route("GET", "/guilds/{guild_id}/soundboard-sounds", guild_id=guild_id))
+
+    def get_guild_sound(self, guild_id: Snowflake, sound_id: Snowflake) -> Response[SoundboardSoundPayload]:
+        return self.request(
+            Route(
+                "GET",
+                "/guilds/{guild_id}/soundboard-sounds/{sound_id}",
+                guild_id=guild_id,
+                sound_id=sound_id,
+            )
+        )
+
+    def edit_guild_sound(
+        self, guild_id: Snowflake, sound_id: Snowflake, *, reason: str | None, **payload
+    ) -> Response[SoundboardSoundPayload]:
+        keys = (
+            "name",
+            "volume",
+            "emoji_id",
+            "emoji_name",
+        )
+
+        payload = {k: v for k, v in payload.items() if k in keys and v is not None}
+
+        return self.request(
+            Route(
+                "PATCH",
+                "/guilds/{guild_id}/soundboard-sounds/{sound_id}",
+                guild_id=guild_id,
+                sound_id=sound_id,
+            ),
+            json=payload,
+            reason=reason,
+        )
+
+    def send_soundboard_sound(self, channel_id: int, sound: PartialSoundboardSound) -> Response[None]:
+        payload = {
+            "sound_id": sound.id,
+        }
+        if isinstance(sound, SoundboardSound) and not sound.is_default_sound:
+            payload["source_guild_id"] = sound.guild_id
+
+        return self.request(
+            Route(
+                "POST",
+                "/channels/{channel_id}/send-soundboard-sound",
+                channel_id=channel_id,
+            ),
+            json=payload,
+        )

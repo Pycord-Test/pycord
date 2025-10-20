@@ -47,6 +47,7 @@ from .monetization import Entitlement
 from .object import Object
 from .permissions import Permissions
 from .user import User
+from .utils.private import cached_slot_property, delay_task, deprecated, get_as_snowflake
 from .webhook.async_ import (
     Webhook,
     WebhookMessage,
@@ -61,6 +62,7 @@ __all__ = (
     "MessageInteraction",
     "InteractionMetadata",
     "AuthorizingIntegrationOwners",
+    "InteractionCallback",
 )
 
 if TYPE_CHECKING:
@@ -83,23 +85,24 @@ if TYPE_CHECKING:
     from .state import ConnectionState
     from .threads import Thread
     from .types.interactions import Interaction as InteractionPayload
-    from .types.interactions import InteractionData
+    from .types.interactions import InteractionCallback as InteractionCallbackPayload
+    from .types.interactions import InteractionCallbackResponse, InteractionData
     from .types.interactions import InteractionMetadata as InteractionMetadataPayload
     from .types.interactions import MessageInteraction as MessageInteractionPayload
     from .ui.modal import Modal
     from .ui.view import View
 
-    InteractionChannel = Union[
-        VoiceChannel,
-        StageChannel,
-        TextChannel,
-        ForumChannel,
-        CategoryChannel,
-        Thread,
-        DMChannel,
-        GroupChannel,
-        PartialMessageable,
-    ]
+    InteractionChannel = (
+        VoiceChannel
+        | StageChannel
+        | TextChannel
+        | ForumChannel
+        | CategoryChannel
+        | Thread
+        | DMChannel
+        | GroupChannel
+        | PartialMessageable
+    )
 
 MISSING: Any = utils.MISSING
 
@@ -153,6 +156,11 @@ class Interaction:
         The context in which this command was executed.
 
         .. versionadded:: 2.6
+    callback: Optional[:class:`InteractionCallback`]
+        The callback of the interaction. Contains information about the status of the interaction response.
+        Will be `None` until the interaction is responded to.
+
+        .. versionadded:: 2.7
     command: Optional[:class:`ApplicationCommand`]
         The command that this interaction belongs to.
 
@@ -189,6 +197,7 @@ class Interaction:
         "entitlements",
         "context",
         "authorizing_integration_owners",
+        "callback",
         "command",
         "view",
         "modal",
@@ -212,6 +221,7 @@ class Interaction:
         self._state: ConnectionState = state
         self._session: ClientSession = state.http._HTTPClient__session
         self._original_response: InteractionMessage | None = None
+        self.callback: InteractionCallback | None = None
         self._from_data(data)
 
     def _from_data(self, data: InteractionPayload):
@@ -220,8 +230,8 @@ class Interaction:
         self.data: InteractionData | None = data.get("data")
         self.token: str = data["token"]
         self.version: int = data["version"]
-        self.channel_id: int | None = utils._get_as_snowflake(data, "channel_id")
-        self.guild_id: int | None = utils._get_as_snowflake(data, "guild_id")
+        self.channel_id: int | None = get_as_snowflake(data, "channel_id")
+        self.guild_id: int | None = get_as_snowflake(data, "guild_id")
         self.application_id: int = int(data["application_id"])
         self.locale: str | None = data.get("locale")
         self.guild_locale: str | None = data.get("guild_locale")
@@ -321,8 +331,8 @@ class Interaction:
         """Indicates whether the interaction is a message component."""
         return self.type == InteractionType.component
 
-    @utils.cached_slot_property("_cs_channel")
-    @utils.deprecated("Interaction.channel", "2.7", stacklevel=4)
+    @cached_slot_property("_cs_channel")
+    @deprecated("Interaction.channel", "2.7", stacklevel=4)
     def cached_channel(self) -> InteractionChannel | None:
         """The cached channel from which the interaction was sent.
         DM channels are not resolved. These are :class:`PartialMessageable` instead.
@@ -346,12 +356,12 @@ class Interaction:
         """
         return Permissions(self._permissions)
 
-    @utils.cached_slot_property("_cs_app_permissions")
+    @cached_slot_property("_cs_app_permissions")
     def app_permissions(self) -> Permissions:
         """The resolved permissions of the application in the channel, including overwrites."""
         return Permissions(self._app_permissions)
 
-    @utils.cached_slot_property("_cs_response")
+    @cached_slot_property("_cs_response")
     def response(self) -> InteractionResponse:
         """Returns an object responsible for handling responding to the interaction.
 
@@ -360,7 +370,7 @@ class Interaction:
         """
         return InteractionResponse(self)
 
-    @utils.cached_slot_property("_cs_followup")
+    @cached_slot_property("_cs_followup")
     def followup(self) -> Webhook:
         """Returns the followup webhook for followup interactions."""
         payload = {
@@ -442,7 +452,9 @@ class Interaction:
         # TODO: fix later to not raise?
         channel = self.channel
         if channel is None:
-            raise ClientException("Channel for message could not be resolved")
+            raise ClientException(
+                "Channel for message could not be resolved. Please open a issue on GitHub if you encounter this error."
+            )
 
         adapter = async_context.get()
         http = self._state.http
@@ -458,7 +470,7 @@ class Interaction:
         self._original_response = message
         return message
 
-    @utils.deprecated("Interaction.original_response", "2.2")
+    @deprecated("Interaction.original_response", "2.2")
     async def original_message(self):
         """An alias for :meth:`original_response`.
 
@@ -587,7 +599,7 @@ class Interaction:
 
         return message
 
-    @utils.deprecated("Interaction.edit_original_response", "2.2")
+    @deprecated("Interaction.edit_original_response", "2.2")
     async def edit_original_message(self, **kwargs):
         """An alias for :meth:`edit_original_response`.
 
@@ -641,11 +653,11 @@ class Interaction:
         )
 
         if delay is not None:
-            utils.delay_task(delay, func)
+            delay_task(delay, func)
         else:
             await func
 
-    @utils.deprecated("Interaction.delete_original_response", "2.2")
+    @deprecated("Interaction.delete_original_response", "2.2")
     async def delete_original_message(self, **kwargs):
         """An alias for :meth:`delete_original_response`.
 
@@ -827,7 +839,7 @@ class InteractionResponse:
         if defer_type:
             adapter = async_context.get()
             http = parent._state.http
-            await self._locked_response(
+            callback_response: InteractionCallbackResponse = await self._locked_response(
                 adapter.create_interaction_response(
                     parent.id,
                     parent.token,
@@ -839,6 +851,7 @@ class InteractionResponse:
                 )
             )
             self._responded = True
+            await self._process_callback_response(callback_response)
 
     async def pong(self) -> None:
         """|coro|
@@ -861,7 +874,7 @@ class InteractionResponse:
         if parent.type is InteractionType.ping:
             adapter = async_context.get()
             http = parent._state.http
-            await self._locked_response(
+            callback_response: InteractionCallbackResponse = await self._locked_response(
                 adapter.create_interaction_response(
                     parent.id,
                     parent.token,
@@ -872,6 +885,21 @@ class InteractionResponse:
                 )
             )
             self._responded = True
+            await self._process_callback_response(callback_response)
+
+    async def _process_callback_response(self, callback_response: InteractionCallbackResponse):
+        if callback_response.get("resource", {}).get("message"):
+            # TODO: fix later to not raise?
+            channel = self._parent.channel
+            if channel is None:
+                raise ClientException(
+                    "Channel for message could not be resolved. Please open a issue on GitHub if you encounter this error."
+                )
+            state = _InteractionMessageState(self._parent, self._parent._state)
+            message = InteractionMessage(state=state, channel=channel, data=callback_response["resource"]["message"])  # type: ignore
+            self._parent._original_response = message
+
+        self._parent.callback = InteractionCallback(callback_response["interaction"])
 
     async def send_message(
         self,
@@ -1007,7 +1035,7 @@ class InteractionResponse:
         adapter = async_context.get()
         http = parent._state.http
         try:
-            await self._locked_response(
+            callback_response: InteractionCallbackResponse = await self._locked_response(
                 adapter.create_interaction_response(
                     parent.id,
                     parent.token,
@@ -1033,6 +1061,7 @@ class InteractionResponse:
                 self._parent._state.store_view(view)
 
         self._responded = True
+        await self._process_callback_response(callback_response)
         if delete_after is not None:
             await self._parent.delete_original_response(delay=delete_after)
         return self._parent
@@ -1164,7 +1193,7 @@ class InteractionResponse:
         adapter = async_context.get()
         http = parent._state.http
         try:
-            await self._locked_response(
+            callback_response: InteractionCallbackResponse = await self._locked_response(
                 adapter.create_interaction_response(
                     parent.id,
                     parent.token,
@@ -1186,6 +1215,7 @@ class InteractionResponse:
             state.store_view(view, message_id)
 
         self._responded = True
+        await self._process_callback_response(callback_response)
         if delete_after is not None:
             await self._parent.delete_original_response(delay=delete_after)
 
@@ -1221,7 +1251,7 @@ class InteractionResponse:
 
         adapter = async_context.get()
         http = parent._state.http
-        await self._locked_response(
+        callback_response: InteractionCallbackResponse = await self._locked_response(
             adapter.create_interaction_response(
                 parent.id,
                 parent.token,
@@ -1234,6 +1264,7 @@ class InteractionResponse:
         )
 
         self._responded = True
+        await self._process_callback_response(callback_response)
 
     async def send_modal(self, modal: Modal) -> Interaction:
         """|coro|
@@ -1260,7 +1291,7 @@ class InteractionResponse:
         payload = modal.to_dict()
         adapter = async_context.get()
         http = parent._state.http
-        await self._locked_response(
+        callback_response: InteractionCallbackResponse = await self._locked_response(
             adapter.create_interaction_response(
                 parent.id,
                 parent.token,
@@ -1272,10 +1303,11 @@ class InteractionResponse:
             )
         )
         self._responded = True
+        await self._process_callback_response(callback_response)
         self._parent._state.store_modal(modal, self._parent.user.id)
         return self._parent
 
-    @utils.deprecated("a button with type ButtonType.premium", "2.6")
+    @deprecated("a button with type ButtonType.premium", "2.6")
     async def premium_required(self) -> Interaction:
         """|coro|
 
@@ -1299,7 +1331,7 @@ class InteractionResponse:
 
         adapter = async_context.get()
         http = parent._state.http
-        await self._locked_response(
+        callback_response: InteractionCallbackResponse = await self._locked_response(
             adapter.create_interaction_response(
                 parent.id,
                 parent.token,
@@ -1310,9 +1342,10 @@ class InteractionResponse:
             )
         )
         self._responded = True
+        await self._process_callback_response(callback_response)
         return self._parent
 
-    async def _locked_response(self, coro: Coroutine[Any, Any, Any]) -> None:
+    async def _locked_response(self, coro: Coroutine[Any, Any, Any]) -> Any:
         """|coro|
 
         Wraps a response and makes sure that it's locked while executing.
@@ -1322,16 +1355,24 @@ class InteractionResponse:
         coro: Coroutine[Any]
             The coroutine to wrap.
 
+        Returns
+        -------
+        Any
+            The result of the coroutine.
+
         Raises
         ------
         InteractionResponded
             This interaction has already been responded to before.
+
+        .. versionchanged:: 2.7
+            Return the result of the coroutine
         """
         async with self._response_lock:
             if self.is_done():
                 coro.close()  # cleanup un-awaited coroutine
                 raise InteractionResponded(self._parent)
-            await coro
+            return await coro
 
 
 class _InteractionMessageState:
@@ -1564,8 +1605,8 @@ class InteractionMetadata:
         self.authorizing_integration_owners: AuthorizingIntegrationOwners = AuthorizingIntegrationOwners(
             data["authorizing_integration_owners"], state
         )
-        self.original_response_message_id: int | None = utils._get_as_snowflake(data, "original_response_message_id")
-        self.interacted_message_id: int | None = utils._get_as_snowflake(data, "interacted_message_id")
+        self.original_response_message_id: int | None = get_as_snowflake(data, "original_response_message_id")
+        self.interacted_message_id: int | None = get_as_snowflake(data, "interacted_message_id")
         self.triggering_interaction_metadata: InteractionMetadata | None = None
         if tim := data.get("triggering_interaction_metadata"):
             self.triggering_interaction_metadata = InteractionMetadata(data=tim, state=state)
@@ -1573,7 +1614,7 @@ class InteractionMetadata:
     def __repr__(self):
         return f"<InteractionMetadata id={self.id} type={self.type!r} user={self.user!r}>"
 
-    @utils.cached_slot_property("_cs_original_response_message")
+    @cached_slot_property("_cs_original_response_message")
     def original_response_message(self) -> Message | None:
         """Optional[:class:`Message`]: The original response message.
         Returns ``None`` if the message is not in cache, or if :attr:`original_response_message_id` is ``None``.
@@ -1582,7 +1623,7 @@ class InteractionMetadata:
             return None
         return self._state._get_message(self.original_response_message_id)
 
-    @utils.cached_slot_property("_cs_interacted_message")
+    @cached_slot_property("_cs_interacted_message")
     def interacted_message(self) -> Message | None:
         """Optional[:class:`Message`]: The message that triggered the interaction.
         Returns ``None`` if the message is not in cache, or if :attr:`interacted_message_id` is ``None``.
@@ -1628,7 +1669,7 @@ class AuthorizingIntegrationOwners:
     def __ne__(self, other):
         return not self.__eq__(other)
 
-    @utils.cached_slot_property("_cs_user")
+    @cached_slot_property("_cs_user")
     def user(self) -> User | None:
         """Optional[:class:`User`]: The user that authorized the integration.
         Returns ``None`` if the user is not in cache, or if :attr:`user_id` is ``None``.
@@ -1637,7 +1678,7 @@ class AuthorizingIntegrationOwners:
             return None
         return self._state.get_user(self.user_id)
 
-    @utils.cached_slot_property("_cs_guild")
+    @cached_slot_property("_cs_guild")
     def guild(self) -> Guild | None:
         """Optional[:class:`Guild`]: The guild that authorized the integration.
         Returns ``None`` if the guild is not in cache, or if :attr:`guild_id` is ``0`` or ``None``.
@@ -1645,3 +1686,32 @@ class AuthorizingIntegrationOwners:
         if not self.guild_id:
             return None
         return self._state._get_guild(self.guild_id)
+
+
+class InteractionCallback:
+    """Information about the status of the interaction response.
+
+    .. versionadded:: 2.7
+    """
+
+    def __init__(self, data: InteractionCallbackPayload):
+        self._response_message_loading: bool = data.get("response_message_loading", False)
+        self._response_message_ephemeral: bool = data.get("response_message_ephemeral", False)
+
+    def __repr__(self):
+        return (
+            f"<InteractionCallback "
+            f"_response_message_loading={self._response_message_loading} "
+            f"_response_message_ephemeral={self._response_message_ephemeral}>"
+        )
+
+    def is_loading(self) -> bool:
+        """Indicates whether the response message is in a loading state."""
+        return self._response_message_loading
+
+    def is_ephemeral(self) -> bool:
+        """Indicates whether the response message is ephemeral.
+
+        This might be useful for determining if the message was forced to be ephemeral.
+        """
+        return self._response_message_ephemeral

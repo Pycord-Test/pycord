@@ -33,19 +33,17 @@ from functools import partial
 from itertools import groupby
 from typing import TYPE_CHECKING, Any, Callable, ClassVar, Iterator, Sequence, TypeVar
 
+from .. import utils
 from ..components import ActionRow as ActionRowComponent
 from ..components import Button as ButtonComponent
-from ..components import Component
+from ..components import Component, FileComponent, _component_factory
 from ..components import Container as ContainerComponent
-from ..components import FileComponent
 from ..components import MediaGallery as MediaGalleryComponent
 from ..components import Section as SectionComponent
 from ..components import SelectMenu as SelectComponent
 from ..components import Separator as SeparatorComponent
 from ..components import TextDisplay as TextDisplayComponent
 from ..components import Thumbnail as ThumbnailComponent
-from ..components import _component_factory
-from ..utils import find, get
 from .item import Item, ItemCallbackType
 
 __all__ = ("View", "_component_to_item", "_walk_all_components")
@@ -130,7 +128,7 @@ class _ViewWeights:
 
         key = lambda i: sys.maxsize if i.row is None else i.row
         children = sorted(children, key=key)
-        for row, group in groupby(children, key=key):
+        for _, group in groupby(children, key=key):
             for item in group:
                 self.add_item(item)
 
@@ -418,7 +416,7 @@ class View:
         return self
 
     def get_item(self, custom_id: str | int) -> Item[V] | None:
-        """Gets an item from the view. Roughly equal to `utils.get(view.children, ...)`.
+        """Gets an item from the view. Roughly equal to `utils.find(lambda i: i.custom_id == custom_id, self.children)`.
         If an :class:`int` is provided, the item will be retrieved by ``id``, otherwise by  ``custom_id``.
         This method will also search nested items.
 
@@ -435,7 +433,7 @@ class View:
         if not custom_id:
             return None
         attr = "id" if isinstance(custom_id, int) else "custom_id"
-        child = find(lambda i: getattr(i, attr, None) == custom_id, self.children)
+        child = utils.find(lambda i: getattr(i, attr, None) == custom_id, self.children)
         if not child:
             for i in self.children:
                 if hasattr(i, "get_item"):

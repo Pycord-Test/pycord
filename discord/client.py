@@ -55,6 +55,7 @@ from .iterators import EntitlementIterator, GuildIterator
 from .mentions import AllowedMentions
 from .monetization import SKU, Entitlement
 from .object import Object
+from .soundboard import SoundboardSound
 from .stage_instance import StageInstance
 from .state import ConnectionState
 from .sticker import GuildSticker, StandardSticker, StickerPack, _sticker_factory
@@ -63,6 +64,12 @@ from .threads import Thread
 from .ui.view import View
 from .user import ClientUser, User
 from .utils import MISSING
+from .utils.private import (
+    SequenceProxy,
+    bytes_to_base64_data,
+    resolve_invite,
+    resolve_template,
+)
 from .voice_client import VoiceClient
 from .webhook import Webhook
 from .widget import Widget
@@ -70,10 +77,11 @@ from .widget import Widget
 if TYPE_CHECKING:
     from .abc import GuildChannel, PrivateChannel, Snowflake, SnowflakeTime
     from .channel import DMChannel
-    from .interaction import Interaction
+    from .interactions import Interaction
     from .member import Member
     from .message import Message
     from .poll import Poll
+    from .soundboard import SoundboardSound
     from .ui.item import Item
     from .voice_client import VoiceProtocol
 
@@ -386,7 +394,7 @@ class Client:
 
         .. versionadded:: 1.1
         """
-        return utils.SequenceProxy(self._connection._messages or [])
+        return SequenceProxy(self._connection._messages or [])
 
     @property
     def private_channels(self) -> list[PrivateChannel]:
@@ -546,6 +554,15 @@ class Client:
         The default view error handler provided by the client.
 
         This only fires for a view if you did not define its :func:`~discord.ui.View.on_error`.
+
+        Parameters
+        ----------
+        error: :class:`Exception`
+            The exception that was raised.
+        item: :class:`Item`
+            The item that the user interacted with.
+        interaction: :class:`Interaction`
+            The interaction that was received.
         """
 
         print(
@@ -561,6 +578,13 @@ class Client:
         The default implementation prints the traceback to stderr.
 
         This only fires for a modal if you did not define its :func:`~discord.ui.Modal.on_error`.
+
+        Parameters
+        ----------
+        error: :class:`Exception`
+            The exception that was raised.
+        interaction: :class:`Interaction`
+            The interaction that was received.
         """
 
         print(f"Ignoring exception in modal {interaction.modal}:", file=sys.stderr)
@@ -628,7 +652,10 @@ class Client:
         data = await self.http.static_login(token.strip())
         self._connection.user = ClientUser(state=self._connection, data=data)
 
-        print_banner(bot_name=self._connection.user.display_name, module=self._banner_module or "discord")
+        print_banner(
+            bot_name=self._connection.user.display_name,
+            module=self._banner_module or "discord",
+        )
         start_logging(self._flavor, debug=self._debug)
 
     async def connect(self, *, reconnect: bool = True) -> None:
@@ -1129,24 +1156,6 @@ class Client:
         for guild in self.guilds:
             yield from guild.members
 
-    async def get_or_fetch_user(self, id: int, /) -> User | None:
-        """|coro|
-
-        Looks up a user in the user cache or fetches if not found.
-
-        Parameters
-        ----------
-        id: :class:`int`
-            The ID to search for.
-
-        Returns
-        -------
-        Optional[:class:`~discord.User`]
-            The user or ``None`` if not found.
-        """
-
-        return await utils.get_or_fetch(obj=self, attr="user", id=id, default=None)
-
     # listeners/waiters
 
     async def wait_until_ready(self) -> None:
@@ -1277,7 +1286,7 @@ class Client:
         TypeError
             The ``func`` parameter is not a coroutine function.
         ValueError
-            The ``name`` (event name) does not start with 'on_'
+            The ``name`` (event name) does not start with ``on_``.
 
         Example
         -------
@@ -1346,7 +1355,7 @@ class Client:
         TypeError
             The function being listened to is not a coroutine.
         ValueError
-            The ``name`` (event name) does not start with 'on_'
+            The ``name`` (event name) does not start with ``on_``.
 
         Example
         -------
@@ -1570,7 +1579,7 @@ class Client:
         :exc:`HTTPException`
             Getting the template failed.
         """
-        code = utils.resolve_template(code)
+        code = resolve_template(code)
         data = await self.http.get_template(code)
         return Template(data=data, state=self._connection)  # type: ignore
 
@@ -1654,7 +1663,7 @@ class Client:
             Invalid icon image format given. Must be PNG or JPG.
         """
         if icon is not MISSING:
-            icon_base64 = utils._bytes_to_base64_data(icon)
+            icon_base64 = bytes_to_base64_data(icon)
         else:
             icon_base64 = None
 
@@ -1746,7 +1755,7 @@ class Client:
             Getting the invite failed.
         """
 
-        invite_id = utils.resolve_invite(url)
+        invite_id = resolve_invite(url)
         data = await self.http.get_invite(
             invite_id,
             with_counts=with_counts,
@@ -1778,7 +1787,7 @@ class Client:
             Revoking the invite failed.
         """
 
-        invite_id = utils.resolve_invite(invite)
+        invite_id = resolve_invite(invite)
         await self.http.delete_invite(invite_id)
 
     # Miscellaneous stuff
@@ -2254,7 +2263,7 @@ class Client:
             The created emoji.
         """
 
-        img = utils._bytes_to_base64_data(image)
+        img = bytes_to_base64_data(image)
         data = await self._connection.http.create_application_emoji(self.application_id, name, img)
         return self._connection.maybe_store_app_emoji(self.application_id, data)
 
@@ -2277,3 +2286,43 @@ class Client:
         await self._connection.http.delete_application_emoji(self.application_id, emoji.id)
         if self._connection.cache_app_emojis and self._connection.get_emoji(emoji.id):
             self._connection.remove_emoji(emoji)
+
+    def get_sound(self, sound_id: int) -> SoundboardSound | None:
+        """Gets a :class:`.Sound` from the bot's sound cache.
+
+        .. versionadded:: 2.7
+
+        Parameters
+        ----------
+        sound_id: :class:`int`
+            The ID of the sound to get.
+
+        Returns
+        -------
+        Optional[:class:`.SoundboardSound`]
+            The sound with the given ID.
+        """
+        return self._connection._get_sound(sound_id)
+
+    @property
+    def sounds(self) -> list[SoundboardSound]:
+        """A list of all the sounds the bot can see.
+
+        .. versionadded:: 2.7
+        """
+        return self._connection.sounds
+
+    async def fetch_default_sounds(self) -> list[SoundboardSound]:
+        """|coro|
+
+        Fetches the bot's default sounds.
+
+        .. versionadded:: 2.7
+
+        Returns
+        -------
+        List[:class:`.SoundboardSound`]
+            The bot's default sounds.
+        """
+        data = await self._connection.http.get_default_sounds()
+        return [SoundboardSound(http=self.http, state=self._connection, data=s) for s in data]

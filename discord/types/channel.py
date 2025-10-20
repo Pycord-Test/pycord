@@ -31,6 +31,7 @@ from typing_extensions import NotRequired, TypedDict
 
 from ..enums import SortOrder
 from ..flags import ChannelFlags
+from .emoji import PartialEmoji
 from .snowflake import Snowflake
 from .threads import ThreadArchiveDuration, ThreadMember, ThreadMetadata
 from .user import User
@@ -145,15 +146,7 @@ class ThreadChannel(_BaseChannel):
     total_message_sent: int
 
 
-GuildChannel = Union[
-    TextChannel,
-    NewsChannel,
-    VoiceChannel,
-    CategoryChannel,
-    StageChannel,
-    ThreadChannel,
-    ForumChannel,
-]
+GuildChannel = TextChannel | NewsChannel | VoiceChannel | CategoryChannel | StageChannel | ThreadChannel | ForumChannel
 
 
 class DMChannel(TypedDict):
@@ -169,7 +162,7 @@ class GroupDMChannel(_BaseChannel):
     owner_id: Snowflake
 
 
-Channel = Union[GuildChannel, DMChannel, GroupDMChannel]
+Channel = GuildChannel | DMChannel | GroupDMChannel
 
 PrivacyLevel = Literal[1, 2]
 
@@ -182,3 +175,14 @@ class StageInstance(TypedDict):
     privacy_level: PrivacyLevel
     discoverable_disabled: bool
     guild_scheduled_event_id: Snowflake
+
+
+class VoiceChannelEffectSendEvent(TypedDict):
+    channel_id: Snowflake
+    guild_id: Snowflake
+    user_id: Snowflake
+    emoji: NotRequired[PartialEmoji | None]
+    animation_type: NotRequired[int | None]
+    animation_id: NotRequired[int]
+    sound_id: NotRequired[Snowflake | int]
+    sound_volume: NotRequired[float]

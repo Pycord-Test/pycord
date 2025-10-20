@@ -32,7 +32,8 @@ from .asset import Asset
 from .enums import ChannelType, InviteTarget, VerificationLevel, try_enum
 from .mixins import Hashable
 from .object import Object
-from .utils import _get_as_snowflake, parse_time, snowflake_time
+from .utils import snowflake_time
+from .utils.private import get_as_snowflake, parse_time
 
 __all__ = (
     "PartialInviteChannel",
@@ -53,8 +54,8 @@ if TYPE_CHECKING:
     from .types.scheduled_events import ScheduledEvent as ScheduledEventPayload
     from .user import User
 
-    InviteGuildType = Union[Guild, "PartialInviteGuild", Object]
-    InviteChannelType = Union[GuildChannel, "PartialInviteChannel", Object]
+    InviteGuildType = Guild | "PartialInviteGuild" | Object
+    InviteChannelType = GuildChannel | "PartialInviteChannel" | Object
 
     import datetime
 
@@ -413,7 +414,7 @@ class Invite(Hashable):
 
     @classmethod
     def from_gateway(cls: type[I], *, state: ConnectionState, data: GatewayInvitePayload) -> I:
-        guild_id: int | None = _get_as_snowflake(data, "guild_id")
+        guild_id: int | None = get_as_snowflake(data, "guild_id")
         guild: Guild | Object | None = state._get_guild(guild_id)
         channel_id = int(data["channel_id"])
         if guild is not None:

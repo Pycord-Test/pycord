@@ -26,8 +26,9 @@ from __future__ import annotations
 
 import inspect
 import logging
+import types
 from enum import Enum
-from typing import TYPE_CHECKING, Literal, Optional, Type, Union
+from typing import TYPE_CHECKING, Literal, Optional, Type, Union, get_args
 
 from ..abc import GuildChannel, Mentionable
 from ..channel import (
@@ -41,9 +42,8 @@ from ..channel import (
     VoiceChannel,
 )
 from ..commands import ApplicationContext
-from ..enums import ChannelType
+from ..enums import ChannelType, SlashCommandOptionType
 from ..enums import Enum as DiscordEnum
-from ..enums import SlashCommandOptionType
 from ..utils import MISSING, Undefined, basic_autocomplete
 
 if TYPE_CHECKING:
@@ -53,24 +53,24 @@ if TYPE_CHECKING:
     from ..role import Role
     from ..user import User
 
-    InputType = Union[
-        Type[str],
-        Type[bool],
-        Type[int],
-        Type[float],
-        Type[GuildChannel],
-        Type[Thread],
-        Type[Member],
-        Type[User],
-        Type[Attachment],
-        Type[Role],
-        Type[Mentionable],
-        SlashCommandOptionType,
-        Converter,
-        Type[Converter],
-        Type[Enum],
-        Type[DiscordEnum],
-    ]
+    InputType = (
+        Type[str]
+        | Type[bool]
+        | Type[int]
+        | Type[float]
+        | Type[GuildChannel]
+        | Type[Thread]
+        | Type[Member]
+        | Type[User]
+        | Type[Attachment]
+        | Type[Role]
+        | Type[Mentionable]
+        | SlashCommandOptionType
+        | Converter
+        | Type[Converter]
+        | Type[Enum]
+        | Type[DiscordEnum]
+    )
 
 __all__ = (
     "ThreadOption",
@@ -194,6 +194,7 @@ class Option:
         if self.name is not None:
             self.name = str(self.name)
         self._parameter_name = self.name  # default
+        input_type = self._strip_none_type(input_type)
         self._raw_type: InputType | tuple = input_type
 
         enum_choices = []
@@ -272,17 +273,17 @@ class Option:
 
         if self.input_type == SlashCommandOptionType.integer:
             minmax_types = (int, type(None))
-            minmax_typehint = Optional[int]
+            minmax_typehint = Optional[int]  # noqa: UP045
         elif self.input_type == SlashCommandOptionType.number:
             minmax_types = (int, float, type(None))
-            minmax_typehint = Optional[Union[int, float]]
+            minmax_typehint = Optional[int | float]  # noqa: UP045
         else:
             minmax_types = (type(None),)
             minmax_typehint = type(None)
 
         if self.input_type == SlashCommandOptionType.string:
             minmax_length_types = (int, type(None))
-            minmax_length_typehint = Optional[int]
+            minmax_length_typehint = Optional[int]  # noqa: UP045
         else:
             minmax_length_types = (type(None),)
             minmax_length_typehint = type(None)
@@ -329,6 +330,33 @@ class Option:
 
         if input_type is None:
             raise TypeError("input_type cannot be NoneType.")
+
+    @staticmethod
+    def _strip_none_type(input_type):
+        if isinstance(input_type, SlashCommandOptionType):
+            return input_type
+
+        if input_type is type(None):
+            raise TypeError("Option type cannot be only NoneType")
+
+        args = ()
+        if isinstance(input_type, types.UnionType):
+            args = get_args(input_type)
+        elif getattr(input_type, "__origin__", None) is Union:
+            args = get_args(input_type)
+        elif isinstance(input_type, tuple):
+            args = input_type
+
+        if args:
+            filtered = tuple(t for t in args if t is not type(None))
+            if not filtered:
+                raise TypeError("Option type cannot be only NoneType")
+            if len(filtered) == 1:
+                return filtered[0]
+
+            return filtered
+
+        return input_type
 
     def to_dict(self) -> dict:
         as_dict = {

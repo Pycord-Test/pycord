@@ -25,6 +25,8 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
+import datetime
+from functools import cached_property
 from typing import TYPE_CHECKING, Any, Callable, ClassVar, Generator, TypeVar
 
 from . import enums, utils
@@ -35,6 +37,7 @@ from .invite import Invite
 from .mixins import Hashable
 from .object import Object
 from .permissions import PermissionOverwrite, Permissions
+from .utils.private import get_as_snowflake
 
 __all__ = (
     "AuditLogDiff",
@@ -44,8 +47,6 @@ __all__ = (
 
 
 if TYPE_CHECKING:
-    import datetime
-
     from . import abc
     from .emoji import GuildEmoji
     from .guild import Guild
@@ -195,6 +196,12 @@ def _transform_trigger_metadata(
         return AutoModTriggerMetadata.from_dict(data)
 
 
+def _transform_communication_disabled_until(entry: AuditLogEntry, data: str) -> datetime.datetime | None:
+    if data:
+        return datetime.datetime.fromisoformat(data)
+    return None
+
+
 class AuditLogDiff:
     def __len__(self) -> int:
         return len(self.__dict__)
@@ -267,6 +274,7 @@ class AuditLogChanges:
         "trigger_metadata": (None, _transform_trigger_metadata),
         "exempt_roles": (None, _transform_roles),
         "exempt_channels": (None, _transform_channels),
+        "communication_disabled_until": (None, _transform_communication_disabled_until),
     }
 
     def __init__(
@@ -381,7 +389,7 @@ class AuditLogChanges:
         elem: list[RolePayload],
     ) -> None:
         if not hasattr(first, "roles"):
-            setattr(first, "roles", [])
+            first.roles = []
 
         data = []
         g: Guild = entry.guild  # type: ignore
@@ -396,7 +404,7 @@ class AuditLogChanges:
 
             data.append(role)
 
-        setattr(second, "roles", data)
+        second.roles = data
 
     def _handle_trigger_metadata(
         self,
@@ -407,13 +415,13 @@ class AuditLogChanges:
         attr: str,
     ) -> None:
         if not hasattr(first, "trigger_metadata"):
-            setattr(first, "trigger_metadata", None)
+            first.trigger_metadata = None
 
         key = attr.split("_", 1)[-1]
         data = {key: elem}
         tm = AutoModTriggerMetadata.from_dict(data)
 
-        setattr(second, "trigger_metadata", tm)
+        second.trigger_metadata = tm
 
 
 class _AuditLogProxyMemberPrune:
@@ -559,8 +567,8 @@ class AuditLogEntry(Hashable):
         # into meaningful data when requested
         self._changes = data.get("changes", [])
 
-        self.user = self._get_member(utils._get_as_snowflake(data, "user_id"))  # type: ignore
-        self._target_id = utils._get_as_snowflake(data, "target_id")
+        self.user = self._get_member(get_as_snowflake(data, "user_id"))  # type: ignore
+        self._target_id = get_as_snowflake(data, "target_id")
 
     def _get_member(self, user_id: int) -> Member | User | None:
         return self.guild.get_member(user_id) or self._users.get(user_id)
@@ -568,12 +576,12 @@ class AuditLogEntry(Hashable):
     def __repr__(self) -> str:
         return f"<AuditLogEntry id={self.id} action={self.action} user={self.user!r}>"
 
-    @property
+    @cached_property
     def created_at(self) -> datetime.datetime:
         """Returns the entry's creation time in UTC."""
         return utils.snowflake_time(self.id)
 
-    @property
+    @cached_property
     def target(
         self,
     ) -> (
@@ -602,7 +610,7 @@ class AuditLogEntry(Hashable):
         """The category of the action, if applicable."""
         return self.action.category
 
-    @property
+    @cached_property
     def changes(self) -> AuditLogChanges:
         """The list of changes this entry has."""
         obj = AuditLogChanges(self, self._changes, state=self._state)
