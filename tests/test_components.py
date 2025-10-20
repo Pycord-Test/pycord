@@ -22,18 +22,20 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
 
-from typing import Any
-import pytest
 import random
 import string
+from typing import Any
 
-from discord import components
+import pytest
+
 import discord
+from discord import components
 
 random.seed(42)
 
+
 def random_string(
-        min_len, max_len, spaces: bool = True, punctuation: bool = True, separators: tuple[str, ...] = ("-", "_")
+    min_len, max_len, spaces: bool = True, punctuation: bool = True, separators: tuple[str, ...] = ("-", "_")
 ):
     chars = string.ascii_letters + string.digits
     if spaces:
@@ -94,7 +96,8 @@ def generate_test_user_select_modal(
 
     return MODAL, EXPECTED_PAYLOAD
 
-USER_SELECT_MODAL_CASES =     [
+
+USER_SELECT_MODAL_CASES = [
     generate_test_user_select_modal(
         modal_title=random_string(1, 45),
         modal_custom_id=random_string(1, 100),
@@ -105,30 +108,33 @@ USER_SELECT_MODAL_CASES =     [
     )
     for _ in range(10)
 ]
+
+
 @pytest.mark.parametrize(
     ("modal", "payload"),
     USER_SELECT_MODAL_CASES,
 )
 def test_user_select_modal_to_dict(
     modal: components.Modal,
-        payload: dict[Any, Any],
+    payload: dict[Any, Any],
 ):
     # Test that the modal generates the expected payload
     assert modal.to_dict() == payload
 
+
 def generate_test_text_input_modal(
-        *,
-        modal_title: str,
-        modal_custom_id: str,
-        label_title: str,
-        label_description: str,
-        text_input_custom_id: str,
-        text_input_value: str,
-        text_input_placeholder: str,
-        text_input_min_length: int,
-        text_input_max_length: int,
-        text_input_required: bool,
-        text_input_multiline: bool,
+    *,
+    modal_title: str,
+    modal_custom_id: str,
+    label_title: str,
+    label_description: str,
+    text_input_custom_id: str,
+    text_input_value: str,
+    text_input_placeholder: str,
+    text_input_min_length: int,
+    text_input_max_length: int,
+    text_input_required: bool,
+    text_input_multiline: bool,
 ):
     MODAL: components.Modal = components.Modal(
         components.Label(
@@ -174,7 +180,8 @@ def generate_test_text_input_modal(
 
     return MODAL, EXPECTED_PAYLOAD
 
-TEXT_INPUT_MODAL_CASES =     [
+
+TEXT_INPUT_MODAL_CASES = [
     generate_test_text_input_modal(
         modal_title=random_string(1, 45),
         modal_custom_id=random_string(1, 100),
@@ -189,14 +196,16 @@ TEXT_INPUT_MODAL_CASES =     [
         text_input_multiline=random.choice([True, False]),
     )
     for _ in range(10)
-    ]
+]
+
+
 @pytest.mark.parametrize(
     ("modal", "payload"),
     TEXT_INPUT_MODAL_CASES,
 )
 def test_text_input_modal_to_dict(
     modal: components.Modal,
-        payload: dict[Any, Any],
+    payload: dict[Any, Any],
 ):
     # Test that the modal generates the expected payload
     assert modal.to_dict() == payload
