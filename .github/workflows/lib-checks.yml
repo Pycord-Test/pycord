@@ -37,6 +37,10 @@ jobs:
     steps:
       - name: "Checkout Repository"
         uses: actions/checkout@v5
+      - name: "Setup Python"
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
       - name: "Setup UV"
         uses: ./.github/actions/sync-uv
         with:
@@ -54,7 +58,7 @@ jobs:
       - name: "Setup Python"
         uses: actions/setup-python@v6
         with:
-          python-version: "3.14"
+          python-version: "3.13"
       - name: "Setup UV"
         uses: ./.github/actions/sync-uv
         with:
@@ -72,7 +76,7 @@ jobs:
       - name: "Setup Python"
         uses: actions/setup-python@v6
         with:
-          python-version: "3.14"
+          python-version: "3.13"
       - name: "Setup UV"
         uses: ./.github/actions/sync-uv
         with:
