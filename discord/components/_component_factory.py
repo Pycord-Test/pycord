@@ -33,6 +33,7 @@ from .channel_select_menu import ChannelSelect
 from .component import Component, StateComponentMixin
 from .container import Container
 from .file_component import FileComponent
+from .file_upload import FileUpload
 from .input_text import TextInput
 from .label import Label
 from .media_gallery import MediaGallery
@@ -68,6 +69,7 @@ COMPONENT_MAPPINGS = {
     14: Separator,
     17: Container,
     18: Label,
+    19: FileUpload,
 }
 
 STATE_COMPONENTS = (Section, Container, Thumbnail, MediaGallery, FileComponent)
