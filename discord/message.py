@@ -2267,7 +2267,7 @@ class PartialMessage(Hashable):
             The new components to replace the originals with. If ``None`` is passed then the components
             are removed.
 
-            ..versionchanged:: 3.0
+            .. versionchanged:: 3.0
                 Changed from view to components.
 
         Returns
