@@ -57,7 +57,7 @@ if TYPE_CHECKING:
 
 
 def _missing_field_factory() -> field:
-    return field(default_factory=lambda: utils.MISSING)
+    return field(default_factory=lambda: MISSING)
 
 
 @dataclass
