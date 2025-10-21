@@ -32,7 +32,6 @@ from .container import Container
 from .default_select_option import DefaultSelectOption
 from .file_component import FileComponent
 from .file_upload import FileUpload
-from .input_text import TextInput
 from .label import Label
 from .media_gallery import MediaGallery
 from .media_gallery_item import MediaGalleryItem
@@ -62,6 +61,7 @@ from .select_option import SelectOption
 from .separator import Separator
 from .string_select_menu import StringSelect
 from .text_display import TextDisplay
+from .text_input import TextInput
 from .thumbnail import Thumbnail
 
 # Don't change the import order

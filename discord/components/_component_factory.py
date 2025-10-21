@@ -34,7 +34,6 @@ from .component import Component, StateComponentMixin
 from .container import Container
 from .file_component import FileComponent
 from .file_upload import FileUpload
-from .input_text import TextInput
 from .label import Label
 from .media_gallery import MediaGallery
 from .mentionable_select_menu import MentionableSelect
@@ -43,6 +42,7 @@ from .section import Section
 from .separator import Separator
 from .string_select_menu import StringSelect
 from .text_display import TextDisplay
+from .text_input import TextInput
 from .thumbnail import Thumbnail
 from .unknown_component import UnknownComponent
 from .user_select_menu import UserSelect

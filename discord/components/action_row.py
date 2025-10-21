@@ -39,10 +39,10 @@ if TYPE_CHECKING:
 
     from .button import Button
     from .channel_select_menu import ChannelSelect
-    from .input_text import TextInput
     from .mentionable_select_menu import MentionableSelect
     from .role_select_menu import RoleSelect
     from .string_select_menu import StringSelect
+    from .text_input import TextInput
     from .user_select_menu import UserSelect
 
 AllowedActionRowComponents: TypeAlias = (

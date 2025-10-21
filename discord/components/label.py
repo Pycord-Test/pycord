@@ -41,9 +41,9 @@ if TYPE_CHECKING:
 
     from .channel_select_menu import ChannelSelect
     from .file_upload import FileUpload
-    from .input_text import TextInput
     from .mentionable_select_menu import MentionableSelect
     from .string_select_menu import StringSelect
+    from .text_input import TextInput
     from .user_select_menu import UserSelect
 
     AllowedLabelComponents: TypeAlias = (
