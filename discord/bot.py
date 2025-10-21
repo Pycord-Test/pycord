@@ -69,6 +69,7 @@ from .utils import MISSING, find
 from .utils.private import async_all, maybe_awaitable
 
 if TYPE_CHECKING:
+    from .interactions import ComponentInteraction, ModalInteraction
     from .member import Member
 
 CoroFunc = Callable[..., Coroutine[Any, Any, Any]]
@@ -1100,9 +1101,12 @@ class ApplicationCommandMixin(ABC):
     def _bot(self) -> Bot | AutoShardedBot: ...
 
 
-CI: TypeAlias = Callable[..., Coroutine[Any, Any, Any]]  # pyright: ignore[reportExplicitAny]
-CI_t = TypeVar("CI_t", bound=CI)
-Coro = TypeVar("Coro", bound=Callable[..., Coroutine[Any, Any, Any]])  # pyright: ignore[reportExplicitAny]
+T = TypeVar("T")
+
+Listener: TypeAlias = Callable[[T], Coroutine[Any, Any, Any]]  # pyright: ignore[reportExplicitAny]
+
+ComponentListener: TypeAlias = "Listener[ComponentInteraction]"
+CL_t = TypeVar("CL_t", bound=ComponentListener)
 
 
 class ComponentMixin(ABC):
@@ -1116,7 +1120,7 @@ class ComponentMixin(ABC):
         super().__init__(*args, **kwargs)
         # We map the listener to the predicate instead of the other way around
         # so that removing a listener can be done directly and is more efficient
-        self.components: dict[CI, Callable[[str], bool | Awaitable[bool]]] = {}
+        self.components: dict[ComponentListener, Callable[[str], bool | Awaitable[bool]]] = {}
         self._bot.add_listener(self.handle_component_interaction, "on_interaction")
 
     async def handle_component_interaction(self, interaction: Interaction):
@@ -1137,7 +1141,9 @@ class ComponentMixin(ABC):
         else:
             _log.debug(f"No component handler found for {interaction.custom_id}")
 
-    def add_component_listener(self, predicate: Callable[[str], bool | Awaitable[bool]] | str, listener: CI) -> None:
+    def add_component_listener(
+        self, predicate: Callable[[str], bool | Awaitable[bool]] | str, listener: ComponentListener
+    ) -> None:
         """Registers a component interaction listener.
 
         This method can be used to register a function that will be called
@@ -1147,12 +1153,12 @@ class ComponentMixin(ABC):
 
         Parameters
         ----------
-        predicate: Callable[[str], bool | Awaitable[bool]] | str
+        predicate:
             A (potentially async) function that takes a string (the component's custom ID) and returns a boolean indicating whether the
             function should be called for that component. Alternatively, a string can be provided, which will match
             the component's custom ID exactly.
 
-        listener: Callable[[Interaction], Coroutine[Any, Any, Any]]
+        listener:
             The interaction callback to call when a component interaction occurs that matches the predicate.
         """
         if isinstance(predicate, str):
@@ -1161,7 +1167,7 @@ class ComponentMixin(ABC):
             real_predicate = predicate
         self.components[listener] = real_predicate
 
-    def remove_component_listener(self, listener: CI) -> None:
+    def remove_component_listener(self, listener: ComponentListener) -> None:
         """Unregisters a component interaction listener.
 
         This method can be used to unregister a function that was previously
@@ -1171,7 +1177,7 @@ class ComponentMixin(ABC):
 
         Parameters
         ----------
-        listener: Callable[[Interaction], Coroutine[Any, Any, Any]]
+        listener:
             The interaction callback to unregister.
 
         Raises
@@ -1184,7 +1190,7 @@ class ComponentMixin(ABC):
         except KeyError as e:
             raise ValueError("Listener not found") from e
 
-    def component_listener(self, predicate: Callable[[str], bool | Awaitable[bool]] | str) -> Callable[[CI_t], CI_t]:
+    def component_listener(self, predicate: Callable[[str], bool | Awaitable[bool]] | str) -> Callable[[CL_t], CL_t]:
         """A shortcut decorator that registers a component interaction listener.
 
         This decorator can be used to register a function that will be called
@@ -1194,7 +1200,7 @@ class ComponentMixin(ABC):
 
         Parameters
         ----------
-        predicate: Callable[[str], bool | Awaitable[bool]] | str
+        predicate:
             A (potentially async) function that takes a string (the component's custom ID) and returns a boolean indicating whether the
             function should be called for that component. Alternatively, a string can be provided, which will match
             the component's custom ID exactly.
@@ -1205,7 +1211,7 @@ class ComponentMixin(ABC):
             A decorator that registers the function as a component interaction listener.
         """
 
-        def wrapper(func: CI_t) -> CI_t:
+        def wrapper(func: CL_t) -> CL_t:
             self.add_component_listener(predicate, func)
             return func
 
@@ -1214,6 +1220,10 @@ class ComponentMixin(ABC):
     @property
     @abstractmethod
     def _bot(self) -> Bot | AutoShardedBot: ...
+
+
+ModalListener: TypeAlias = "Listener[ModalInteraction]"
+ML_t = TypeVar("ML_t", bound=ModalListener)
 
 
 class ModalMixin(ABC):
@@ -1227,7 +1237,7 @@ class ModalMixin(ABC):
         super().__init__(*args, **kwargs)
         # We map the listener to the predicate instead of the other way around
         # so that removing a listener can be done directly and is more efficient
-        self.modals: dict[CI, Callable[[str], bool | Awaitable[bool]]] = {}
+        self.modals: dict[ModalListener, Callable[[str], bool | Awaitable[bool]]] = {}
         self._bot.add_listener(self.handle_modal_interaction, "on_interaction")
 
     async def handle_modal_interaction(self, interaction: Interaction):
@@ -1248,7 +1258,9 @@ class ModalMixin(ABC):
         else:
             _log.debug(f"No modal handler found for {interaction.custom_id}")
 
-    def add_modal_listener(self, predicate: Callable[[str], bool | Awaitable[bool]] | str, listener: CI) -> None:
+    def add_modal_listener(
+        self, predicate: Callable[[str], bool | Awaitable[bool]] | str, listener: ModalListener
+    ) -> None:
         """Registers a modal interaction listener.
 
         This method can be used to register a function that will be called
@@ -1258,12 +1270,12 @@ class ModalMixin(ABC):
 
         Parameters
         ----------
-        predicate: Callable[[str], bool | Awaitable[bool]] | str
+        predicate:
             A (potentially async) function that takes a string (the modal's custom ID) and returns a boolean indicating whether the
             function should be called for that modal. Alternatively, a string can be provided, which will match
             the modal's custom ID exactly.
 
-        listener: Callable[[Interaction], Coroutine[Any, Any, Any]]
+        listener:
             The interaction callback to call when a modal interaction occurs that matches the predicate.
         """
         if isinstance(predicate, str):
@@ -1272,7 +1284,7 @@ class ModalMixin(ABC):
             real_predicate = predicate
         self.modals[listener] = real_predicate
 
-    def remove_modal_listener(self, listener: CI) -> None:
+    def remove_modal_listener(self, listener: ModalListener) -> None:
         """Unregisters a modal interaction listener.
 
         This method can be used to unregister a function that was previously
@@ -1282,7 +1294,7 @@ class ModalMixin(ABC):
 
         Parameters
         ----------
-        listener: Callable[[Interaction], Coroutine[Any, Any, Any]]
+        listener:
             The interaction callback to unregister.
 
         Raises
@@ -1295,7 +1307,7 @@ class ModalMixin(ABC):
         except KeyError as e:
             raise ValueError("Listener not found") from e
 
-    def modal_listener(self, predicate: Callable[[str], bool | Awaitable[bool]] | str) -> Callable[[CI_t], CI_t]:
+    def modal_listener(self, predicate: Callable[[str], bool | Awaitable[bool]] | str) -> Callable[[ML_t], ML_t]:
         """A shortcut decorator that registers a component interaction listener.
 
         This decorator can be used to register a function that will be called
@@ -1305,7 +1317,7 @@ class ModalMixin(ABC):
 
         Parameters
         ----------
-        predicate: Callable[[str], bool | Awaitable[bool]] | str
+        predicate:
             A (potentially async) function that takes a string (the component's custom ID) and returns a boolean indicating whether the
             function should be called for that component. Alternatively, a string can be provided, which will match
             the component's custom ID exactly.
@@ -1316,7 +1328,7 @@ class ModalMixin(ABC):
             A decorator that registers the function as a component interaction listener.
         """
 
-        def wrapper(func: CI_t) -> CI_t:
+        def wrapper(func: ML_t) -> ML_t:
             self.add_modal_listener(predicate, func)
             return func
 
