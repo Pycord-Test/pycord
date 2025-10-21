@@ -103,7 +103,7 @@ API Models
 
 Interaction Components
 -----------
-These objects are dataclasses that represent components as they are recieved from Discord in interaction payloads, currently applicable only with :class:`discord.components.Interaction` of type :data:`discord.components.InteractionType.modal_submit`.
+These objects are dataclasses that represent components as they are received from Discord in interaction payloads, currently applicable only with :class:`discord.components.Interaction` of type :data:`discord.components.InteractionType.modal_submit`.
 
 .. attributetable:: discord.components.PartialLabel
 .. autoclass:: discord.components.PartialLabel
