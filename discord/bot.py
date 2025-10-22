@@ -47,6 +47,8 @@ from typing import (
     TypeVar,
 )
 
+from typing_extensions import Protocol
+
 from .client import Client
 from .cog import CogMixin
 from .commands import (
@@ -69,6 +71,8 @@ from .utils import MISSING, find
 from .utils.private import async_all, maybe_awaitable
 
 if TYPE_CHECKING:
+    from typing import Unpack
+
     from .interactions import ComponentInteraction, ModalInteraction
     from .member import Member
 
@@ -1101,11 +1105,10 @@ class ApplicationCommandMixin(ABC):
     def _bot(self) -> Bot | AutoShardedBot: ...
 
 
-T = TypeVar("T")
+class ComponentListener(Protocol):
+    async def __call__(self, interaction: ComponentInteraction[Any]) -> Any: ...
 
-Listener: TypeAlias = Callable[[T], Coroutine[Any, Any, Any]]  # pyright: ignore[reportExplicitAny]
 
-ComponentListener: TypeAlias = "Listener[ComponentInteraction]"
 CL_t = TypeVar("CL_t", bound=ComponentListener)
 
 
@@ -1222,7 +1225,10 @@ class ComponentMixin(ABC):
     def _bot(self) -> Bot | AutoShardedBot: ...
 
 
-ModalListener: TypeAlias = "Listener[ModalInteraction]"
+class ModalListener(Protocol):
+    async def __call__(self, interaction: ModalInteraction[Unpack[tuple[Any, ...]]]) -> Any: ...
+
+
 ML_t = TypeVar("ML_t", bound=ModalListener)
 
 
