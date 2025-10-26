@@ -78,18 +78,12 @@ def _is_bridge_command(command: Any) -> TypeGuard[BridgeCommand]:
 
 
 def _name_filter(c: Any) -> str:
-    return (
-        "app"
-        if isinstance(c, ApplicationCommand)
-        else ("bridge" if not _is_bridge_command(c) else "ext")
-    )
+    return "app" if isinstance(c, ApplicationCommand) else ("bridge" if not _is_bridge_command(c) else "ext")
 
 
 def _validate_name_prefix(base_class: type, name: str) -> None:
     if name.startswith(("cog_", "bot_")):
-        raise TypeError(
-            f"Commands or listeners must not start with cog_ or bot_ (in method {base_class}.{name})"
-        )
+        raise TypeError(f"Commands or listeners must not start with cog_ or bot_ (in method {base_class}.{name})")
 
 
 def _process_attributes(
@@ -104,9 +98,7 @@ def _process_attributes(
         if attr_name in listeners:
             del listeners[attr_name]
 
-        if getattr(attr_value, "parent", None) and isinstance(
-            attr_value, ApplicationCommand
-        ):
+        if getattr(attr_value, "parent", None) and isinstance(attr_value, ApplicationCommand):
             # Skip application commands if they are a part of a group
             # Since they are already added when the group is added
             continue
@@ -115,18 +107,14 @@ def _process_attributes(
         if is_static_method:
             attr_value = attr_value.__func__
 
-        if inspect.iscoroutinefunction(attr_value) and getattr(
-            attr_value, "__cog_listener__", False
-        ):
+        if inspect.iscoroutinefunction(attr_value) and getattr(attr_value, "__cog_listener__", False):
             _validate_name_prefix(base, attr_name)
             listeners[attr_name] = attr_value
             continue
 
         if isinstance(attr_value, _BaseCommand) or _is_bridge_command(attr_value):
             if is_static_method:
-                raise TypeError(
-                    f"Command in method {base}.{attr_name!r} must not be staticmethod."
-                )
+                raise TypeError(f"Command in method {base}.{attr_name!r} must not be staticmethod.")
             _validate_name_prefix(base, attr_name)
 
         if isinstance(attr_value, _BaseCommand):
@@ -171,9 +159,7 @@ def _update_command(
                 command,  # pyright: ignore [reportAttributeAccessIssue, reportUnknownArgumentType, reportUnknownMemberType]
             )
 
-        parent: (
-            BridgeCommand | _BaseCommand | None
-        ) = (  # pyright: ignore [reportUnknownMemberType, reportUnknownVariableType]
+        parent: BridgeCommand | _BaseCommand | None = (  # pyright: ignore [reportUnknownMemberType, reportUnknownVariableType]
             command.parent  # pyright: ignore [reportAttributeAccessIssue]
         )
         if parent is not None:
@@ -293,9 +279,9 @@ class CogMeta(type):
 
         # Either update the command with the cog provided defaults or copy it.
         # r.e type ignore, type-checker complains about overriding a ClassVar
-        new_cls.__cog_commands__ = list(tuple(
+        new_cls.__cog_commands__ = [
             c._update_copy(cmd_attrs) if not _is_bridge_command(c) else c for c in new_cls.__cog_commands__
-        ))  # type: ignore
+        ]  # type: ignore
 
         lookup = {f"{_name_filter(cmd)}_{cmd.qualified_name}": cmd for cmd in new_cls.__cog_commands__}
 

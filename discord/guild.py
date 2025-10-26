@@ -540,9 +540,7 @@ class Guild(Hashable):
 
         incidents_payload = guild.get("incidents_data")
         self.incidents_data: IncidentsData | None = (
-            IncidentsData(data=incidents_payload)
-            if incidents_payload is not None
-            else None
+            IncidentsData(data=incidents_payload) if incidents_payload is not None else None
         )
 
     def _add_sound(self, sound: SoundboardSound) -> None:
@@ -4283,18 +4281,12 @@ class Guild(Hashable):
 
         fields: ModifyIncidentsPayload = {}
         if invites_disabled_until is not MISSING:
-            fields["invites_disabled_until"] = (
-                invites_disabled_until and invites_disabled_until.isoformat()
-            )
+            fields["invites_disabled_until"] = invites_disabled_until and invites_disabled_until.isoformat()
 
         if dms_disabled_until is not MISSING:
-            fields["dms_disabled_until"] = (
-                dms_disabled_until and dms_disabled_until.isoformat()
-            )
+            fields["dms_disabled_until"] = dms_disabled_until and dms_disabled_until.isoformat()
 
-        new = await self._state.http.modify_guild_incident_actions(
-            self.id, fields, reason=reason
-        )
+        new = await self._state.http.modify_guild_incident_actions(self.id, fields, reason=reason)
         return IncidentsData(data=new)
 
     async def delete_auto_moderation_rule(

@@ -89,23 +89,21 @@ if TYPE_CHECKING:
         | Type[DiscordEnum]
     )
 
-    AutocompleteReturnType = Union[
-        Iterable["OptionChoice"], Iterable[str], Iterable[int], Iterable[float]
-    ]
+    AutocompleteReturnType = Iterable["OptionChoice"] | Iterable[str] | Iterable[int] | Iterable[float]
     T = TypeVar("T", bound=AutocompleteReturnType)
-    MaybeAwaitable = Union[T, Awaitable[T]]
-    AutocompleteFunction = Union[
-        Callable[[AutocompleteContext], MaybeAwaitable[AutocompleteReturnType]],
-        Callable[[Cog, AutocompleteContext], MaybeAwaitable[AutocompleteReturnType]],
-        Callable[
+    MaybeAwaitable = T | Awaitable[T]
+    AutocompleteFunction = (
+        Callable[[AutocompleteContext], MaybeAwaitable[AutocompleteReturnType]]
+        | Callable[[Cog, AutocompleteContext], MaybeAwaitable[AutocompleteReturnType]]
+        | Callable[
             [AutocompleteContext, Any],  # pyright: ignore [reportExplicitAny]
             MaybeAwaitable[AutocompleteReturnType],
-        ],
-        Callable[
+        ]
+        | Callable[
             [Cog, AutocompleteContext, Any],  # pyright: ignore [reportExplicitAny]
             MaybeAwaitable[AutocompleteReturnType],
-        ],
-    ]
+        ]
+    )
 
 
 __all__ = (
@@ -450,9 +448,7 @@ class Option:
             self._autocomplete._is_instance_method = (  # pyright: ignore [reportFunctionMemberAccess]
                 sum(
                     1
-                    for param in inspect.signature(
-                        self._autocomplete
-                    ).parameters.values()
+                    for param in inspect.signature(self._autocomplete).parameters.values()
                     if param.default == param.empty  # pyright: ignore[reportAny]
                     and param.kind not in (param.VAR_POSITIONAL, param.VAR_KEYWORD)
                 )

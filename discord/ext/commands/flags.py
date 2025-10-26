@@ -184,9 +184,7 @@ def get_flags(namespace: dict[str, Any], globals: dict[str, Any], locals: dict[s
 
         if flag.positional:
             if positional is not None:
-                raise TypeError(
-                    f"{flag.name!r} positional flag conflicts with {positional.name!r} flag."
-                )
+                raise TypeError(f"{flag.name!r} positional flag conflicts with {positional.name!r} flag.")
 
             positional = flag
 
@@ -543,11 +541,7 @@ class FlagConverter(metaclass=FlagsMeta):
                 last_position = len(argument)
 
             if value:
-                name = (
-                    positional_flag.name.casefold()
-                    if case_insensitive
-                    else positional_flag.name
-                )
+                name = positional_flag.name.casefold() if case_insensitive else positional_flag.name
                 result[name] = [value]
 
         for match in cls.__commands_flag_regex__.finditer(argument):

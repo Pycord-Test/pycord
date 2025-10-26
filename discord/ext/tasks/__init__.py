@@ -48,9 +48,7 @@ _func = Callable[..., Awaitable[Any]]
 LF = TypeVar("LF", bound=_func)
 FT = TypeVar("FT", bound=_func)
 ET = TypeVar("ET", bound=Callable[[Any, BaseException], Awaitable[Any]])
-_current_loop_ctx: contextvars.ContextVar[int] = contextvars.ContextVar(
-    "_current_loop_ctx", default=None
-)
+_current_loop_ctx: contextvars.ContextVar[int] = contextvars.ContextVar("_current_loop_ctx", default=None)
 
 
 def compute_timedelta(dt: datetime.datetime):
@@ -322,11 +320,7 @@ class Loop(Generic[LF]):
     @property
     def current_loop(self) -> int:
         """The current iteration of the loop."""
-        return (
-            _current_loop_ctx.get()
-            if _current_loop_ctx.get() is not None
-            else self._current_loop
-        )
+        return _current_loop_ctx.get() if _current_loop_ctx.get() is not None else self._current_loop
 
     @property
     def next_iteration(self) -> datetime.datetime | None:

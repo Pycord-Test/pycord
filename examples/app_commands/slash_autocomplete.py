@@ -191,15 +191,9 @@ FRUITS = ["Apple", "Banana", "Orange"]
 VEGETABLES = ["Carrot", "Lettuce", "Potato"]
 
 
-async def food_autocomplete(
-    ctx: discord.AutocompleteContext, food_type: str
-) -> list[discord.OptionChoice]:
+async def food_autocomplete(ctx: discord.AutocompleteContext, food_type: str) -> list[discord.OptionChoice]:
     items = FRUITS if food_type == "fruit" else VEGETABLES
-    return [
-        discord.OptionChoice(name=item)
-        for item in items
-        if ctx.value.lower() in item.lower()
-    ]
+    return [discord.OptionChoice(name=item) for item in items if ctx.value.lower() in item.lower()]
 
 
 @bot.slash_command(name="fruit")
