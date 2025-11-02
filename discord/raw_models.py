@@ -26,7 +26,9 @@ DEALINGS IN THE SOFTWARE.
 from __future__ import annotations
 
 import datetime
-from typing import TYPE_CHECKING, Self
+from typing import TYPE_CHECKING
+
+from typing_extensions import Self
 
 from .automod import AutoModAction, AutoModTriggerType
 from .enums import (

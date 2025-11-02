@@ -25,7 +25,9 @@ DEALINGS IN THE SOFTWARE.
 import asyncio
 import copy
 import logging
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Any
+
+from typing_extensions import Self
 
 from discord import Role
 from discord.app.event_emitter import Event

@@ -33,6 +33,7 @@ import aiohttp
 
 from .app.state import AutoShardedConnectionState
 from .backoff import ExponentialBackoff
+from .client import Client
 from .enums import Status
 from .errors import (
     ClientException,
@@ -48,7 +49,6 @@ if TYPE_CHECKING:
     from .gateway import DiscordWebSocket
 
     EI = TypeVar("EI", bound="EventItem")
-
 __all__ = (
     "AutoShardedClient",
     "ShardInfo",

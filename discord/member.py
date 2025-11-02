@@ -30,7 +30,9 @@ import inspect
 import itertools
 import sys
 from operator import attrgetter
-from typing import TYPE_CHECKING, Any, Self, TypeVar, Union
+from typing import TYPE_CHECKING, Any, TypeVar, Union
+
+from typing_extensions import Self
 
 import discord.abc
 

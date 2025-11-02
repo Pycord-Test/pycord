@@ -238,6 +238,7 @@ class ConnectionState:
         self._activity: ActivityPayload | None = activity
         self._status: str | None = status
         self._intents: Intents = intents
+        self._voice_clients: dict[int, VoiceClient] = {}
 
         if not intents.members or cache_flags._empty:
             self.store_user = self.create_user  # type: ignore
@@ -247,12 +248,13 @@ class ConnectionState:
 
         self.emitter = EventEmitter(self)
 
-        self.cache: Cache = self.cache
+        self.cache: Cache = cache
+        self.cache._state = self
 
     async def clear(self, *, views: bool = True) -> None:
         self.user: ClientUser | None = None
         await self.cache.clear()
-        self._voice_clients: dict[int, VoiceClient] = {}
+        self._voice_clients = {}
 
     async def process_chunk_requests(
         self, guild_id: int, nonce: str | None, members: list[Member], complete: bool

@@ -23,14 +23,12 @@ DEALINGS IN THE SOFTWARE.
 """
 
 from collections import OrderedDict, defaultdict, deque
-from typing import Deque, Protocol, TypeVar
+from typing import TYPE_CHECKING, Deque, Protocol, TypeVar
 
 from discord import utils
-from discord.app.state import ConnectionState
 from discord.member import Member
 from discord.message import Message
 
-from ..abc import MessageableChannel, PrivateChannel
 from ..channel import DMChannel
 from ..emoji import AppEmoji, GuildEmoji
 from ..guild import Guild
@@ -45,10 +43,28 @@ from ..ui.modal import Modal
 from ..ui.view import View
 from ..user import User
 
+if TYPE_CHECKING:
+    from discord.app.state import ConnectionState
+
+    from ..abc import MessageableChannel, PrivateChannel
+
 T = TypeVar("T")
 
 
 class Cache(Protocol):
+    def __init__(self):
+        self.__state: ConnectionState | None = None
+
+    @property
+    def _state(self) -> "ConnectionState":
+        if self.__state is None:
+            raise RuntimeError("Cache state has not been initialized.")
+        return self.__state
+
+    @_state.setter
+    def _state(self, state: "ConnectionState") -> None:
+        self.__state = state
+
     # users
     async def get_all_users(self) -> list[User]: ...
 
@@ -114,17 +130,17 @@ class Cache(Protocol):
 
     # private channels
 
-    async def get_private_channels(self) -> list[PrivateChannel]: ...
+    async def get_private_channels(self) -> "list[PrivateChannel]": ...
 
-    async def get_private_channel(self, channel_id: int) -> PrivateChannel: ...
+    async def get_private_channel(self, channel_id: int) -> "PrivateChannel": ...
 
-    async def get_private_channel_by_user(self, user_id: int) -> PrivateChannel | None: ...
+    async def get_private_channel_by_user(self, user_id: int) -> "PrivateChannel | None": ...
 
-    async def store_private_channel(self, channel: PrivateChannel) -> None: ...
+    async def store_private_channel(self, channel: "PrivateChannel") -> None: ...
 
     # messages
 
-    async def store_message(self, message: MessagePayload, channel: MessageableChannel) -> Message: ...
+    async def store_message(self, message: MessagePayload, channel: "MessageableChannel") -> Message: ...
 
     async def upsert_message(self, message: Message) -> None: ...
 
@@ -152,8 +168,8 @@ class Cache(Protocol):
 
 
 class MemoryCache(Cache):
-    def __init__(self, max_messages: int | None = None, *, state: ConnectionState):
-        self._state = state
+    def __init__(self, max_messages: int | None = None) -> None:
+        self.__state: ConnectionState | None = None
         self.max_messages = max_messages
         self._users: dict[int, User] = {}
         self._guilds: dict[int, Guild] = {}
@@ -312,10 +328,10 @@ class MemoryCache(Cache):
 
     # private channels
 
-    async def get_private_channels(self) -> list[PrivateChannel]:
+    async def get_private_channels(self) -> "list[PrivateChannel]":
         return list(self._private_channels.values())
 
-    async def get_private_channel(self, channel_id: int) -> PrivateChannel | None:
+    async def get_private_channel(self, channel_id: int) -> "PrivateChannel | None":
         try:
             channel = self._private_channels[channel_id]
         except KeyError:
@@ -324,7 +340,7 @@ class MemoryCache(Cache):
             self._private_channels.move_to_end(channel_id)
             return channel
 
-    async def store_private_channel(self, channel: PrivateChannel) -> None:
+    async def store_private_channel(self, channel: "PrivateChannel") -> None:
         channel_id = channel.id
         self._private_channels[channel_id] = channel
 
@@ -336,7 +352,7 @@ class MemoryCache(Cache):
         if isinstance(channel, DMChannel) and channel.recipient:
             self._private_channels_by_user[channel.recipient.id] = channel
 
-    async def get_private_channel_by_user(self, user_id: int) -> PrivateChannel | None:
+    async def get_private_channel_by_user(self, user_id: int) -> "PrivateChannel | None":
         return self._private_channels_by_user.get(user_id)
 
     # messages
@@ -344,7 +360,7 @@ class MemoryCache(Cache):
     async def upsert_message(self, message: Message) -> None:
         self._messages.append(message)
 
-    async def store_message(self, message: MessagePayload, channel: MessageableChannel) -> Message:
+    async def store_message(self, message: MessagePayload, channel: "MessageableChannel") -> Message:
         msg = await Message._from_data(state=self._state, channel=channel, data=message)
         self._messages.append(msg)
         return msg

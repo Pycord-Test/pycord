@@ -26,9 +26,12 @@ import asyncio
 from abc import ABC, abstractmethod
 from asyncio import Future
 from collections import defaultdict
-from typing import Any, Callable, Self, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, TypeVar
 
-from .state import ConnectionState
+from typing_extensions import Self
+
+if TYPE_CHECKING:
+    from .state import ConnectionState
 
 T = TypeVar("T", bound="Event")
 
@@ -38,11 +41,11 @@ class Event(ABC):
 
     @classmethod
     @abstractmethod
-    async def __load__(cls, data: Any, state: ConnectionState) -> Self | None: ...
+    async def __load__(cls, data: Any, state: "ConnectionState") -> Self | None: ...
 
 
 class EventEmitter:
-    def __init__(self, state: ConnectionState) -> None:
+    def __init__(self, state: "ConnectionState") -> None:
         self._listeners: dict[type[Event], list[Callable]] = {}
         self._events: dict[str, list[type[Event]]]
         self._wait_fors: dict[type[Event], list[Future]] = defaultdict(list)

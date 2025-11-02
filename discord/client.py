@@ -39,6 +39,7 @@ from discord.banners import print_banner, start_logging
 
 from . import utils
 from .activity import ActivityTypes, BaseActivity, create_activity
+from .app.cache import Cache, MemoryCache
 from .app.state import ConnectionState
 from .appinfo import AppInfo, PartialAppInfo
 from .application_role_connection import ApplicationRoleConnectionMetadata
@@ -309,6 +310,7 @@ class Client:
             hooks=self._hooks,
             http=self.http,
             loop=self.loop,
+            cache=MemoryCache(),
             **options,
         )
 
@@ -1022,7 +1024,7 @@ class Client:
         Optional[:class:`.StageInstance`]
             The stage instance or ``None`` if not found.
         """
-        from .channel import StageChannel  # noqa: PLC0415
+        from .channel import StageChannel
 
         channel = await self._connection.get_channel(id)
 

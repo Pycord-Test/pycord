@@ -35,13 +35,14 @@ from typing import (
     Any,
     Callable,
     ClassVar,
-    Self,
     Sequence,
     TypeVar,
     Union,
     overload,
 )
 from urllib.parse import parse_qs, urlparse
+
+from typing_extensions import Self
 
 from . import utils
 from .channel import PartialMessageable

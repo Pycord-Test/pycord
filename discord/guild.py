@@ -36,13 +36,14 @@ from typing import (
     List,
     NamedTuple,
     Optional,
-    Self,
     Sequence,
     Tuple,
     Union,
     cast,
     overload,
 )
+
+from typing_extensions import Self
 
 from . import abc, utils
 from .asset import Asset
@@ -2565,7 +2566,7 @@ class Guild(Hashable):
         Forbidden
             You don't have permissions to get the templates.
         """
-        from .template import Template  # noqa: PLC0415
+        from .template import Template
 
         data = await self._state.http.guild_templates(self.id)
         return [await Template.from_data(data=d, state=self._state) for d in data]
@@ -2588,7 +2589,7 @@ class Guild(Hashable):
             You don't have permissions to get the webhooks.
         """
 
-        from .webhook import Webhook  # noqa: PLC0415
+        from .webhook import Webhook  # circular import
 
         data = await self._state.http.guild_webhooks(self.id)
         return [Webhook.from_state(d, state=self._state) for d in data]
@@ -2678,7 +2679,7 @@ class Guild(Hashable):
         description: :class:`str`
             The description of the template.
         """
-        from .template import Template  # noqa: PLC0415
+        from .template import Template  # circular import
 
         payload = {"name": name}
 
