@@ -110,6 +110,13 @@ class BaseEmoji(_EmojiTag, AssetMixin):
         fmt = "gif" if self.animated else "png"
         return f"{Asset.BASE}/emojis/{self.id}.{fmt}"
 
+    @property
+    def mention(self) -> str:
+        """Return a string that allows you to mention the emoji in a message."""
+        if self.animated:
+            return f"<a:{self.name}:{self.id}>"
+        return f"<:{self.name}:{self.id}>"
+
 
 class GuildEmoji(BaseEmoji):
     """Represents a custom emoji in a guild.

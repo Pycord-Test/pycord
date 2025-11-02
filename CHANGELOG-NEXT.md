@@ -1,6 +1,6 @@
-## Pycord Expanded and Enhanced
+## Pycord Next ?
 
-These changes are part of `pycord-test/pycord`, and are candidates for the next major
+These changes are part of `Pycord-Development/pycord-next`, and are candidates for an upcoming major
 release.
 
 ### Added
