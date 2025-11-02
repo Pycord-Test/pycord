@@ -22,16 +22,17 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
 
-from datetime import datetime
 from copy import copy
+from datetime import datetime
 from typing import Any, Self, TypeVar, cast
-from discord.utils.private import get_as_snowflake, parse_time
+
 from discord.abc import GuildChannel, PrivateChannel
 from discord.app.event_emitter import Event
 from discord.app.state import ConnectionState
 from discord.channel import GroupChannel, _channel_factory
 from discord.enums import ChannelType, try_enum
 from discord.threads import Thread
+from discord.utils.private import get_as_snowflake, parse_time
 
 T = TypeVar("T")
 
@@ -51,7 +52,7 @@ class ChannelCreate(Event, GuildChannel):
         guild = await state._get_guild(guild_id)
         if guild is not None:
             # the factory can't be a DMChannel or GroupChannel here
-            channel = factory(guild=guild, state=self, data=data)  # type: ignore
+            channel = factory(guild=guild, state=self, data=data)  # type: ignore # noqa: F821 # self is unbound
             guild._add_channel(channel)  # type: ignore
             self = cls()
             self.__dict__.update(channel.__dict__)

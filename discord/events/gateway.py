@@ -24,7 +24,6 @@ DEALINGS IN THE SOFTWARE.
 
 from typing import Any, Self, cast
 
-from discord.utils.private import get_as_snowflake
 from discord.emoji import Emoji
 from discord.flags import ApplicationFlags
 from discord.guild import Guild, GuildChannel
@@ -33,15 +32,18 @@ from discord.role import Role
 from discord.sticker import Sticker
 from discord.types.user import User as UserPayload
 from discord.user import ClientUser, User
+from discord.utils.private import get_as_snowflake
 
-from ..app.state import ConnectionState
 from ..app.event_emitter import Event
+from ..app.state import ConnectionState
+from ..enums import ApplicationCommandPermissionType
+from ..types.guild import Guild as GuildPayload
 from ..types.interactions import (
     ApplicationCommandPermissions as ApplicationCommandPermissionsPayload,
+)
+from ..types.interactions import (
     GuildApplicationCommandPermissions,
 )
-from ..types.guild import Guild as GuildPayload
-from ..enums import ApplicationCommandPermissionType
 
 
 class Resumed(Event):

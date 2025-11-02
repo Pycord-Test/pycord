@@ -40,8 +40,6 @@ if TYPE_CHECKING:
 
     from .. import Bot
     from ..app.state import ConnectionState
-    from ..voice_client import VoiceClient
-
     from ..client import ClientUser
     from ..cog import Cog
     from ..guild import Guild
@@ -50,6 +48,7 @@ if TYPE_CHECKING:
     from ..message import Message
     from ..permissions import Permissions
     from ..user import User
+    from ..voice_client import VoiceClient
     from ..webhook import WebhookMessage
     from .core import ApplicationCommand, Option
 

@@ -70,6 +70,7 @@ if TYPE_CHECKING:
     import datetime
 
     from ..abc import Snowflake
+    from ..app.state import ConnectionState
     from ..channel import TextChannel
     from ..embeds import Embed
     from ..file import File
@@ -77,7 +78,6 @@ if TYPE_CHECKING:
     from ..http import Response
     from ..mentions import AllowedMentions
     from ..poll import Poll
-    from ..app.state import ConnectionState
     from ..types.message import Message as MessagePayload
     from ..types.webhook import FollowerWebhook as FollowerWebhookPayload
     from ..types.webhook import Webhook as WebhookPayload
@@ -530,6 +530,10 @@ class AsyncWebhookAdapter:
             webhook_token=token,
         )
 
+        params: dict[str, Any] = {
+            "with_response": "true",
+        }
+
         return self.request(
             route,
             session=session,
@@ -537,6 +541,7 @@ class AsyncWebhookAdapter:
             proxy_auth=proxy_auth,
             files=files,
             multipart=form,
+            params=params,
         )
 
     def get_original_interaction_response(

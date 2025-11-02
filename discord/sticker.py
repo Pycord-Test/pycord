@@ -46,8 +46,8 @@ __all__ = (
 if TYPE_CHECKING:
     import datetime
 
-    from .guild import Guild
     from .app.state import ConnectionState
+    from .guild import Guild
     from .types.sticker import EditGuildSticker
     from .types.sticker import GuildSticker as GuildStickerPayload
     from .types.sticker import ListPremiumStickerPacks as ListPremiumStickerPacksPayload

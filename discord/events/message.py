@@ -23,7 +23,7 @@ DEALINGS IN THE SOFTWARE.
 """
 
 from typing import Any, Self
-from discord.utils import private as utils, MISSING
+
 from discord.app.state import ConnectionState
 from discord.channel import StageChannel, TextChannel, VoiceChannel
 from discord.guild import Guild
@@ -44,9 +44,11 @@ from discord.threads import Thread
 from discord.types.message import Reaction as ReactionPayload
 from discord.types.raw_models import ReactionActionEvent, ReactionClearEvent
 from discord.user import User
-from discord.utils import Undefined
-from ..message import Message, PartialMessage
+from discord.utils import MISSING, Undefined
+from discord.utils import private as utils
+
 from ..app.event_emitter import Event
+from ..message import Message, PartialMessage
 
 
 class MessageCreate(Event, Message):
@@ -261,7 +263,7 @@ class ReactionRemoveEmoji(Event, Reaction):
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         emoji = data["emoji"]
         emoji_id = utils.get_as_snowflake(emoji, "id")
-        emoji = PartialEmoji.with_state(self, id=emoji_id, name=emoji["name"])
+        emoji = PartialEmoji.with_state(self, id=emoji_id, name=emoji["name"])  # noqa: F821 # TODO: self is unbound
         raw = RawReactionClearEmojiEvent(data, emoji)
 
         message = await state._get_message(raw.message_id)

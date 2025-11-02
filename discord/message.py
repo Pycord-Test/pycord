@@ -26,9 +26,9 @@ DEALINGS IN THE SOFTWARE.
 from __future__ import annotations
 
 import datetime
-from inspect import isawaitable
 import io
 import re
+from inspect import isawaitable
 from os import PathLike
 from typing import (
     TYPE_CHECKING,
@@ -71,12 +71,12 @@ if TYPE_CHECKING:
         PartialMessageableChannel,
         Snowflake,
     )
+    from .app.state import ConnectionState
     from .channel import TextChannel
     from .components import Component
     from .interactions import MessageInteraction
     from .mentions import AllowedMentions
     from .role import Role
-    from .app.state import ConnectionState
     from .types.components import Component as ComponentPayload
     from .types.embed import Embed as EmbedPayload
     from .types.member import Member as MemberPayload
@@ -87,6 +87,7 @@ if TYPE_CHECKING:
     from .types.message import MessageActivity as MessageActivityPayload
     from .types.message import MessageApplication as MessageApplicationPayload
     from .types.message import MessageCall as MessageCallPayload
+    from .types.message import MessagePin as MessagePinPayload
     from .types.message import MessageReference as MessageReferencePayload
     from .types.message import MessageSnapshot as MessageSnapshotPayload
     from .types.message import Reaction as ReactionPayload
@@ -754,6 +755,36 @@ class MessageSnapshot:
         return f"<MessageSnapshot message={self.message!r}>"
 
 
+class MessagePin:
+    """Represents information about a pinned message.
+
+    .. versionadded:: 2.7
+    """
+
+    def __init__(
+        self,
+        state: ConnectionState,
+        channel: MessageableChannel,
+        data: MessagePinPayload,
+    ):
+        self._state: ConnectionState = state
+        self._pinned_at: datetime.datetime = utils.parse_time(data["pinned_at"])
+        self._message: Message = state.create_message(channel=channel, data=data["message"])
+
+    @property
+    def message(self) -> Message:
+        """The pinned message."""
+        return self._message
+
+    @property
+    def pinned_at(self) -> datetime.datetime:
+        """An aware timestamp of when the message was pinned."""
+        return self._pinned_at
+
+    def __repr__(self) -> str:
+        return f"<MessagePin pinned_at={self.pinned_at!r} message={self.message!r}>"
+
+
 class Message(Hashable):
     r"""Represents a message from Discord.
 
@@ -1017,7 +1048,7 @@ class Message(Hashable):
         except KeyError:
             self.snapshots = []
 
-        from .interactions import InteractionMetadata, MessageInteraction  # noqa: PLC0415
+        from .interactions import InteractionMetadata, MessageInteraction  # noqa: PLC0415 # circular import
 
         self._interaction: MessageInteraction | None
         try:
@@ -1056,7 +1087,7 @@ class Message(Hashable):
 
         try:
             # Update member reference
-            self.author._update_from_message(member)  # type: ignore
+            self.author._update_from_message(member)  # type: ignore # noqa: F821 # TODO: member is unbound
         except AttributeError:
             # It's a user here
             # TODO: consider adding to cache here
@@ -1648,7 +1679,7 @@ class Message(Hashable):
 
         Pins the message.
 
-        You must have the :attr:`~Permissions.manage_messages` permission to do
+        You must have the :attr:`~Permissions.pin_messages` permission to do
         this in a non-private channel context.
 
         Parameters
@@ -1677,7 +1708,7 @@ class Message(Hashable):
 
         Unpins the message.
 
-        You must have the :attr:`~Permissions.manage_messages` permission to do
+        You must have the :attr:`~Permissions.pin_messages` permission to do
         this in a non-private channel context.
 
         Parameters

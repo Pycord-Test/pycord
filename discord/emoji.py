@@ -43,9 +43,9 @@ if TYPE_CHECKING:
     from datetime import datetime
 
     from .abc import Snowflake
+    from .app.state import ConnectionState
     from .guild import Guild
     from .role import Role
-    from .app.state import ConnectionState
     from .types.emoji import Emoji as EmojiPayload
 
 
@@ -109,6 +109,13 @@ class BaseEmoji(_EmojiTag, AssetMixin):
         """Returns the URL of the emoji."""
         fmt = "gif" if self.animated else "png"
         return f"{Asset.BASE}/emojis/{self.id}.{fmt}"
+
+    @property
+    def mention(self) -> str:
+        """Return a string that allows you to mention the emoji in a message."""
+        if self.animated:
+            return f"<a:{self.name}:{self.id}>"
+        return f"<:{self.name}:{self.id}>"
 
 
 class GuildEmoji(BaseEmoji):

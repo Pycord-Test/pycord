@@ -26,6 +26,7 @@ import asyncio
 import copy
 import logging
 from typing import TYPE_CHECKING, Any, Self
+
 from discord import Role
 from discord.app.event_emitter import Event
 from discord.app.state import ConnectionState
@@ -186,9 +187,7 @@ class GuildStickersUpdate(Event):
         guild = await state._get_guild(int(data["guild_id"]))
         if guild is None:
             _log.debug(
-                (
-                    "GUILD_STICKERS_UPDATE referencing an unknown guild ID: %s. Discarding."
-                ),
+                ("GUILD_STICKERS_UPDATE referencing an unknown guild ID: %s. Discarding."),
                 data["guild_id"],
             )
             return
@@ -332,9 +331,7 @@ class GuildDelete(Event, Guild):
 
         # do a cleanup of the messages cache
         messages = await state.cache.get_all_messages()
-        await asyncio.gather(
-            *[state.cache.delete_message(message.id) for message in messages]
-        )
+        await asyncio.gather(*[state.cache.delete_message(message.id) for message in messages])
 
         await state._remove_guild(guild)
         self = cls()

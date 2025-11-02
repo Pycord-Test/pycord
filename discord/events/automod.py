@@ -23,15 +23,17 @@ DEALINGS IN THE SOFTWARE.
 """
 
 from typing import Any, Self
+
 from discord.app.state import ConnectionState
 from discord.automod import AutoModRule
 from discord.raw_models import AutoModActionExecutionEvent
+
 from ..app.event_emitter import Event
 
 
 class AutoModRuleCreate(Event):
     __event_name__ = "AUTO_MODERATION_RULE_CREATE"
-    __slots__ = ("rule")
+    __slots__ = ("rule",)
 
     rule: AutoModRule
 
@@ -44,7 +46,7 @@ class AutoModRuleCreate(Event):
 
 class AutoModRuleUpdate(Event):
     __event_name__ = "AUTO_MODERATION_RULE_UPDATE"
-    __slots__ = ("rule")
+    __slots__ = ("rule",)
 
     rule: AutoModRule
 
@@ -57,7 +59,7 @@ class AutoModRuleUpdate(Event):
 
 class AutoModRuleDelete(Event):
     __event_name__ = "AUTO_MODERATION_RULE_DELETE"
-    __slots__ = ("rule")
+    __slots__ = ("rule",)
 
     rule: AutoModRule
 

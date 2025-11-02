@@ -23,12 +23,14 @@ DEALINGS IN THE SOFTWARE.
 """
 
 from typing import Any, Self
+
 from discord.abc import GuildChannel
 from discord.app.event_emitter import Event
 from discord.app.state import ConnectionState
 from discord.guild import Guild
 from discord.invite import Invite, PartialInviteChannel, PartialInviteGuild
-from discord.types.invite import GatewayInvite, Invite as InvitePayload, VanityInvite
+from discord.types.invite import GatewayInvite, VanityInvite
+from discord.types.invite import Invite as InvitePayload
 
 
 class InviteCreate(Event, Invite):

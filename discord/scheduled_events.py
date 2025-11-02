@@ -48,10 +48,10 @@ __all__ = (
 
 if TYPE_CHECKING:
     from .abc import Snowflake
+    from .app.state import ConnectionState
     from .guild import Guild
     from .iterators import AsyncIterator
     from .member import Member
-    from .app.state import ConnectionState
     from .types.channel import StageChannel, VoiceChannel
     from .types.scheduled_events import ScheduledEvent as ScheduledEventPayload
 

@@ -26,10 +26,9 @@ from typing import Any, Self
 
 from discord.types.monetization import Entitlement as EntitlementPayload
 
-from ..monetization import Entitlement
-
-from ..app.state import ConnectionState
 from ..app.event_emitter import Event
+from ..app.state import ConnectionState
+from ..monetization import Entitlement
 
 
 class EntitlementCreate(Event, Entitlement):

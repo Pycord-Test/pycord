@@ -50,9 +50,9 @@ __all__ = ("View", "_component_to_item", "_walk_all_components")
 
 
 if TYPE_CHECKING:
+    from ..app.state import ConnectionState
     from ..interactions import Interaction, InteractionMessage
     from ..message import Message
-    from ..app.state import ConnectionState
     from ..types.components import Component as ComponentPayload
 
 V = TypeVar("V", bound="View", covariant=True)

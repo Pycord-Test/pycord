@@ -25,11 +25,11 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
+import datetime
+from functools import cached_property
 from inspect import isawaitable
 from typing import TYPE_CHECKING, Any, Callable, ClassVar, Generator, TypeVar
-from functools import cached_property
 
-from .utils.private import get_as_snowflake
 from . import enums, utils
 from .asset import Asset
 from .automod import AutoModAction, AutoModTriggerMetadata
@@ -38,6 +38,7 @@ from .invite import Invite
 from .mixins import Hashable
 from .object import Object
 from .permissions import PermissionOverwrite, Permissions
+from .utils.private import get_as_snowflake
 
 __all__ = (
     "AuditLogDiff",
@@ -47,16 +48,14 @@ __all__ = (
 
 
 if TYPE_CHECKING:
-    import datetime
-
     from . import abc
+    from .app.state import ConnectionState
     from .emoji import GuildEmoji
     from .guild import Guild
     from .member import Member
     from .role import Role
     from .scheduled_events import ScheduledEvent
     from .stage_instance import StageInstance
-    from .app.state import ConnectionState
     from .sticker import GuildSticker
     from .threads import Thread
     from .types.audit_log import AuditLogChange as AuditLogChangePayload
@@ -198,6 +197,12 @@ def _transform_trigger_metadata(
         return AutoModTriggerMetadata.from_dict(data)
 
 
+def _transform_communication_disabled_until(entry: AuditLogEntry, data: str) -> datetime.datetime | None:
+    if data:
+        return datetime.datetime.fromisoformat(data)
+    return None
+
+
 class AuditLogDiff:
     def __len__(self) -> int:
         return len(self.__dict__)
@@ -270,6 +275,7 @@ class AuditLogChanges:
         "trigger_metadata": (None, _transform_trigger_metadata),
         "exempt_roles": (None, _transform_roles),
         "exempt_channels": (None, _transform_channels),
+        "communication_disabled_until": (None, _transform_communication_disabled_until),
     }
 
     @staticmethod
@@ -391,7 +397,7 @@ class AuditLogChanges:
         elem: list[RolePayload],
     ) -> None:
         if not hasattr(first, "roles"):
-            setattr(first, "roles", [])
+            first.roles = []
 
         data = []
         g: Guild = entry.guild  # type: ignore
@@ -406,7 +412,7 @@ class AuditLogChanges:
 
             data.append(role)
 
-        setattr(second, "roles", data)
+        second.roles = data
 
     def _handle_trigger_metadata(
         self,
@@ -417,13 +423,13 @@ class AuditLogChanges:
         attr: str,
     ) -> None:
         if not hasattr(first, "trigger_metadata"):
-            setattr(first, "trigger_metadata", None)
+            first.trigger_metadata = None
 
         key = attr.split("_", 1)[-1]
         data = {key: elem}
         tm = AutoModTriggerMetadata.from_dict(data)
 
-        setattr(second, "trigger_metadata", tm)
+        second.trigger_metadata = tm
 
 
 class _AuditLogProxyMemberPrune:

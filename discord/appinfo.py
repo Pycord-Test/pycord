@@ -33,8 +33,8 @@ from .permissions import Permissions
 from .utils.private import get_as_snowflake, warn_deprecated
 
 if TYPE_CHECKING:
-    from .guild import Guild
     from .app.state import ConnectionState
+    from .guild import Guild
     from .types.appinfo import AppInfo as AppInfoPayload
     from .types.appinfo import AppInstallParams as AppInstallParamsPayload
     from .types.appinfo import PartialAppInfo as PartialAppInfoPayload

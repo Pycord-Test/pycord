@@ -26,9 +26,10 @@ from typing import Any, Self
 
 from discord.enums import InteractionType
 from discord.types.interactions import Interaction as InteractionPayload
+
+from ..app.event_emitter import Event
 from ..app.state import ConnectionState
 from ..interactions import Interaction
-from ..app.event_emitter import Event
 
 
 class InteractionCreate(Event, Interaction):

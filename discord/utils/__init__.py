@@ -26,6 +26,7 @@ DEALINGS IN THE SOFTWARE.
 from __future__ import annotations
 
 from .public import (
+    DISCORD_EPOCH,
     MISSING,
     UNICODE_EMOJIS,
     Undefined,
@@ -44,9 +45,6 @@ from .public import (
     utcnow,
 )
 
-DISCORD_EPOCH = 1420070400000
-
-
 __all__ = (
     "oauth_url",
     "snowflake_time",
@@ -63,5 +61,6 @@ __all__ = (
     "basic_autocomplete",
     "Undefined",
     "MISSING",
+    "DISCORD_EPOCH",
     "UNICODE_EMOJIS",
 )

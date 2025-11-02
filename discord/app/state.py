@@ -44,11 +44,6 @@ from typing import (
     cast,
 )
 
-
-from .cache import Cache
-from .event_emitter import EventEmitter
-
-from ..utils.private import get_as_snowflake, parse_time, sane_wait_for
 from .. import utils
 from ..activity import BaseActivity
 from ..audit_logs import AuditLogEntry
@@ -78,6 +73,9 @@ from ..threads import Thread, ThreadMember
 from ..ui.modal import Modal
 from ..ui.view import View
 from ..user import ClientUser, User
+from ..utils.private import get_as_snowflake, parse_time, sane_wait_for
+from .cache import Cache
+from .event_emitter import EventEmitter
 
 if TYPE_CHECKING:
     from ..abc import PrivateChannel
@@ -98,7 +96,7 @@ if TYPE_CHECKING:
 
     T = TypeVar("T")
     CS = TypeVar("CS", bound="ConnectionState")
-    Channel = Union[GuildChannel, VocalGuildChannel, PrivateChannel, PartialMessageable]
+    Channel = GuildChannel | VocalGuildChannel | PrivateChannel | PartialMessageable
 
 
 class ChunkRequest:
@@ -548,7 +546,6 @@ class ConnectionState:
             entry = AuditLogEntry(users={data["user_id"]: user}, data=data, guild=guild)
             self.dispatch("audit_log_entry", entry)
 
-
     def parse_guild_members_chunk(self, data) -> None:
         guild_id = int(data["guild_id"])
         guild = self._get_guild(guild_id)
@@ -989,7 +986,7 @@ class AutoShardedConnectionState(ConnectionState):
 
         guilds = sorted(processed, key=lambda g: g[0].shard_id)
         for shard_id, info in itertools.groupby(guilds, key=lambda g: g[0].shard_id):
-            children, futures = zip(*info)
+            children, futures = zip(*info, strict=True)
             # 110 reqs/minute w/ 1 req/guild plus some buffer
             timeout = 61 * (len(children) / 110)
             try:

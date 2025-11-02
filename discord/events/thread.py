@@ -24,6 +24,7 @@ DEALINGS IN THE SOFTWARE.
 
 import logging
 from typing import Any, Self, cast
+
 from discord import utils
 from discord.abc import Snowflake
 from discord.app.event_emitter import Event
@@ -34,6 +35,7 @@ from discord.types.raw_models import ThreadDeleteEvent, ThreadUpdateEvent
 from discord.types.threads import ThreadMember as ThreadMemberPayload
 
 _log = logging.getLogger(__name__)
+
 
 class ThreadMemberJoin(Event, ThreadMember):
     __event_name__ = "THREAD_MEMBER_JOIN"
@@ -46,6 +48,7 @@ class ThreadMemberJoin(Event, ThreadMember):
         self.__dict__.update(data.__dict__)
         return self
 
+
 class ThreadJoin(Event, Thread):
     __event_name__ = "THREAD_JOIN"
 
@@ -56,6 +59,7 @@ class ThreadJoin(Event, Thread):
         self = cls()
         self.__dict__.update(data.__dict__)
         return self
+
 
 class ThreadMemberRemove(Event, ThreadMember):
     __event_name__ = "THREAD_MEMBER_REMOVE"
@@ -68,6 +72,7 @@ class ThreadMemberRemove(Event, ThreadMember):
         self.__dict__.update(data.__dict__)
         return self
 
+
 class ThreadRemove(Event, Thread):
     __event_name__ = "THREAD_REMOVE"
 
@@ -78,6 +83,7 @@ class ThreadRemove(Event, Thread):
         self = cls()
         self.__dict__.update(data.__dict__)
         return self
+
 
 class ThreadCreate(Event, Thread):
     __event_name__ = "THREAD_CREATE"
@@ -166,7 +172,7 @@ class ThreadDelete(Event, Thread):
         if guild is None:
             return
 
-        self = cls()
+        self = cls()  # TODO: self is unused @VincentRPS # noqa: F841
 
         thread = guild.get_thread(raw.thread_id)
         if thread:
@@ -174,7 +180,8 @@ class ThreadDelete(Event, Thread):
             if (msg := await thread.get_starting_message()) is not None:
                 msg.thread = None  # type: ignore
 
-        return cast(Self, thread)
+        return cast(Self, thread)  # TODO: this is an incorrect rtype @VincentRPS
+
 
 class ThreadListSync(Event):
     __event_name__ = "THREAD_LIST_SYNC"
@@ -219,8 +226,10 @@ class ThreadListSync(Event):
         for thread in previous_threads.values():
             await state.emitter.emit("THREAD_REMOVE", thread)
 
+
 class ThreadMemberUpdate(Event, ThreadMember):
     __event_name__ = "THREAD_MEMBER_UPDATE"
+
     def __init__(self): ...
 
     @classmethod
@@ -251,6 +260,7 @@ class ThreadMemberUpdate(Event, ThreadMember):
 
         return self
 
+
 class BulkThreadMemberUpdate(Event):
     @classmethod
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
@@ -265,7 +275,7 @@ class BulkThreadMemberUpdate(Event):
 
         thread_id = int(data["id"])
         thread: Thread | None = guild.get_thread(thread_id)
-        raw = RawThreadMembersUpdateEvent(data)
+        raw = RawThreadMembersUpdateEvent(data)  # TODO: Not used @VincentRPS # noqa: F841
         if thread is None:
             _log.debug(
                 ("THREAD_MEMBERS_UPDATE referencing an unknown thread ID: %s. Discarding"),
@@ -292,4 +302,3 @@ class BulkThreadMemberUpdate(Event):
             else:
                 thread.me = None
                 await state.emitter.emit("thread_remove", thread)
-

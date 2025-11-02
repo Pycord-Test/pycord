@@ -48,11 +48,11 @@ __all__ = (
 
 if TYPE_CHECKING:
     from .abc import Snowflake
+    from .app.state import ConnectionState
     from .channel import ForumChannel, TextChannel, VoiceChannel
     from .guild import Guild
     from .member import Member
     from .role import Role
-    from .app.state import ConnectionState
     from .types.automod import AutoModAction as AutoModActionPayload
     from .types.automod import AutoModActionMetadata as AutoModActionMetadataPayload
     from .types.automod import AutoModRule as AutoModRulePayload

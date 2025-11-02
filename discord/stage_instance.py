@@ -36,9 +36,9 @@ from .utils.private import cached_slot_property
 __all__ = ("StageInstance",)
 
 if TYPE_CHECKING:
+    from .app.state import ConnectionState
     from .channel import StageChannel
     from .guild import Guild
-    from .app.state import ConnectionState
     from .types.channel import StageInstance as StageInstancePayload
 
 
