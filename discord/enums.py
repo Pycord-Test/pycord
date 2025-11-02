@@ -1052,12 +1052,6 @@ class ApplicationCommandPermissionType(Enum):
     channel = 3
 
 
-def create_unknown_value(cls: type[T], val: Any) -> T:
-    value_cls = cls._enum_value_cls_  # type: ignore
-    name = f"unknown_{val}"
-    return value_cls(name=name, value=val)
-
-
 def try_enum(cls: type[E], val: Any) -> E:
     """A function that tries to turn the value into enum ``cls``.
 
