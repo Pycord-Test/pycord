@@ -26,6 +26,8 @@ import copy
 import logging
 from typing import Any, Self
 
+from typing_extensions import override
+
 from discord.app.event_emitter import Event
 from discord.app.state import ConnectionState
 from discord.stage_instance import StageInstance
@@ -34,11 +36,12 @@ _log = logging.getLogger(__name__)
 
 
 class StageInstanceCreate(Event, StageInstance):
-    __event_name__ = "STAGE_INSTANCE_CREATE"
+    __event_name__: str = "STAGE_INSTANCE_CREATE"
 
     def __init__(self) -> None: ...
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         guild = await state._get_guild(int(data["guild_id"]))
         if guild is None:
@@ -57,13 +60,14 @@ class StageInstanceCreate(Event, StageInstance):
 
 
 class StageInstanceUpdate(Event, StageInstance):
-    __event_name__ = "STAGE_INSTANCE_UPDATE"
+    __event_name__: str = "STAGE_INSTANCE_UPDATE"
 
     old: StageInstance
 
     def __init__(self) -> None: ...
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         guild = await state._get_guild(int(data["guild_id"]))
         if guild is None:
@@ -91,11 +95,12 @@ class StageInstanceUpdate(Event, StageInstance):
 
 
 class StageInstanceDelete(Event, StageInstance):
-    __event_name__ = "STAGE_INSTANCE_DELETE"
+    __event_name__: str = "STAGE_INSTANCE_DELETE"
 
     def __init__(self) -> None: ...
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         guild = await state._get_guild(int(data["guild_id"]))
         if guild is None:

@@ -24,6 +24,8 @@ DEALINGS IN THE SOFTWARE.
 
 from typing import Any, Self
 
+from typing_extensions import override
+
 from discord.abc import GuildChannel
 from discord.app.event_emitter import Event
 from discord.app.state import ConnectionState
@@ -34,11 +36,12 @@ from discord.types.invite import Invite as InvitePayload
 
 
 class InviteCreate(Event, Invite):
-    __event_name__ = "INVITE_CREATE"
+    __event_name__: str = "INVITE_CREATE"
 
     def __init__(self) -> None: ...
 
     @classmethod
+    @override
     async def __load__(cls, data: GatewayInvite, state: ConnectionState) -> Self | None:
         invite = await Invite.from_gateway(state=state, data=data)
         self = cls()
@@ -46,11 +49,12 @@ class InviteCreate(Event, Invite):
 
 
 class InviteDelete(Event, Invite):
-    __event_name__ = "INVITE_DELETE"
+    __event_name__: str = "INVITE_DELETE"
 
     def __init__(self) -> None: ...
 
     @classmethod
+    @override
     async def __load__(cls, data: GatewayInvite, state: ConnectionState) -> Self | None:
         invite = await Invite.from_gateway(state=state, data=data)
         self = cls()

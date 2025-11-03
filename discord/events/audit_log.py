@@ -25,6 +25,8 @@ DEALINGS IN THE SOFTWARE.
 import logging
 from typing import Any, Self
 
+from typing_extensions import override
+
 from discord.app.event_emitter import Event
 from discord.app.state import ConnectionState
 from discord.audit_logs import AuditLogEntry
@@ -34,13 +36,14 @@ _log = logging.getLogger(__name__)
 
 
 class GuildAuditLogEntryCreate(Event, AuditLogEntry):
-    __event_name__ = "GUILD_AUDIT_LOG_ENTRY_CREATE"
+    __event_name__: str = "GUILD_AUDIT_LOG_ENTRY_CREATE"
 
     raw: RawAuditLogEntryEvent
 
     def __init__(self) -> None: ...
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         guild = await state._get_guild(int(data["guild_id"]))
         if guild is None:

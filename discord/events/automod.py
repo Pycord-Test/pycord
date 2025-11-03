@@ -24,6 +24,8 @@ DEALINGS IN THE SOFTWARE.
 
 from typing import Any, Self
 
+from typing_extensions import override
+
 from discord.app.state import ConnectionState
 from discord.automod import AutoModRule
 from discord.raw_models import AutoModActionExecutionEvent
@@ -32,12 +34,13 @@ from ..app.event_emitter import Event
 
 
 class AutoModRuleCreate(Event):
-    __event_name__ = "AUTO_MODERATION_RULE_CREATE"
+    __event_name__: str = "AUTO_MODERATION_RULE_CREATE"
     __slots__ = ("rule",)
 
     rule: AutoModRule
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self:
         self = cls()
         self.rule = AutoModRule(state=state, data=data)
@@ -45,12 +48,13 @@ class AutoModRuleCreate(Event):
 
 
 class AutoModRuleUpdate(Event):
-    __event_name__ = "AUTO_MODERATION_RULE_UPDATE"
+    __event_name__: str = "AUTO_MODERATION_RULE_UPDATE"
     __slots__ = ("rule",)
 
     rule: AutoModRule
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self:
         self = cls()
         self.rule = AutoModRule(state=state, data=data)
@@ -58,12 +62,13 @@ class AutoModRuleUpdate(Event):
 
 
 class AutoModRuleDelete(Event):
-    __event_name__ = "AUTO_MODERATION_RULE_DELETE"
+    __event_name__: str = "AUTO_MODERATION_RULE_DELETE"
     __slots__ = ("rule",)
 
     rule: AutoModRule
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self:
         self = cls()
         self.rule = AutoModRule(state=state, data=data)
@@ -73,9 +78,10 @@ class AutoModRuleDelete(Event):
 class AutoModActionExecution(Event, AutoModActionExecutionEvent):
     """Represents the `AUTO_MODERATION_ACTION_EXECUTION` event"""
 
-    __event_name__ = "AUTO_MODERATION_ACTION_EXECUTION"
+    __event_name__: str = "AUTO_MODERATION_ACTION_EXECUTION"
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self:
         self = cls()
         event = await AutoModActionExecutionEvent.from_data(state, data)

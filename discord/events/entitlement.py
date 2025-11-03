@@ -24,6 +24,8 @@ DEALINGS IN THE SOFTWARE.
 
 from typing import Any, Self
 
+from typing_extensions import override
+
 from discord.types.monetization import Entitlement as EntitlementPayload
 
 from ..app.event_emitter import Event
@@ -32,12 +34,13 @@ from ..monetization import Entitlement
 
 
 class EntitlementCreate(Event, Entitlement):
-    __event_name__ = "ENTITLEMENT_CREATE"
+    __event_name__: str = "ENTITLEMENT_CREATE"
 
     def __init__(self) -> None:
         pass
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self:
         self = cls()
         self.__dict__.update(Entitlement(data=data, state=state).__dict__)
@@ -45,12 +48,13 @@ class EntitlementCreate(Event, Entitlement):
 
 
 class EntitlementUpdate(Event, Entitlement):
-    __event_name__ = "ENTITLEMENT_UPDATE"
+    __event_name__: str = "ENTITLEMENT_UPDATE"
 
     def __init__(self) -> None:
         pass
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self:
         self = cls()
         self.__dict__.update(Entitlement(data=data, state=state).__dict__)
@@ -58,12 +62,13 @@ class EntitlementUpdate(Event, Entitlement):
 
 
 class EntitlementDelete(Event, Entitlement):
-    __event_name__ = "ENTITLEMENT_DELETE"
+    __event_name__: str = "ENTITLEMENT_DELETE"
 
     def __init__(self) -> None:
         pass
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self:
         self = cls()
         self.__dict__.update(Entitlement(data=data, state=state).__dict__)

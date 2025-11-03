@@ -24,9 +24,9 @@ DEALINGS IN THE SOFTWARE.
 
 import asyncio
 from abc import ABC, abstractmethod
-from asyncio import Future
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Callable, TypeVar
+from collections.abc import Awaitable, Coroutine
+from typing import TYPE_CHECKING, Any, Callable, Protocol, TypeAlias, TypeVar
 
 from typing_extensions import Self
 
@@ -44,59 +44,47 @@ class Event(ABC):
     async def __load__(cls, data: Any, state: "ConnectionState") -> Self | None: ...
 
 
+ListenerCallback: TypeAlias = Callable[[Event], Any]
+
+
+class EventReciever(Protocol):
+    def __call__(self, event: Event) -> Awaitable[Any]: ...
+
+
 class EventEmitter:
     def __init__(self, state: "ConnectionState") -> None:
-        self._listeners: dict[type[Event], list[Callable]] = {}
-        self._events: dict[str, list[type[Event]]]
-        self._wait_fors: dict[type[Event], list[Future]] = defaultdict(list)
-        self._state = state
+        self._receivers: list[EventReciever] = []
+        self._events: dict[str, list[type[Event]]] = defaultdict(list)
+        self._state: ConnectionState = state
+
+        # Auto-register all Event classes
+        from ..events import ALL_EVENTS
+
+        for event_cls in ALL_EVENTS:
+            self.add_event(event_cls)
 
     def add_event(self, event: type[Event]) -> None:
-        try:
-            self._events[event.__event_name__].append(event)
-        except KeyError:
-            self._events[event.__event_name__] = [event]
+        self._events[event.__event_name__].append(event)
 
     def remove_event(self, event: type[Event]) -> list[type[Event]] | None:
         return self._events.pop(event.__event_name__, None)
 
-    def add_listener(self, event: type[Event], listener: Callable) -> None:
-        try:
-            self._listeners[event].append(listener)
-        except KeyError:
-            self.add_event(event)
-            self._listeners[event] = [listener]
+    def add_receiver(self, receiver: EventReciever) -> None:
+        self._receivers.append(receiver)
 
-    def remove_listener(self, event: type[Event], listener: Callable) -> None:
-        self._listeners[event].remove(listener)
-
-    def add_wait_for(self, event: type[T]) -> Future[T]:
-        fut = Future()
-
-        self._wait_fors[event].append(fut)
-
-        return fut
-
-    def remove_wait_for(self, event: type[Event], fut: Future) -> None:
-        self._wait_fors[event].remove(fut)
+    def remove_receiver(self, receiver: EventReciever) -> None:
+        self._receivers.remove(receiver)
 
     async def emit(self, event_str: str, data: Any) -> None:
         events = self._events.get(event_str, [])
 
-        for event in events:
-            eve = await event.__load__(data=data, state=self._state)
+        coros: list[Awaitable[None]] = []
+        for event_cls in events:
+            event = await event_cls.__load__(data=data, state=self._state)
 
-            if eve is None:
+            if event is None:
                 continue
 
-            funcs = self._listeners.get(event, [])
+            coros.extend(receiver(event) for receiver in self._receivers)
 
-            for func in funcs:
-                asyncio.create_task(func(eve))
-
-            wait_fors = self._wait_fors.get(event)
-
-            if wait_fors is not None:
-                for wait_for in wait_fors:
-                    wait_for.set_result(eve)
-                self._wait_fors.pop(event)
+        await asyncio.gather(*coros)

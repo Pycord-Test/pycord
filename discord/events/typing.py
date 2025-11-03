@@ -25,6 +25,8 @@ DEALINGS IN THE SOFTWARE.
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Self
 
+from typing_extensions import override
+
 from discord import utils
 from discord.app.event_emitter import Event
 from discord.app.state import ConnectionState
@@ -39,7 +41,7 @@ if TYPE_CHECKING:
 
 
 class TypingStart(Event):
-    __event_name__ = "TYPING_START"
+    __event_name__: str = "TYPING_START"
 
     raw: RawTypingEvent
     channel: "MessageableChannel"
@@ -47,6 +49,7 @@ class TypingStart(Event):
     when: datetime
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         raw = RawTypingEvent(data)
 

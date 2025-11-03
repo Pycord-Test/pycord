@@ -365,6 +365,9 @@ class MemoryCache(Cache):
         self._messages.append(msg)
         return msg
 
+    async def delete_message(self, message_id: int) -> None:
+        self._messages.remove(utils.find(lambda m: m.id == message_id, reversed(self._messages)))
+
     async def get_message(self, message_id: int) -> Message | None:
         return utils.find(lambda m: m.id == message_id, reversed(self._messages))
 

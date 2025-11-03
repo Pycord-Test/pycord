@@ -24,6 +24,8 @@ DEALINGS IN THE SOFTWARE.
 
 from typing import Any, Self
 
+from typing_extensions import override
+
 from discord.app.state import ConnectionState
 from discord.channel import StageChannel, TextChannel, VoiceChannel
 from discord.guild import Guild
@@ -52,9 +54,10 @@ from ..message import Message, PartialMessage
 
 
 class MessageCreate(Event, Message):
-    __event_name__ = "MESSAGE_CREATE"
+    __event_name__: str = "MESSAGE_CREATE"
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         channel, _ = await state._get_guild_channel(data)
         message = await Message._from_data(channel=channel, data=data, state=state)
@@ -75,12 +78,13 @@ class MessageCreate(Event, Message):
 
 
 class MessageDelete(Event, Message):
-    __event_name__ = "MESSAGE_DELETE"
+    __event_name__: str = "MESSAGE_DELETE"
 
     raw: RawMessageDeleteEvent
     is_cached: bool
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         self = cls()
         raw = RawMessageDeleteEvent(data)
@@ -99,12 +103,13 @@ class MessageDelete(Event, Message):
 
 
 class MessageDeleteBulk(Event):
-    __event_name__ = "MESSAGE_DELETE_BULK"
+    __event_name__: str = "MESSAGE_DELETE_BULK"
 
     raw: RawBulkMessageDeleteEvent
     messages: list[Message]
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self:
         self = cls()
         raw = RawBulkMessageDeleteEvent(data)
@@ -118,12 +123,13 @@ class MessageDeleteBulk(Event):
 
 
 class MessageUpdate(Event, Message):
-    __event_name__ = "MESSAGE_UPDATE"
+    __event_name__: str = "MESSAGE_UPDATE"
 
     raw: RawMessageUpdateEvent
     old: Message | Undefined
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self:
         self = cls()
         raw = RawMessageUpdateEvent(data)
@@ -148,13 +154,14 @@ class MessageUpdate(Event, Message):
 
 
 class ReactionAdd(Event):
-    __event_name__ = "MESSAGE_REACTION_ADD"
+    __event_name__: str = "MESSAGE_REACTION_ADD"
 
     raw: RawReactionActionEvent
     user: Member | User | Undefined
     reaction: Reaction
 
     @classmethod
+    @override
     async def __load__(cls, data: ReactionActionEvent, state: ConnectionState) -> Self:
         self = cls()
         emoji = data["emoji"]
@@ -188,13 +195,14 @@ class ReactionAdd(Event):
 
 
 class ReactionClear(Event):
-    __event_name__ = "MESSAGE_REACTION_REMOVE_ALL"
+    __event_name__: str = "MESSAGE_REACTION_REMOVE_ALL"
 
     raw: RawReactionClearEvent
     message: Message | Undefined
     old_reactions: list[Reaction] | Undefined
 
     @classmethod
+    @override
     async def __load__(cls, data: ReactionClearEvent, state: ConnectionState) -> Self | None:
         self = cls()
         self.raw = RawReactionClearEvent(data)
@@ -211,13 +219,14 @@ class ReactionClear(Event):
 
 
 class ReactionRemove(Event):
-    __event_name__ = "MESSAGE_REACTION_REMOVE"
+    __event_name__: str = "MESSAGE_REACTION_REMOVE"
 
     raw: RawReactionActionEvent
     user: Member | User | Undefined
     reaction: Reaction
 
     @classmethod
+    @override
     async def __load__(cls, data: ReactionActionEvent, state: ConnectionState) -> Self:
         self = cls()
         emoji = data["emoji"]
@@ -254,12 +263,13 @@ class ReactionRemove(Event):
 
 
 class ReactionRemoveEmoji(Event, Reaction):
-    __event_name__ = "MESSAGE_REACTION_REMOVE_EMOJI"
+    __event_name__: str = "MESSAGE_REACTION_REMOVE_EMOJI"
 
     def __init__(self):
         pass
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         emoji = data["emoji"]
         emoji_id = utils.get_as_snowflake(emoji, "id")
@@ -281,7 +291,7 @@ class ReactionRemoveEmoji(Event, Reaction):
 
 
 class PollVoteAdd(Event):
-    __event_name__ = "MESSAGE_POLL_VOTE_ADD"
+    __event_name__: str = "MESSAGE_POLL_VOTE_ADD"
 
     raw: RawMessagePollVoteEvent
     guild: Guild | Undefined
@@ -290,6 +300,7 @@ class PollVoteAdd(Event):
     answer: PollAnswer
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         self = cls()
         raw = RawMessagePollVoteEvent(data, False)
@@ -317,7 +328,7 @@ class PollVoteAdd(Event):
 
 
 class PollVoteRemove(Event):
-    __event_name__ = "MESSAGE_POLL_VOTE_REMOVE"
+    __event_name__: str = "MESSAGE_POLL_VOTE_REMOVE"
 
     raw: RawMessagePollVoteEvent
     guild: Guild | Undefined
@@ -326,6 +337,7 @@ class PollVoteRemove(Event):
     answer: PollAnswer
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         self = cls()
         raw = RawMessagePollVoteEvent(data, False)

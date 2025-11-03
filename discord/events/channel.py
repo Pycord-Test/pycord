@@ -26,6 +26,8 @@ from copy import copy
 from datetime import datetime
 from typing import Any, Self, TypeVar, cast
 
+from typing_extensions import override
+
 from discord.abc import GuildChannel, PrivateChannel
 from discord.app.event_emitter import Event
 from discord.app.state import ConnectionState
@@ -38,11 +40,12 @@ T = TypeVar("T")
 
 
 class ChannelCreate(Event, GuildChannel):
-    __event_name__ = "CHANNEL_CREATE"
+    __event_name__: str = "CHANNEL_CREATE"
 
     def __init__(self) -> None: ...
 
     @classmethod
+    @override
     async def __load__(cls, data: dict[str, Any], state: ConnectionState) -> Self | None:
         factory, _ = _channel_factory(data["type"])
         if factory is None:
@@ -62,13 +65,14 @@ class ChannelCreate(Event, GuildChannel):
 
 
 class PrivateChannelUpdate(Event, PrivateChannel):
-    __event_name__ = "PRIVATE_CHANNEL_UPDATE"
+    __event_name__: str = "PRIVATE_CHANNEL_UPDATE"
 
     old: PrivateChannel | None
 
     def __init__(self) -> None: ...
 
     @classmethod
+    @override
     async def __load__(cls, data: tuple[PrivateChannel | None, PrivateChannel], _: ConnectionState) -> Self | None:
         self = cls()
         self.old = data[0]
@@ -77,13 +81,14 @@ class PrivateChannelUpdate(Event, PrivateChannel):
 
 
 class GuildChannelUpdate(Event, PrivateChannel):
-    __event_name__ = "GUILD_CHANNEL_UPDATE"
+    __event_name__: str = "GUILD_CHANNEL_UPDATE"
 
     old: GuildChannel | None
 
     def __init__(self) -> None: ...
 
     @classmethod
+    @override
     async def __load__(cls, data: tuple[GuildChannel | None, GuildChannel], _: ConnectionState) -> Self | None:
         self = cls()
         self.old = data[0]
@@ -92,11 +97,12 @@ class GuildChannelUpdate(Event, PrivateChannel):
 
 
 class ChannelUpdate(Event, GuildChannel):
-    __event_name__ = "CHANNEL_UPDATE"
+    __event_name__: str = "CHANNEL_UPDATE"
 
     def __init__(self) -> None: ...
 
     @classmethod
+    @override
     async def __load__(cls, data: dict[str, Any], state: ConnectionState) -> Self | None:
         channel_type = try_enum(ChannelType, data.get("type"))
         channel_id = int(data["id"])
@@ -119,11 +125,12 @@ class ChannelUpdate(Event, GuildChannel):
 
 
 class ChannelDelete(Event, GuildChannel):
-    __event_name__ = "CHANNEL_DELETE"
+    __event_name__: str = "CHANNEL_DELETE"
 
     def __init__(self) -> None: ...
 
     @classmethod
+    @override
     async def __load__(cls, data: dict[str, Any], state: ConnectionState) -> Self | None:
         guild = await state._get_guild(get_as_snowflake(data, "guild_id"))
         channel_id = int(data["id"])
@@ -137,10 +144,12 @@ class ChannelDelete(Event, GuildChannel):
 
 
 class ChannelPinsUpdate(Event):
+    __event_name__: str = "CHANNEL_PINS_UPDATE"
     channel: PrivateChannel | GuildChannel | Thread
     last_pin: datetime | None
 
     @classmethod
+    @override
     async def __load__(cls, data: dict[str, Any], state: ConnectionState) -> Self | None:
         channel_id = int(data["channel_id"])
         try:

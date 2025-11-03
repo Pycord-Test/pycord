@@ -24,6 +24,8 @@ DEALINGS IN THE SOFTWARE.
 
 from typing import Any, Self
 
+from typing_extensions import override
+
 from discord.types.monetization import Entitlement as EntitlementPayload
 
 from ..app.event_emitter import Event
@@ -32,12 +34,13 @@ from ..monetization import Subscription
 
 
 class SubscriptionCreate(Event, Subscription):
-    __event_name__ = "SUBSCRIPTION_CREATE"
+    __event_name__: str = "SUBSCRIPTION_CREATE"
 
     def __init__(self) -> None:
         pass
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self:
         self = cls()
         self.__dict__.update(Subscription(data=data, state=state).__dict__)
@@ -45,12 +48,13 @@ class SubscriptionCreate(Event, Subscription):
 
 
 class SubscriptionUpdate(Event, Subscription):
-    __event_name__ = "SUBSCRIPTION_UPDATE"
+    __event_name__: str = "SUBSCRIPTION_UPDATE"
 
     def __init__(self) -> None:
         pass
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self:
         self = cls()
         self.__dict__.update(Subscription(data=data, state=state).__dict__)
@@ -58,12 +62,13 @@ class SubscriptionUpdate(Event, Subscription):
 
 
 class SubscriptionDelete(Event, Subscription):
-    __event_name__ = "SUBSCRIPTION_DELETE"
+    __event_name__: str = "SUBSCRIPTION_DELETE"
 
     def __init__(self) -> None:
         pass
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self:
         self = cls()
         self.__dict__.update(Subscription(data=data, state=state).__dict__)

@@ -24,9 +24,11 @@ DEALINGS IN THE SOFTWARE.
 
 from typing import Any, Self, cast
 
+from typing_extensions import override
+
 from discord.emoji import Emoji
 from discord.flags import ApplicationFlags
-from discord.guild import Guild, GuildChannel
+from discord.guild import Guild
 from discord.member import Member
 from discord.role import Role
 from discord.sticker import Sticker
@@ -47,7 +49,7 @@ from ..types.interactions import (
 
 
 class Resumed(Event):
-    __event_name__ = "RESUMED"
+    __event_name__: str = "RESUMED"
 
     @classmethod
     async def __load__(cls, _data: Any, _state: ConnectionState) -> Self | None:
@@ -55,7 +57,7 @@ class Resumed(Event):
 
 
 class Ready(Event):
-    __event_name__ = "READY"
+    __event_name__: str = "READY"
 
     user: ClientUser
     """An instance of :class:`.user.ClientUser` representing the application"""
@@ -67,6 +69,7 @@ class Ready(Event):
     """A list of guilds received in this event. Note it may have incomplete data as `GUILD_CREATE` fills up other parts of guild data."""
 
     @classmethod
+    @override
     async def __load__(cls, data: dict[str, Any], state: ConnectionState) -> Self:
         self = cls()
         self.user = ClientUser(state=state, data=data["user"])
@@ -98,9 +101,10 @@ class Ready(Event):
 
 
 class _CacheAppEmojis(Event):
-    __event_name__ = "CACHE_APP_EMOJIS"
+    __event_name__: str = "CACHE_APP_EMOJIS"
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         if state.cache_app_emojis and state.application_id:
             data = await state.http.get_all_application_emojis(state.application_id)
@@ -111,7 +115,7 @@ class _CacheAppEmojis(Event):
 class GuildCreate(Event, Guild):
     """An event which represents a guild becoming available via the gateway. Trickles down to the more distinct :class:`.GuildJoin` and :class:`.GuildAvailable` events."""
 
-    __event_name__ = "GUILD_CREATE"
+    __event_name__: str = "GUILD_CREATE"
 
     guild: Guild
 
@@ -119,6 +123,7 @@ class GuildCreate(Event, Guild):
         pass
 
     @classmethod
+    @override
     async def __load__(cls, data: GuildPayload, state: ConnectionState) -> Self:
         self = cls()
         guild = await state._get_guild(int(data["id"]))
@@ -139,7 +144,7 @@ class GuildCreate(Event, Guild):
 class GuildJoin(Event, Guild):
     """An event which represents joining a new guild."""
 
-    __event_name__ = "GUILD_JOIN"
+    __event_name__: str = "GUILD_JOIN"
 
     guild: Guild
 
@@ -147,6 +152,7 @@ class GuildJoin(Event, Guild):
         pass
 
     @classmethod
+    @override
     async def __load__(cls, data: Guild, _: ConnectionState) -> Self:
         self = cls()
         self.guild = data
@@ -157,7 +163,7 @@ class GuildJoin(Event, Guild):
 class GuildAvailable(Event, Guild):
     """An event which represents a guild previously joined becoming available."""
 
-    __event_name__ = "GUILD_AVAILABLE"
+    __event_name__: str = "GUILD_AVAILABLE"
 
     guild: Guild
 
@@ -165,6 +171,7 @@ class GuildAvailable(Event, Guild):
         pass
 
     @classmethod
+    @override
     async def __load__(cls, data: Guild, _: ConnectionState) -> Self:
         self = cls()
         self.guild = data
@@ -185,7 +192,7 @@ class ApplicationCommandPermission:
 class ApplicationCommandPermissionsUpdate(Event):
     """Represents an Application Command having permissions updated in a guild"""
 
-    __event_name__ = "APPLICATION_COMMAND_PERMISSIONS_UPDATE"
+    __event_name__: str = "APPLICATION_COMMAND_PERMISSIONS_UPDATE"
 
     id: int
     """A snowflake of the application command's id"""
@@ -197,6 +204,7 @@ class ApplicationCommandPermissionsUpdate(Event):
     """A list of permissions this Application Command has"""
 
     @classmethod
+    @override
     async def __load__(cls, data: GuildApplicationCommandPermissions, state: ConnectionState) -> Self:
         self = cls()
         self.id = int(data["id"])
@@ -207,12 +215,13 @@ class ApplicationCommandPermissionsUpdate(Event):
 
 
 class PresenceUpdate(Event):
-    __event_name__ = "PRESENCE_UPDATE"
+    __event_name__: str = "PRESENCE_UPDATE"
 
     old: Member
     new: Member
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         self = cls()
         guild_id = get_as_snowflake(data, "guild_id")
@@ -234,13 +243,14 @@ class PresenceUpdate(Event):
 
 
 class UserUpdate(Event, User):
-    __event_name__ = "USER_UPDATE"
+    __event_name__: str = "USER_UPDATE"
 
     old: User
 
     def __init__(self) -> None: ...
 
     @classmethod
+    @override
     async def __load__(cls, data: tuple[User, User] | Any, state: ConnectionState) -> Self | None:
         self = cls()
         if isinstance(data, tuple):
@@ -252,4 +262,4 @@ class UserUpdate(Event, User):
             await user._update(data)  # type: ignore
             ref = await state.cache.get_user(user.id)
             if ref is not None:
-                await ref._update(data)
+                ref._update(data)

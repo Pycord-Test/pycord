@@ -242,7 +242,7 @@ class ConnectionState:
 
         self.cache_app_emojis: bool = options.get("cache_app_emojis", False)
 
-        self.emitter = EventEmitter(self)
+        self.emitter: EventEmitter = EventEmitter(self)
 
         self.cache: Cache = cache
         self.cache._state = self

@@ -27,7 +27,7 @@ import copy
 import logging
 from typing import TYPE_CHECKING, Any
 
-from typing_extensions import Self
+from typing_extensions import Self, override
 
 from discord import Role
 from discord.app.event_emitter import Event
@@ -45,11 +45,12 @@ _log = logging.getLogger(__name__)
 
 
 class GuildMemberJoin(Event, Member):
-    __event_name__ = "GUILD_MEMBER_JOIN"
+    __event_name__: str = "GUILD_MEMBER_JOIN"
 
     def __init__(self) -> None: ...
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         guild = await state._get_guild(int(data["guild_id"]))
         if guild is None:
@@ -72,11 +73,12 @@ class GuildMemberJoin(Event, Member):
 
 
 class GuildMemberRemove(Event, Member):
-    __event_name__ = "GUILD_MEMBER_REMOVE"
+    __event_name__: str = "GUILD_MEMBER_REMOVE"
 
     def __init__(self) -> None: ...
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         user = await state.store_user(data["user"])
         raw = RawMemberRemoveEvent(data, user)
@@ -101,13 +103,14 @@ class GuildMemberRemove(Event, Member):
 
 
 class GuildMemberUpdate(Event, Member):
-    __event_name__ = "GUILD_MEMBER_UPDATE"
+    __event_name__: str = "GUILD_MEMBER_UPDATE"
 
     old: Member
 
     def __init__(self) -> None: ...
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         guild = await state._get_guild(int(data["guild_id"]))
         user = data["user"]
@@ -147,13 +150,49 @@ class GuildMemberUpdate(Event, Member):
             )
 
 
+class GuildMembersChunk(Event):
+    __event_name__: str = "GUILD_MEMBERS_CHUNK"
+    guild: Guild
+    members: list[Member]
+    chunk_index: int
+    chunk_count: int
+    not_found: list[int]
+    presences: list[Any]
+    nonce: str
+
+    @classmethod
+    @override
+    async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
+        guild_id = int(data["guild_id"])
+        guild = state._get_guild(guild_id)
+        presences = data.get("presences", [])
+
+        # the guild won't be None here
+        members = [Member(guild=guild, data=member, state=state) for member in data.get("members", [])]  # type: ignore
+        _log.debug("Processed a chunk for %s members in guild ID %s.", len(members), guild_id)
+
+        if presences:
+            member_dict = {str(member.id): member for member in members}
+            for presence in presences:
+                user = presence["user"]
+                member_id = user["id"]
+                member = member_dict.get(member_id)
+                if member is not None:
+                    member._presence_update(presence, user)
+
+        complete = data.get("chunk_index", 0) + 1 == data.get("chunk_count")
+        state.process_chunk_requests(guild_id, data.get("nonce"), members, complete)
+        return None
+
+
 class GuildEmojisUpdate(Event):
-    __event_name__ = "GUILD_EMOJIS_UPDATE"
+    __event_name__: str = "GUILD_EMOJIS_UPDATE"
     guild: Guild
     emojis: list[Emoji]
     old_emojis: list[Emoji]
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         guild = await state._get_guild(int(data["guild_id"]))
         if guild is None:
@@ -178,13 +217,14 @@ class GuildEmojisUpdate(Event):
 
 
 class GuildStickersUpdate(Event):
-    __event_name__ = "GUILD_STICKERS_UPDATE"
+    __event_name__: str = "GUILD_STICKERS_UPDATE"
 
     guild: Guild
     stickers: list[Sticker]
     old_stickers: list[Sticker]
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         guild = await state._get_guild(int(data["guild_id"]))
         if guild is None:
@@ -209,11 +249,12 @@ class GuildStickersUpdate(Event):
 
 
 class GuildAvailable(Event, Guild):
-    __event_name__ = "GUILD_AVAILABLE"
+    __event_name__: str = "GUILD_AVAILABLE"
 
     def __init__(self) -> None: ...
 
     @classmethod
+    @override
     async def __load__(cls, data: Guild, _: ConnectionState) -> Self:
         self = cls()
         self.__dict__.update(data.__dict__)
@@ -221,11 +262,12 @@ class GuildAvailable(Event, Guild):
 
 
 class GuildUnavailable(Event, Guild):
-    __event_name__ = "GUILD_UNAVAILABLE"
+    __event_name__: str = "GUILD_UNAVAILABLE"
 
     def __init__(self) -> None: ...
 
     @classmethod
+    @override
     async def __load__(cls, data: Guild, _: ConnectionState) -> Self:
         self = cls()
         self.__dict__.update(data.__dict__)
@@ -233,11 +275,12 @@ class GuildUnavailable(Event, Guild):
 
 
 class GuildJoin(Event, Guild):
-    __event_name__ = "GUILD_JOIN"
+    __event_name__: str = "GUILD_JOIN"
 
     def __init__(self) -> None: ...
 
     @classmethod
+    @override
     async def __load__(cls, data: Guild, _: ConnectionState) -> Self:
         self = cls()
         self.__dict__.update(data.__dict__)
@@ -245,11 +288,12 @@ class GuildJoin(Event, Guild):
 
 
 class GuildCreate(Event, Guild):
-    __event_name__ = "GUILD_CREATE"
+    __event_name__: str = "GUILD_CREATE"
 
     def __init__(self) -> None: ...
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         unavailable = data.get("unavailable")
         if unavailable is True:
@@ -284,13 +328,14 @@ class GuildCreate(Event, Guild):
 
 
 class GuildUpdate(Event, Guild):
-    __event_name__ = "GUILD_UPDATE"
+    __event_name__: str = "GUILD_UPDATE"
 
     old: Guild
 
     def __init__(self) -> None: ...
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         guild = await state._get_guild(int(data["id"]))
         if guild is not None:
@@ -308,13 +353,14 @@ class GuildUpdate(Event, Guild):
 
 
 class GuildDelete(Event, Guild):
-    __event_name__ = "GUILD_DELETE"
+    __event_name__: str = "GUILD_DELETE"
 
     old: Guild
 
     def __init__(self) -> None: ...
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         guild = await state._get_guild(int(data["id"]))
         if guild is None:
@@ -342,11 +388,12 @@ class GuildDelete(Event, Guild):
 
 
 class GuildBanAdd(Event, Member):
-    __event_name__ = "GUILD_BAN_ADD"
+    __event_name__: str = "GUILD_BAN_ADD"
 
     def __init__(self) -> None: ...
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         guild = await state._get_guild(int(data["guild_id"]))
         if guild is None:
@@ -373,11 +420,12 @@ class GuildBanAdd(Event, Member):
 
 
 class GuildBanRemove(Event, Member):
-    __event_name__ = "GUILD_BAN_REMOVE"
+    __event_name__: str = "GUILD_BAN_REMOVE"
 
     def __init__(self) -> None: ...
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         guild = await state._get_guild(int(data["guild_id"]))
         if guild is None:
@@ -404,11 +452,12 @@ class GuildBanRemove(Event, Member):
 
 
 class GuildRoleCreate(Event, Role):
-    __event_name__ = "GUILD_ROLE_CREATE"
+    __event_name__: str = "GUILD_ROLE_CREATE"
 
     def __init__(self) -> None: ...
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         guild = await state._get_guild(int(data["guild_id"]))
         if guild is None:
@@ -427,13 +476,14 @@ class GuildRoleCreate(Event, Role):
 
 
 class GuildRoleUpdate(Event, Role):
-    __event_name__ = "GUILD_ROLE_UPDATE"
+    __event_name__: str = "GUILD_ROLE_UPDATE"
 
     old: Role
 
     def __init__(self) -> None: ...
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         guild = await state._get_guild(int(data["guild_id"]))
         if guild is None:
@@ -462,11 +512,12 @@ class GuildRoleUpdate(Event, Role):
 
 
 class GuildRoleDelete(Event, Role):
-    __event_name__ = "GUILD_ROLE_DELETE"
+    __event_name__: str = "GUILD_ROLE_DELETE"
 
     def __init__(self) -> None: ...
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         guild = await state._get_guild(int(data["guild_id"]))
         if guild is None:

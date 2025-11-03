@@ -25,6 +25,8 @@ DEALINGS IN THE SOFTWARE.
 import logging
 from typing import Any, Self
 
+from typing_extensions import override
+
 from discord.app.event_emitter import Event
 from discord.app.state import ConnectionState
 from discord.enums import ScheduledEventStatus
@@ -36,11 +38,12 @@ _log = logging.getLogger(__name__)
 
 
 class GuildScheduledEventCreate(Event, ScheduledEvent):
-    __event_name__ = "GUILD_SCHEDULED_EVENT_CREATE"
+    __event_name__: str = "GUILD_SCHEDULED_EVENT_CREATE"
 
     def __init__(self) -> None: ...
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         guild = await state._get_guild(int(data["guild_id"]))
         if guild is None:
@@ -60,13 +63,14 @@ class GuildScheduledEventCreate(Event, ScheduledEvent):
 
 
 class GuildScheduledEventUpdate(Event, ScheduledEvent):
-    __event_name__ = "GUILD_SCHEDULED_EVENT_UPDATE"
+    __event_name__: str = "GUILD_SCHEDULED_EVENT_UPDATE"
 
     old: ScheduledEvent | None
 
     def __init__(self) -> None: ...
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         guild = await state._get_guild(int(data["guild_id"]))
         if guild is None:
@@ -88,11 +92,12 @@ class GuildScheduledEventUpdate(Event, ScheduledEvent):
 
 
 class GuildScheduledEventDelete(Event, ScheduledEvent):
-    __event_name__ = "GUILD_SCHEDULED_EVENT_DELETE"
+    __event_name__: str = "GUILD_SCHEDULED_EVENT_DELETE"
 
     def __init__(self) -> None: ...
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         guild = await state._get_guild(int(data["guild_id"]))
         if guild is None:
@@ -113,13 +118,14 @@ class GuildScheduledEventDelete(Event, ScheduledEvent):
 
 
 class GuildScheduledEventUserAdd(Event):
-    __event_name__ = "GUILD_SCHEDULED_EVENT_USER_ADD"
+    __event_name__: str = "GUILD_SCHEDULED_EVENT_USER_ADD"
 
     raw: RawScheduledEventSubscription
     event: ScheduledEvent
     member: Member
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         guild = await state._get_guild(int(data["guild_id"]))
         if guild is None:
@@ -146,13 +152,14 @@ class GuildScheduledEventUserAdd(Event):
 
 
 class GuildScheduledEventUserRemove(Event):
-    __event_name__ = "GUILD_SCHEDULED_EVENT_USER_REMOVE"
+    __event_name__: str = "GUILD_SCHEDULED_EVENT_USER_REMOVE"
 
     raw: RawScheduledEventSubscription
     event: ScheduledEvent
     member: Member
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         guild = await state._get_guild(int(data["guild_id"]))
         if guild is None:

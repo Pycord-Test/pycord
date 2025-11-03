@@ -25,6 +25,8 @@ DEALINGS IN THE SOFTWARE.
 import logging
 from typing import Any, Self
 
+from typing_extensions import override
+
 from discord.app.event_emitter import Event
 from discord.app.state import ConnectionState
 from discord.guild import Guild
@@ -35,11 +37,12 @@ _log = logging.getLogger(__name__)
 
 
 class GuildIntegrationsUpdate(Event):
-    __event_name__ = "GUILD_INTEGRATIONS_UPDATE"
+    __event_name__: str = "GUILD_INTEGRATIONS_UPDATE"
 
     guild: Guild
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         guild = await state._get_guild(int(data["guild_id"]))
         if guild is None:
@@ -55,11 +58,12 @@ class GuildIntegrationsUpdate(Event):
 
 
 class IntegrationCreate(Event, Integration):
-    __event_name__ = "INTEGRATION_CREATE"
+    __event_name__: str = "INTEGRATION_CREATE"
 
     def __init__(self) -> None: ...
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         data_copy = data.copy()
         guild_id = int(data_copy.pop("guild_id"))
@@ -80,11 +84,12 @@ class IntegrationCreate(Event, Integration):
 
 
 class IntegrationUpdate(Event, Integration):
-    __event_name__ = "INTEGRATION_UPDATE"
+    __event_name__: str = "INTEGRATION_UPDATE"
 
     def __init__(self) -> None: ...
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         data_copy = data.copy()
         guild_id = int(data_copy.pop("guild_id"))
@@ -105,11 +110,12 @@ class IntegrationUpdate(Event, Integration):
 
 
 class IntegrationDelete(Event):
-    __event_name__ = "INTEGRATION_DELETE"
+    __event_name__: str = "INTEGRATION_DELETE"
 
     raw: RawIntegrationDeleteEvent
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         guild_id = int(data["guild_id"])
         guild = await state._get_guild(guild_id)

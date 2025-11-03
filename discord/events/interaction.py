@@ -24,6 +24,8 @@ DEALINGS IN THE SOFTWARE.
 
 from typing import Any, Self
 
+from typing_extensions import override
+
 from discord.enums import InteractionType
 from discord.types.interactions import Interaction as InteractionPayload
 
@@ -33,12 +35,13 @@ from ..interactions import Interaction
 
 
 class InteractionCreate(Event, Interaction):
-    __event_name__ = "INTERACTION_CREATE"
+    __event_name__: str = "INTERACTION_CREATE"
 
     def __init__(self) -> None:
         pass
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         interaction = Interaction(data=data, state=state)
         if data["type"] == 3:

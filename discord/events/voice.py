@@ -26,6 +26,8 @@ import asyncio
 import logging
 from typing import TYPE_CHECKING, Any, Self
 
+from typing_extensions import override
+
 from discord.app.event_emitter import Event
 from discord.app.state import ConnectionState
 from discord.member import Member, VoiceState
@@ -47,13 +49,14 @@ async def logging_coroutine(coroutine, *, info: str) -> None:
 
 
 class VoiceStateUpdate(Event):
-    __event_name__ = "VOICE_STATE_UPDATE"
+    __event_name__: str = "VOICE_STATE_UPDATE"
 
     member: Member
     before: VoiceState
     after: VoiceState
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         guild = await state._get_guild(get_as_snowflake(data, "guild_id"))
         channel_id = get_as_snowflake(data, "channel_id")
@@ -94,9 +97,10 @@ class VoiceStateUpdate(Event):
 
 
 class VoiceServerUpdate(Event):
-    __event_name__ = "VOICE_SERVER_UPDATE"
+    __event_name__: str = "VOICE_SERVER_UPDATE"
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         try:
             key_id = int(data["guild_id"])
@@ -113,7 +117,7 @@ class VoiceServerUpdate(Event):
 
 
 class VoiceChannelStatusUpdate(Event):
-    __event_name__ = "VOICE_CHANNEL_STATUS_UPDATE"
+    __event_name__: str = "VOICE_CHANNEL_STATUS_UPDATE"
 
     raw: RawVoiceChannelStatusUpdateEvent
     channel: "VocalGuildChannel"
@@ -121,6 +125,7 @@ class VoiceChannelStatusUpdate(Event):
     new_status: str | None
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         raw = RawVoiceChannelStatusUpdateEvent(data)
         guild = await state._get_guild(int(data["guild_id"]))

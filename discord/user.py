@@ -132,7 +132,7 @@ class BaseUser(_UserTag):
     def __hash__(self) -> int:
         return self.id >> 22
 
-    async def _update(self, data: UserPayload) -> None:
+    def _update(self, data: UserPayload) -> None:
         self.name = data["username"]
         self.id = int(data["id"])
         self.discriminator = data["discriminator"]
@@ -424,7 +424,7 @@ class ClientUser(BaseUser):
             f" bot={self.bot} verified={self.verified} mfa_enabled={self.mfa_enabled}>"
         )
 
-    async def _update(self, data: UserPayload) -> None:
+    def _update(self, data: UserPayload) -> None:
         super()._update(data)
         # There's actually an Optional[str] phone field as well, but I won't use it
         self.verified = data.get("verified", False)

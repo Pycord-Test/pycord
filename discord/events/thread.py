@@ -25,6 +25,8 @@ DEALINGS IN THE SOFTWARE.
 import logging
 from typing import Any, Self, cast
 
+from typing_extensions import override
+
 from discord import utils
 from discord.abc import Snowflake
 from discord.app.event_emitter import Event
@@ -38,11 +40,12 @@ _log = logging.getLogger(__name__)
 
 
 class ThreadMemberJoin(Event, ThreadMember):
-    __event_name__ = "THREAD_MEMBER_JOIN"
+    __event_name__: str = "THREAD_MEMBER_JOIN"
 
     def __init__(self) -> None: ...
 
     @classmethod
+    @override
     async def __load__(cls, data: ThreadMember, _: ConnectionState) -> Self:
         self = cls()
         self.__dict__.update(data.__dict__)
@@ -50,11 +53,12 @@ class ThreadMemberJoin(Event, ThreadMember):
 
 
 class ThreadJoin(Event, Thread):
-    __event_name__ = "THREAD_JOIN"
+    __event_name__: str = "THREAD_JOIN"
 
     def __init__(self) -> None: ...
 
     @classmethod
+    @override
     async def __load__(cls, data: Thread, _: ConnectionState) -> Self:
         self = cls()
         self.__dict__.update(data.__dict__)
@@ -62,11 +66,12 @@ class ThreadJoin(Event, Thread):
 
 
 class ThreadMemberRemove(Event, ThreadMember):
-    __event_name__ = "THREAD_MEMBER_REMOVE"
+    __event_name__: str = "THREAD_MEMBER_REMOVE"
 
     def __init__(self) -> None: ...
 
     @classmethod
+    @override
     async def __load__(cls, data: ThreadMember, _: ConnectionState) -> Self:
         self = cls()
         self.__dict__.update(data.__dict__)
@@ -74,11 +79,12 @@ class ThreadMemberRemove(Event, ThreadMember):
 
 
 class ThreadRemove(Event, Thread):
-    __event_name__ = "THREAD_REMOVE"
+    __event_name__: str = "THREAD_REMOVE"
 
     def __init__(self) -> None: ...
 
     @classmethod
+    @override
     async def __load__(cls, data: Thread, _: ConnectionState) -> Self:
         self = cls()
         self.__dict__.update(data.__dict__)
@@ -86,13 +92,14 @@ class ThreadRemove(Event, Thread):
 
 
 class ThreadCreate(Event, Thread):
-    __event_name__ = "THREAD_CREATE"
+    __event_name__: str = "THREAD_CREATE"
 
     def __init__(self) -> None: ...
 
     just_joined: bool
 
     @classmethod
+    @override
     async def __load__(cls, data: dict[str, Any], state: ConnectionState) -> Self | None:
         guild_id = int(data["guild_id"])
         guild = await state._get_guild(guild_id)
@@ -129,13 +136,14 @@ class ThreadCreate(Event, Thread):
 
 
 class ThreadUpdate(Event, Thread):
-    __event_name__ = "THREAD_UPDATE"
+    __event_name__: str = "THREAD_UPDATE"
 
     def __init__(self) -> None: ...
 
     old: Thread
 
     @classmethod
+    @override
     async def __load__(cls, data: ThreadUpdateEvent, state: ConnectionState) -> Self | None:
         guild_id = int(data["guild_id"])
         guild = await state._get_guild(guild_id)
@@ -161,11 +169,12 @@ class ThreadUpdate(Event, Thread):
 
 
 class ThreadDelete(Event, Thread):
-    __event_name__ = "THREAD_DELETE"
+    __event_name__: str = "THREAD_DELETE"
 
     def __init__(self) -> None: ...
 
     @classmethod
+    @override
     async def __load__(cls, data: ThreadDeleteEvent, state: ConnectionState) -> Self | None:
         raw = RawThreadDeleteEvent(data)
         guild = await state._get_guild(raw.guild_id)
@@ -184,9 +193,10 @@ class ThreadDelete(Event, Thread):
 
 
 class ThreadListSync(Event):
-    __event_name__ = "THREAD_LIST_SYNC"
+    __event_name__: str = "THREAD_LIST_SYNC"
 
     @classmethod
+    @override
     async def __load__(cls, data: dict[str, Any], state) -> Self | None:
         guild_id = int(data["guild_id"])
         guild = await state._get_guild(guild_id)
@@ -228,11 +238,12 @@ class ThreadListSync(Event):
 
 
 class ThreadMemberUpdate(Event, ThreadMember):
-    __event_name__ = "THREAD_MEMBER_UPDATE"
+    __event_name__: str = "THREAD_MEMBER_UPDATE"
 
     def __init__(self): ...
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         guild_id = int(data["guild_id"])
         guild = await state._get_guild(guild_id)
@@ -262,7 +273,10 @@ class ThreadMemberUpdate(Event, ThreadMember):
 
 
 class BulkThreadMemberUpdate(Event):
+    __event_name__: str = "BULK_THREAD_MEMBER_UPDATE"
+
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         guild_id = int(data["guild_id"])
         guild = await state._get_guild(guild_id)
