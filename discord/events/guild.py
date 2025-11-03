@@ -255,9 +255,9 @@ class GuildAvailable(Event, Guild):
 
     @classmethod
     @override
-    async def __load__(cls, data: Guild, _: ConnectionState) -> Self:
+    async def __load__(cls, data: Guild, state: ConnectionState) -> Self:
         self = cls()
-        self.__dict__.update(data.__dict__)
+        # self.__dict__.update(data.__dict__) # TODO: Find another way to do this
         return self
 
 
@@ -268,7 +268,7 @@ class GuildUnavailable(Event, Guild):
 
     @classmethod
     @override
-    async def __load__(cls, data: Guild, _: ConnectionState) -> Self:
+    async def __load__(cls, data: Guild, state: ConnectionState) -> Self:
         self = cls()
         self.__dict__.update(data.__dict__)
         return self
@@ -281,9 +281,9 @@ class GuildJoin(Event, Guild):
 
     @classmethod
     @override
-    async def __load__(cls, data: Guild, _: ConnectionState) -> Self:
+    async def __load__(cls, data: Guild, state: ConnectionState) -> Self:
         self = cls()
-        self.__dict__.update(data.__dict__)
+        # self.__dict__.update(data.__dict__) # TODO: Find another way to do this
         return self
 
 
@@ -323,7 +323,7 @@ class GuildCreate(Event, Guild):
             await state.emitter.emit("GUILD_JOIN", guild)
 
         self = cls()
-        self.__dict__.update(data.__dict__)
+        # self.__dict__.update(data.__dict__) # TODO: Find another way to do this
         return self
 
 

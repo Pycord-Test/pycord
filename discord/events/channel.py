@@ -73,7 +73,7 @@ class PrivateChannelUpdate(Event, PrivateChannel):
 
     @classmethod
     @override
-    async def __load__(cls, data: tuple[PrivateChannel | None, PrivateChannel], _: ConnectionState) -> Self | None:
+    async def __load__(cls, data: tuple[PrivateChannel | None, PrivateChannel], state: ConnectionState) -> Self | None:
         self = cls()
         self.old = data[0]
         self.__dict__.update(data[1].__dict__)
@@ -89,7 +89,7 @@ class GuildChannelUpdate(Event, PrivateChannel):
 
     @classmethod
     @override
-    async def __load__(cls, data: tuple[GuildChannel | None, GuildChannel], _: ConnectionState) -> Self | None:
+    async def __load__(cls, data: tuple[GuildChannel | None, GuildChannel], state: ConnectionState) -> Self | None:
         self = cls()
         self.old = data[0]
         self.__dict__.update(data[1].__dict__)

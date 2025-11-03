@@ -324,7 +324,7 @@ class Guild(Hashable):
         return self._voice_states.get(user_id)
 
     async def _add_member(self, member: Member, /) -> None:
-        await cast(ConnectionState, self._state).cache.store_member(member)
+        await cast("ConnectionState", self._state).cache.store_member(member)
 
     async def _get_and_update_member(self, payload: MemberPayload, user_id: int, cache_flag: bool, /) -> Member:
         members = await cast(ConnectionState, self._state).cache.get_guild_members(self.id)
@@ -549,7 +549,7 @@ class Guild(Hashable):
 
     def _add_sound(self, sound: SoundboardSound) -> None:
         self._sounds[sound.id] = sound
-        self._state._add_sound(sound)
+        await self._state._add_sound(sound)
 
     def _remove_sound(self, sound_id: int) -> None:
         self._sounds.pop(sound_id, None)

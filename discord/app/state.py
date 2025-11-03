@@ -44,6 +44,8 @@ from typing import (
     cast,
 )
 
+from discord.soundboard import SoundboardSound
+
 from .. import utils
 from ..activity import BaseActivity
 from ..automod import AutoModRule
@@ -237,7 +239,7 @@ class ConnectionState:
         self._voice_clients: dict[int, VoiceClient] = {}
 
         if not intents.members or cache_flags._empty:
-            self.store_user = self.create_user  # type: ignore
+            self.store_user = self.create_user_async  # type: ignore
             self.deref_user = self.deref_user_no_intents  # type: ignore
 
         self.cache_app_emojis: bool = options.get("cache_app_emojis", False)
@@ -320,6 +322,9 @@ class ConnectionState:
     def create_user(self, data: UserPayload) -> User:
         return User(state=self, data=data)
 
+    async def create_user_async(self, data: UserPayload) -> User:
+        return User(state=self, data=data)
+
     def deref_user_no_intents(self, user_id: int) -> None:
         return
 
@@ -372,6 +377,21 @@ class ConnectionState:
             await self.cache.delete_sticker(sticker.id)
 
         del guild
+
+    async def _add_default_sounds(self) -> None:
+        default_sounds = await self.http.get_default_sounds()
+        for default_sound in default_sounds:
+            sound = SoundboardSound(state=self, http=self.http, data=default_sound)
+            await self._add_sound(sound)
+
+    async def _add_sound(self, sound: SoundboardSound) -> None:
+        await self.cache.store_sound(sound)
+
+    async def _remove_sound(self, sound: SoundboardSound) -> None:
+        await self.cache.delete_sound(sound.id)
+
+    async def get_sounds(self) -> list[SoundboardSound]:
+        return list(await self.cache.get_all_sounds())
 
     async def get_emojis(self) -> list[GuildEmoji | AppEmoji]:
         return await self.cache.get_all_emojis()
@@ -487,15 +507,15 @@ class ConnectionState:
             )
             raise
 
-    def _get_create_guild(self, data):
+    async def _get_create_guild(self, data):
         if data.get("unavailable") is False:
             # GUILD_CREATE with unavailable in the response
             # usually means that the guild has become available
             # and is therefore in the cache
-            guild = self._get_guild(int(data["id"]))
+            guild = await self._get_guild(int(data["id"]))
             if guild is not None:
                 guild.unavailable = False
-                guild._from_data(data)
+                await guild._from_data(data, self)
                 return guild
 
         return self._add_guild_from_data(data)
@@ -660,6 +680,7 @@ class AutoShardedConnectionState(ConnectionState):
                     future = asyncio.ensure_future(self.chunk_guild(guild))
                     current_bucket.append(future)
                 else:
+                    await self._add_default_sounds()
                     future = self.loop.create_future()
                     future.set_result([])
 

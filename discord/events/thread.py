@@ -46,7 +46,7 @@ class ThreadMemberJoin(Event, ThreadMember):
 
     @classmethod
     @override
-    async def __load__(cls, data: ThreadMember, _: ConnectionState) -> Self:
+    async def __load__(cls, data: ThreadMember, state: ConnectionState) -> Self:
         self = cls()
         self.__dict__.update(data.__dict__)
         return self
@@ -59,7 +59,7 @@ class ThreadJoin(Event, Thread):
 
     @classmethod
     @override
-    async def __load__(cls, data: Thread, _: ConnectionState) -> Self:
+    async def __load__(cls, data: Thread, state: ConnectionState) -> Self:
         self = cls()
         self.__dict__.update(data.__dict__)
         return self
@@ -72,7 +72,7 @@ class ThreadMemberRemove(Event, ThreadMember):
 
     @classmethod
     @override
-    async def __load__(cls, data: ThreadMember, _: ConnectionState) -> Self:
+    async def __load__(cls, data: ThreadMember, state: ConnectionState) -> Self:
         self = cls()
         self.__dict__.update(data.__dict__)
         return self
@@ -85,7 +85,7 @@ class ThreadRemove(Event, Thread):
 
     @classmethod
     @override
-    async def __load__(cls, data: Thread, _: ConnectionState) -> Self:
+    async def __load__(cls, data: Thread, state: ConnectionState) -> Self:
         self = cls()
         self.__dict__.update(data.__dict__)
         return self

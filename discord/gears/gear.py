@@ -93,7 +93,7 @@ class Gear:
         @hybridmethod
         def listen(
             cls: type[_T],
-            event: type[E],  # noqa: N805
+            event: type[E],
         ) -> Callable[[Callable[[Any, E], Awaitable[None]]], InstanceEventCallback[E]]:
             def decorator(func: Callable[[Any, E], Awaitable[None]]) -> InstanceEventCallback[E]:
                 func.__is_instance_method__ = True

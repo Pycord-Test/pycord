@@ -28,6 +28,7 @@ from typing import TYPE_CHECKING, Deque, Protocol, TypeVar
 from discord import utils
 from discord.member import Member
 from discord.message import Message
+from discord.soundboard import SoundboardSound
 
 from ..channel import DMChannel
 from ..emoji import AppEmoji, GuildEmoji
@@ -166,6 +167,13 @@ class Cache(Protocol):
 
     async def clear(self, views: bool = True) -> None: ...
 
+    async def store_sound(self, sound: SoundboardSound) -> None: ...
+
+    async def get_sound(self, sound_id: int) -> SoundboardSound | None: ...
+
+    async def get_all_sounds(self) -> list[SoundboardSound]: ...
+
+    async def delete_sound(self, sound_id: int) -> None: ...
 
 class MemoryCache(Cache):
     def __init__(self, max_messages: int | None = None) -> None:
@@ -177,6 +185,7 @@ class MemoryCache(Cache):
         self._stickers: dict[int, list[GuildSticker]] = {}
         self._views: dict[str, View] = {}
         self._modals: dict[str, Modal] = {}
+        self._sounds: dict[int, SoundboardSound] = {}
         self._messages: Deque[Message] = deque(maxlen=self.max_messages)
 
         self._emojis: dict[int, list[GuildEmoji | AppEmoji]] = {}
@@ -185,6 +194,8 @@ class MemoryCache(Cache):
         self._private_channels_by_user: dict[int, DMChannel] = {}
 
         self._guild_members: dict[int, dict[int, Member]] = defaultdict(dict)
+
+
 
     def _flatten(self, matrix: list[list[T]]) -> list[T]:
         return [item for row in matrix for item in row]
@@ -396,3 +407,15 @@ class MemoryCache(Cache):
 
     async def get_all_members(self) -> list[Member]:
         return self._flatten([list(members.values()) for members in self._guild_members.values()])
+
+    async def store_sound(self, sound: SoundboardSound) -> None:
+        self._sounds[sound.id] = sound
+
+    async def get_sound(self, sound_id: int) -> SoundboardSound | None:
+        return self._sounds.get(sound_id)
+
+    async def get_all_sounds(self) -> list[SoundboardSound]:
+        return list(self._sounds.values())
+
+    async def delete_sound(self, sound_id: int) -> None:
+        self._sounds.pop(sound_id, None)

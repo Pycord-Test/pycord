@@ -131,7 +131,7 @@ class GuildCreate(Event, Guild):
             guild = await Guild._from_data(data, state)
             await state._add_guild(guild)
         self.guild = guild
-        self.__dict__.update(self.guild.__dict__)
+        # self.__dict__.update(self.guild.__dict__) # TODO: Find another way to do this
         if state._guild_needs_chunking(guild):
             await state.chunk_guild(guild)
         if guild.unavailable:
@@ -153,10 +153,10 @@ class GuildJoin(Event, Guild):
 
     @classmethod
     @override
-    async def __load__(cls, data: Guild, _: ConnectionState) -> Self:
+    async def __load__(cls, data: Guild, state: ConnectionState) -> Self:
         self = cls()
         self.guild = data
-        self.__dict__.update(self.guild.__dict__)
+        # self.__dict__.update(self.guild.__dict__) # TODO: Find another way to do this
         return self
 
 
@@ -172,10 +172,10 @@ class GuildAvailable(Event, Guild):
 
     @classmethod
     @override
-    async def __load__(cls, data: Guild, _: ConnectionState) -> Self:
+    async def __load__(cls, data: Guild, state: ConnectionState) -> Self:
         self = cls()
         self.guild = data
-        self.__dict__.update(self.guild.__dict__)
+        # self.__dict__.update(self.guild.__dict__) # TODO: Find another way to do this
         return self
 
 
