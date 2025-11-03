@@ -539,7 +539,7 @@ class Guild(Hashable):
 
         for sound in guild.get("soundboard_sounds", []):
             sound = SoundboardSound(state=state, http=state.http, data=sound)
-            self._add_sound(sound)
+            await self._add_sound(sound)
 
         incidents_payload = guild.get("incidents_data")
         self.incidents_data: IncidentsData | None = (
@@ -547,7 +547,7 @@ class Guild(Hashable):
         )
         return self
 
-    def _add_sound(self, sound: SoundboardSound) -> None:
+    async def _add_sound(self, sound: SoundboardSound) -> None:
         self._sounds[sound.id] = sound
         await self._state._add_sound(sound)
 

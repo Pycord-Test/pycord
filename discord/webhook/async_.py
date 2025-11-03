@@ -1028,7 +1028,7 @@ class BaseWebhook(Hashable):
         self._state: ConnectionState | _WebhookState = state or _WebhookState(self, parent=state)
         self._update(data)
 
-    async def _update(self, data: WebhookPayload | FollowerWebhookPayload):
+    def _update(self, data: WebhookPayload | FollowerWebhookPayload):
         self.id = int(data["id"])
         self.type = try_enum(WebhookType, int(data["type"]))
         self.channel_id = get_as_snowflake(data, "channel_id")

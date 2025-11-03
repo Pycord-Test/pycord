@@ -72,6 +72,13 @@ from .scheduled_event import (
     GuildScheduledEventUserAdd,
     GuildScheduledEventUserRemove,
 )
+from .soundboard import (
+    GuildSoundboardSoundCreate,
+    GuildSoundboardSoundDelete,
+    GuildSoundboardSoundsUpdate,
+    GuildSoundboardSoundUpdate,
+    SoundboardSounds,
+)
 from .stage_instance import StageInstanceCreate, StageInstanceDelete, StageInstanceUpdate
 from .subscription import SubscriptionCreate, SubscriptionDelete, SubscriptionUpdate
 from .thread import (
@@ -165,6 +172,12 @@ __all__ = (
     "GuildScheduledEventUpdate",
     "GuildScheduledEventUserAdd",
     "GuildScheduledEventUserRemove",
+    # Soundboard
+    "GuildSoundboardSoundCreate",
+    "GuildSoundboardSoundDelete",
+    "GuildSoundboardSoundsUpdate",
+    "GuildSoundboardSoundUpdate",
+    "SoundboardSounds",
     # Stage Instance
     "StageInstanceCreate",
     "StageInstanceDelete",
@@ -268,6 +281,12 @@ ALL_EVENTS: list[type[Event]] = [
     GuildScheduledEventUpdate,
     GuildScheduledEventUserAdd,
     GuildScheduledEventUserRemove,
+    # Soundboard
+    GuildSoundboardSoundCreate,
+    GuildSoundboardSoundDelete,
+    GuildSoundboardSoundsUpdate,
+    GuildSoundboardSoundUpdate,
+    SoundboardSounds,
     # Stage Instance
     StageInstanceCreate,
     StageInstanceDelete,

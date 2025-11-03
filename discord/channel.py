@@ -1560,7 +1560,7 @@ class VocalGuildChannel(discord.abc.Connectable, discord.abc.GuildChannel, Hasha
     def _get_voice_state_pair(self) -> tuple[int, int]:
         return self.guild.id, self.id
 
-    async def _update(self, data: VoiceChannelPayload | StageChannelPayload) -> None:
+    def _update(self, data: VoiceChannelPayload | StageChannelPayload) -> None:
         # This data will always exist
         self.name: str = data["name"]
         self.category_id: int | None = get_as_snowflake(data, "parent_id")
@@ -2798,7 +2798,7 @@ class CategoryChannel(discord.abc.GuildChannel, Hashable):
     def __repr__(self) -> str:
         return f"<CategoryChannel id={self.id} name={self.name!r} position={self.position}>"
 
-    async def _update(self, data: CategoryChannelPayload) -> None:
+    def _update(self, data: CategoryChannelPayload) -> None:
         # This data will always exist
         self.name: str = data["name"]
         self.category_id: int | None = get_as_snowflake(data, "parent_id")
