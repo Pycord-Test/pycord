@@ -1560,7 +1560,7 @@ class VocalGuildChannel(discord.abc.Connectable, discord.abc.GuildChannel, Hasha
     def _get_voice_state_pair(self) -> tuple[int, int]:
         return self.guild.id, self.id
 
-    def _update(self, data: VoiceChannelPayload | StageChannelPayload) -> None:
+    async def _update(self, data: VoiceChannelPayload | StageChannelPayload) -> None:
         # This data will always exist
         self.name: str = data["name"]
         self.category_id: int | None = get_as_snowflake(data, "parent_id")

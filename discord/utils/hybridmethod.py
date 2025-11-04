@@ -1,7 +1,7 @@
 # taken from https://stackoverflow.com/a/28238047/20324733
-from typing import Callable, Generic, TypeVar, overload, override
+from typing import Callable, Generic, TypeVar, overload
 
-from typing_extensions import Concatenate, ParamSpec, Self
+from typing_extensions import Concatenate, ParamSpec, Self, override
 
 _T = TypeVar("_T")
 _R1_co = TypeVar("_R1_co", covariant=True)

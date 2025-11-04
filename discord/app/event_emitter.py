@@ -43,6 +43,40 @@ class Event(ABC):
     @abstractmethod
     async def __load__(cls, data: Any, state: "ConnectionState") -> Self | None: ...
 
+    def _populate_from_slots(self, obj: Any) -> None:
+        """
+        Populate this event instance with attributes from another object.
+
+        Handles both __slots__ and __dict__ based objects.
+
+        Parameters
+        ----------
+        obj: Any
+            The object to copy attributes from.
+        """
+        # Collect all slots from the object's class hierarchy
+        slots = set()
+        for klass in type(obj).__mro__:
+            if hasattr(klass, "__slots__"):
+                slots.update(klass.__slots__)
+
+        # Copy slot attributes
+        for slot in slots:
+            if hasattr(obj, slot):
+                try:
+                    setattr(self, slot, getattr(obj, slot))
+                except AttributeError:
+                    # Some slots might be read-only or not settable
+                    pass
+
+        # Also copy __dict__ if it exists
+        if hasattr(obj, "__dict__"):
+            for key, value in obj.__dict__.items():
+                try:
+                    setattr(self, key, value)
+                except AttributeError:
+                    pass
+
 
 ListenerCallback: TypeAlias = Callable[[Event], Any]
 

@@ -23,9 +23,9 @@ DEALINGS IN THE SOFTWARE.
 """
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Any
 
-from typing_extensions import override
+from typing_extensions import override, Self
 
 from discord import utils
 from discord.app.event_emitter import Event

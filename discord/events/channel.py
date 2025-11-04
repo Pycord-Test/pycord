@@ -24,9 +24,9 @@ DEALINGS IN THE SOFTWARE.
 
 from copy import copy
 from datetime import datetime
-from typing import Any, Self, TypeVar, cast
+from typing import Any, TypeVar, cast
 
-from typing_extensions import override
+from typing_extensions import override, Self
 
 from discord.abc import GuildChannel, PrivateChannel
 from discord.app.event_emitter import Event
@@ -53,15 +53,14 @@ class ChannelCreate(Event, GuildChannel):
 
         guild_id = get_as_snowflake(data, "guild_id")
         guild = await state._get_guild(guild_id)
-        if guild is not None:
-            # the factory can't be a DMChannel or GroupChannel here
-            channel = factory(guild=guild, state=self, data=data)  # type: ignore # noqa: F821 # self is unbound
-            guild._add_channel(channel)  # type: ignore
-            self = cls()
-            self.__dict__.update(channel.__dict__)
-            return self
-        else:
+        if guild is None:
             return
+        # the factory can't be a DMChannel or GroupChannel here
+        channel = factory(guild=guild, state=state, data=data)  # type: ignore
+        guild._add_channel(channel)  # type: ignore
+        self = cls()
+        self._populate_from_slots(channel)
+        return self
 
 
 class PrivateChannelUpdate(Event, PrivateChannel):
@@ -76,7 +75,7 @@ class PrivateChannelUpdate(Event, PrivateChannel):
     async def __load__(cls, data: tuple[PrivateChannel | None, PrivateChannel], state: ConnectionState) -> Self | None:
         self = cls()
         self.old = data[0]
-        self.__dict__.update(data[1].__dict__)
+        self._populate_from_slots(data[1])
         return self
 
 
@@ -92,7 +91,7 @@ class GuildChannelUpdate(Event, PrivateChannel):
     async def __load__(cls, data: tuple[GuildChannel | None, GuildChannel], state: ConnectionState) -> Self | None:
         self = cls()
         self.old = data[0]
-        self.__dict__.update(data[1].__dict__)
+        self._populate_from_slots(data[1])
         return self
 
 
@@ -139,7 +138,7 @@ class ChannelDelete(Event, GuildChannel):
             if channel is not None:
                 guild._remove_channel(channel)
                 self = cls()
-                self.__dict__.update(channel.__dict__)
+                self._populate_from_slots(channel)
                 return self
 
 

@@ -24,9 +24,9 @@ DEALINGS IN THE SOFTWARE.
 
 import copy
 import logging
-from typing import Any, Self
+from typing import Any
 
-from typing_extensions import override
+from typing_extensions import override, Self
 
 from discord.app.event_emitter import Event
 from discord.app.state import ConnectionState
