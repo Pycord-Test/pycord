@@ -87,6 +87,7 @@ class Gear:
     def __init__(self) -> None:
         self._listeners: dict[type[Event], set[EventCallback[Event]]] = defaultdict(set)
         self._once_listeners: set[EventCallback[Event]] = set()
+        self._init_called: bool = True
 
         self._gears: set[Gear] = set()
 
@@ -126,6 +127,8 @@ class Gear:
         gear:
             The gear to attach.
         """
+        if not getattr(gear, "_init_called", False):
+            raise RuntimeError("Cannot attach gear before __init__ has been called. Maybe you forgot to call super().__init__()?")
         self._gears.add(gear)
 
     def detach_gear(self, gear: "Gear") -> None:
