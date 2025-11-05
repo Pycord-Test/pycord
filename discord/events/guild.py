@@ -169,7 +169,9 @@ class GuildMembersChunk(Event):
 
         # the guild won't be None here
         member_data_list = data.get("members", [])
-        members = await asyncio.gather(*[Member._from_data(guild=guild, data=member, state=state) for member in member_data_list])  # type: ignore
+        members = await asyncio.gather(
+            *[Member._from_data(guild=guild, data=member, state=state) for member in member_data_list]
+        )  # type: ignore
         _log.debug("Processed a chunk for %s members in guild ID %s.", len(members), guild_id)
 
         if presences:

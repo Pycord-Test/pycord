@@ -128,7 +128,9 @@ class Gear:
             The gear to attach.
         """
         if not getattr(gear, "_init_called", False):
-            raise RuntimeError("Cannot attach gear before __init__ has been called. Maybe you forgot to call super().__init__()?")
+            raise RuntimeError(
+                "Cannot attach gear before __init__ has been called. Maybe you forgot to call super().__init__()?"
+            )
         self._gears.add(gear)
 
     def detach_gear(self, gear: "Gear") -> None:

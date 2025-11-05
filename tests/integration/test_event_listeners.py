@@ -27,7 +27,7 @@ import pytest
 from discord.bot import Bot
 from discord.events.soundboard import GuildSoundboardSoundCreate
 from discord.gears import Gear
-from tests.fixtures import create_mock_state, create_soundboard_sound_payload, create_mock_bot
+from tests.fixtures import create_mock_bot, create_mock_state, create_soundboard_sound_payload
 
 
 @pytest.mark.asyncio

@@ -23,9 +23,10 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
 
-from typing import TYPE_CHECKING
-from typing_extensions import override
 from collections.abc import Collection
+from typing import TYPE_CHECKING
+
+from typing_extensions import override
 
 from ..abc import Messageable, Snowflake
 from ..asset import Asset

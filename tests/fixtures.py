@@ -271,6 +271,7 @@ def create_mock_state(*, intents: Intents | None = None, cache: Cache | None = N
 
     return state
 
+
 def create_mock_bot(*, intents: Intents | None = None, cache: Cache | None = None) -> Bot:
     """Create a mock ClientUser for testing."""
     state = create_mock_state(intents=intents, cache=cache)
@@ -278,6 +279,7 @@ def create_mock_bot(*, intents: Intents | None = None, cache: Cache | None = Non
     state.emitter = bot._connection.emitter
     bot._connection = state
     return bot
+
 
 def create_user_payload(user_id: int = 123456789, username: str = "TestUser") -> dict[str, Any]:
     """Create a mock user payload."""
