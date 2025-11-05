@@ -1,4 +1,7 @@
-# taken from https://stackoverflow.com/a/28238047/20324733
+# Source - https://stackoverflow.com/questions/28237955/same-name-for-classmethod-and-instancemethod
+# Posted by Martijn Pieters
+# Retrieved 11/5/2025, License - CC-BY-SA 4.0
+
 from typing import Callable, Generic, Protocol, TypeVar, overload
 
 from typing_extensions import Concatenate, ParamSpec, Self, override
