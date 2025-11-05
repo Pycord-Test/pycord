@@ -464,7 +464,9 @@ class ApplicationCommand(_BaseCommand, Generic[CogT, P, T]):
                     wrapped = wrap_callback(local)
                     await wrapped(ctx, error)
         finally:
-            ctx.bot.dispatch("application_command_error", ctx, error)
+            ctx.bot.dispatch(
+                "application_command_error", ctx, error
+            )  # TODO: Remove this when migrating away from ApplicationContext
 
     def _get_signature_parameters(self):
         return OrderedDict(inspect.signature(self.callback).parameters)

@@ -143,6 +143,8 @@ class Cache(Protocol):
 
     async def store_message(self, message: MessagePayload, channel: "MessageableChannel") -> Message: ...
 
+    async def store_built_message(self, message: Message) -> None: ...
+
     async def upsert_message(self, message: Message) -> None: ...
 
     async def delete_message(self, message_id: int) -> None: ...
@@ -175,6 +177,7 @@ class Cache(Protocol):
 
     async def delete_sound(self, sound_id: int) -> None: ...
 
+
 class MemoryCache(Cache):
     def __init__(self, max_messages: int | None = None) -> None:
         self.__state: ConnectionState | None = None
@@ -194,8 +197,6 @@ class MemoryCache(Cache):
         self._private_channels_by_user: dict[int, DMChannel] = {}
 
         self._guild_members: dict[int, dict[int, Member]] = defaultdict(dict)
-
-
 
     def _flatten(self, matrix: list[list[T]]) -> list[T]:
         return [item for row in matrix for item in row]
@@ -373,8 +374,11 @@ class MemoryCache(Cache):
 
     async def store_message(self, message: MessagePayload, channel: "MessageableChannel") -> Message:
         msg = await Message._from_data(state=self._state, channel=channel, data=message)
-        self._messages.append(msg)
+        self.store_built_message(msg)
         return msg
+
+    async def store_built_message(self, message: Message) -> None:
+        self._messages.append(message)
 
     async def delete_message(self, message_id: int) -> None:
         self._messages.remove(utils.find(lambda m: m.id == message_id, reversed(self._messages)))

@@ -282,8 +282,8 @@ class Client:
         self._event_handlers: dict[str, list[Coro]] = {}
 
         self._main_gear: Gear = Gear()
-        self.add_gear: Final = self._main_gear.add_gear
-        self.remove_gear: Final = self._main_gear.remove_gear
+        self.attach_gear: Final = self._main_gear.attach_gear
+        self.detach_gear: Final = self._main_gear.detach_gear
         self.add_listener: Final = self._main_gear.add_listener
         self.remove_listener: Final = self._main_gear.remove_listener
         self.listen: Final = self._main_gear.listen
@@ -636,7 +636,7 @@ class Client:
                     await self.ws.poll_event()
             except ReconnectWebSocket as e:
                 _log.info("Got a request to %s the websocket.", e.op)
-                self.dispatch("disconnect")
+                #self.dispatch("disconnect") # TODO: dispatch event
                 ws_params.update(
                     sequence=self.ws.sequence,
                     resume=e.resume,

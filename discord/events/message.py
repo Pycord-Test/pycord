@@ -24,7 +24,7 @@ DEALINGS IN THE SOFTWARE.
 
 from typing import Any
 
-from typing_extensions import override, Self
+from typing_extensions import Self, override
 
 from discord.app.state import ConnectionState
 from discord.channel import StageChannel, TextChannel, VoiceChannel
@@ -56,15 +56,18 @@ from ..message import Message, PartialMessage
 class MessageCreate(Event, Message):
     __event_name__: str = "MESSAGE_CREATE"
 
+    def __init__(self) -> None: ...
+
     @classmethod
     @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         channel, _ = await state._get_guild_channel(data)
         message = await Message._from_data(channel=channel, data=data, state=state)
         self = cls()
-        self.__dict__.update(message.__dict__)
+        self._populate_from_slots(message)
 
-        await state.cache.store_message(data, channel)
+        await state.cache.store_built_message(message)
+
         # we ensure that the channel is either a TextChannel, VoiceChannel, StageChannel, or Thread
         if channel and channel.__class__ in (
             TextChannel,

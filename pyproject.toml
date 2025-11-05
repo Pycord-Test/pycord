@@ -120,7 +120,7 @@ exclude = [
 
 [tool.ruff.lint]
 select = ["ALL"]
-per-file-ignores = {}
+
 # When ignoring a rule globally, please consider if it can be ignored in a more specific way.
 # Also, leave a comment explaining why the rule is ignored.
 extend-ignore = [
@@ -300,6 +300,9 @@ extend-ignore = [
     "D211",
     "D203" # conflicts with formatter
 ]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["PLC0415"] # Allow non top-level imports in tests
 
 [tool.mypy]
 namespace_packages = true

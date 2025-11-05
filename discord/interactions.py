@@ -265,12 +265,12 @@ class Interaction:
 
         self._guild: Guild | None = None
         self._guild_data = data.get("guild")
-        if self.guild is None and self._guild_data:
+        if self._guild is None and self._guild_data:
             self._guild = await Guild._from_data(data=self._guild_data, state=self._state)
 
         # TODO: there's a potential data loss here
         if self.guild_id:
-            guild = self.guild or await self._state._get_guild(self.guild_id) or Object(id=self.guild_id)
+            guild = self._guild or await self._state._get_guild(self.guild_id) or Object(id=self.guild_id)
             try:
                 member = data["member"]  # type: ignore
             except KeyError:
@@ -294,7 +294,7 @@ class Interaction:
         if data_ch_type is not None:
             factory, ch_type = _threaded_channel_factory(data_ch_type)
             if ch_type in (ChannelType.group, ChannelType.private):
-                self.channel = factory(me=self.user, data=channel, state=self._state)
+                self.channel = await factory._from_data(data=channel, state=self._state)
 
         if self.channel is None and self.guild:
             self.channel = self.guild._resolve_channel(self.channel_id)
@@ -898,7 +898,9 @@ class InteractionResponse:
                     "Channel for message could not be resolved. Please open a issue on GitHub if you encounter this error."
                 )
             state = _InteractionMessageState(self._parent, self._parent._state)
-            message = InteractionMessage(state=state, channel=channel, data=callback_response["resource"]["message"])  # type: ignore
+            message = await InteractionMessage._from_data(
+                state=state, channel=channel, data=callback_response["resource"]["message"]
+            )  # type: ignore
             self._parent._original_response = message
 
         self._parent.callback = InteractionCallback(callback_response["interaction"])

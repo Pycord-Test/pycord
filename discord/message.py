@@ -1085,14 +1085,14 @@ class Message(Hashable):
             found = await self.guild.get_member(self.author.id)
             if found is not None:
                 self.author = found
-
-        try:
-            # Update member reference
-            self.author._update_from_message(member)  # type: ignore # noqa: F821 # TODO: member is unbound
-        except AttributeError:
-            # It's a user here
-            # TODO: consider adding to cache here
-            self.author = Member._from_message(message=self, data=data["member"])
+        if data.get("member"):
+            try:
+                # Update member reference
+                self.author._update_from_message(member)  # type: ignore # noqa: F821 # TODO: member is unbound
+            except AttributeError:
+                # It's a user here
+                # TODO: consider adding to cache here
+                self.author = Member._from_message(message=self, data=data["member"])
 
         self.mentions = r = []
         if not isinstance(self.guild, Guild):

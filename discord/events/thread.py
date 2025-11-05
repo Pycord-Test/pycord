@@ -25,7 +25,7 @@ DEALINGS IN THE SOFTWARE.
 import logging
 from typing import Any, cast
 
-from typing_extensions import override, Self
+from typing_extensions import Self, override
 
 from discord import utils
 from discord.abc import Snowflake
@@ -97,6 +97,7 @@ class ThreadCreate(Event, Thread):
     def __init__(self) -> None: ...
 
     just_joined: bool
+    __slots__: tuple[str, ...] = ("just_joined",)
 
     @classmethod
     @override
@@ -124,9 +125,11 @@ class ThreadCreate(Event, Thread):
                     )
                 )
                 self.just_joined = False
-            self.__dict__.update(thread.__dict__)
+            else:
+                self.just_joined = True
+            self._populate_from_slots(thread)
         else:
-            self.__dict__.update(cached_thread.__dict__)
+            self._populate_from_slots(cached_thread)
             self.just_joined = True
 
         if self.just_joined:
@@ -185,7 +188,7 @@ class ThreadDelete(Event, Thread):
 
         thread = guild.get_thread(raw.thread_id)
         if thread:
-            guild._remove_thread(cast(Snowflake, thread.id))
+            guild._remove_thread(thread)
             if (msg := await thread.get_starting_message()) is not None:
                 msg.thread = None  # type: ignore
 

@@ -124,9 +124,7 @@ class GuildSoundboardSoundCreate(Event):
 class GuildSoundboardSoundDelete(Event):
     __event_name__: str = "GUILD_SOUNDBOARD_SOUND_DELETE"
 
-    def __init__(
-        self, sound: SoundboardSound | None, raw: RawSoundboardSoundDeleteEvent
-    ) -> None:
+    def __init__(self, sound: SoundboardSound | None, raw: RawSoundboardSoundDeleteEvent) -> None:
         self.sound: SoundboardSound | None = sound
         self.raw: RawSoundboardSoundDeleteEvent = raw
 

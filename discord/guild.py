@@ -528,7 +528,7 @@ class Guild(Hashable):
             events.append(ScheduledEvent(state=self._state, guild=self, creator=creator, data=event))
         self._scheduled_events_from_list(events)
 
-        self._sync(guild)
+        await self._sync(guild)
         self._large: bool | None = None if self._member_count is None else self._member_count >= 250
 
         self.owner_id: int | None = get_as_snowflake(guild, "owner_id")
@@ -669,7 +669,7 @@ class Guild(Hashable):
         )
 
     # TODO: refactor/remove?
-    def _sync(self, data: GuildPayload) -> None:
+    async def _sync(self, data: GuildPayload) -> None:
         try:
             self._large = data["large"]
         except KeyError:
@@ -687,7 +687,7 @@ class Guild(Hashable):
             for c in channels:
                 factory, _ch_type = _guild_channel_factory(c["type"])
                 if factory:
-                    self._add_channel(factory(guild=self, data=c, state=self._state))  # type: ignore
+                    self._add_channel(await factory._from_data(guild=self, data=c, state=self._state))  # type: ignore
 
         if "threads" in data:
             threads = data["threads"]
@@ -990,7 +990,7 @@ class Guild(Hashable):
         Optional[:class:`Member`]
             The member or ``None`` if not found.
         """
-        return await cast(ConnectionState, self._state).cache.get_member(self.id, user_id)
+        return await cast("ConnectionState", self._state).cache.get_member(self.id, user_id)
 
     @property
     def premium_subscribers(self) -> list[Member]:

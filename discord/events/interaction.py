@@ -24,7 +24,7 @@ DEALINGS IN THE SOFTWARE.
 
 from typing import Any
 
-from typing_extensions import override, Self
+from typing_extensions import Self, override
 
 from discord.enums import InteractionType
 from discord.types.interactions import Interaction as InteractionPayload
@@ -44,6 +44,7 @@ class InteractionCreate(Event, Interaction):
     @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         interaction = Interaction(data=data, state=state)
+        await interaction.load_data()
         if data["type"] == 3:
             custom_id = interaction.data["custom_id"]  # type: ignore
             component_type = interaction.data["component_type"]  # type: ignore
@@ -75,5 +76,5 @@ class InteractionCreate(Event, Interaction):
                 except Exception as e:
                     return await modal.on_error(e, interaction)
         self = cls()
-        self.__dict__.update(interaction.__dict__)
+        self._populate_from_slots(interaction)
         return self

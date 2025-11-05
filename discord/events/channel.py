@@ -26,7 +26,7 @@ from copy import copy
 from datetime import datetime
 from typing import Any, TypeVar, cast
 
-from typing_extensions import override, Self
+from typing_extensions import Self, override
 
 from discord.abc import GuildChannel, PrivateChannel
 from discord.app.event_emitter import Event
@@ -56,7 +56,7 @@ class ChannelCreate(Event, GuildChannel):
         if guild is None:
             return
         # the factory can't be a DMChannel or GroupChannel here
-        channel = factory(guild=guild, state=state, data=data)  # type: ignore
+        channel = await factory._from_data(guild=guild, state=state, data=data)  # type: ignore
         guild._add_channel(channel)  # type: ignore
         self = cls()
         self._populate_from_slots(channel)
@@ -118,7 +118,7 @@ class ChannelUpdate(Event, GuildChannel):
         if guild is not None:
             channel = guild.get_channel(channel_id)
             if channel is not None:
-                old_channel = copy.copy(channel)
+                old_channel = copy(channel)
                 await channel._update(data)  # type: ignore
                 await state.emitter.emit("GUILD_CHANNEL_UPDATE", (old_channel, channel))
 

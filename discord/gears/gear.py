@@ -1,114 +1,276 @@
-import asyncio
+"""
+The MIT License (MIT)
+
+Copyright (c) 2021-present Pycord Development
+
+Permission is hereby granted, free of charge, to any person obtaining a
+copy of this software and associated documentation files (the "Software"),
+to deal in the Software without restriction, including without limitation
+the rights to use, copy, modify, merge, publish, distribute, sublicense,
+and/or sell copies of the Software, and to permit persons to whom the
+Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+"""
+
+import inspect
 from collections import defaultdict
-from collections.abc import Awaitable, Callable, Sequence
-from typing import TYPE_CHECKING, Any, Generic, Literal, Protocol, TypeVar, cast
+from collections.abc import Awaitable, Callable, Collection, Sequence
+from functools import partial
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Protocol,
+    TypeAlias,
+    TypeVar,
+    cast,
+    runtime_checkable,
+)
 
 from ..app.event_emitter import Event
+from ..utils import MISSING, Undefined
 from ..utils.private import hybridmethod
 
-E = TypeVar("E", bound="Event")
 _T = TypeVar("_T", bound="Gear")
+E = TypeVar("E", bound="Event", covariant=True)
+E_contra = TypeVar("E_contra", bound="Event", contravariant=True)
 
 
-class BareEventCallback(Protocol, Generic[E]):
-    __is_instance_method__: Literal[False]
-    __event__: type[E]
-
-    async def __call__(self, event: E) -> None: ...
-
-
-class InstanceEventCallback(Protocol, Generic[E]):
-    __is_instance_method__: Literal[True]
-    __event__: type[E]
-
-    async def __call__(self, self_: Any, event: E) -> None: ...
+@runtime_checkable
+class AttributedEventCallback(Protocol):
+    __event__: type[Event]
+    __once__: bool
 
 
-EventCallback = BareEventCallback[E] | InstanceEventCallback[E]
+@runtime_checkable
+class StaticAttributedEventCallback(AttributedEventCallback, Protocol):
+    __staticmethod__: bool
+
+
+EventCallback: TypeAlias = Callable[[E], Awaitable[None]]
 
 
 class Gear:
+    """A gear is a modular component that can listen to and handle events.
+
+    You can subclass this class to create your own gears and attach them to your bot or other gears.
+
+    Example
+    -------
+    .. code-block:: python3
+        class MyGear(Gear):
+            @Gear.listen()
+            async def listen(self, event: Ready) -> None:
+                print(f"Received event on instance: {event.__class__.__name__}")
+
+
+        my_gear = MyGear()
+
+
+        @my_gear.listen()
+        async def on_event(event: Ready) -> None:
+            print(f"Received event on bare: {event.__class__.__name__}")
+
+
+        bot.add_gear(my_gear)
+    """
+
     def __init__(self) -> None:
-        self._listeners: dict[
-            type[Event], tuple[list[InstanceEventCallback[Event]], list[BareEventCallback[Event]]]
-        ] = defaultdict(lambda: ([], []))
-        self._gears: list[Gear] = []
+        self._listeners: dict[type[Event], set[EventCallback[Event]]] = defaultdict(set)
+        self._once_listeners: set[EventCallback[Event]] = set()
 
-        for name in dir(self):
+        self._gears: set[Gear] = set()
+
+        for name in dir(type(self)):
             attr = getattr(type(self), name, None)
-            if callable(attr) and getattr(attr, "__is_instance_method__", False):
-                if event_type := getattr(attr, "__event__", None):
-                    self._listeners[event_type][0].append(cast(InstanceEventCallback[Event], attr))
+            if not callable(attr):
+                continue
+            if isinstance(attr, StaticAttributedEventCallback):
+                callback = attr
+                event = attr.__event__
+                once = attr.__once__
+            elif isinstance(attr, AttributedEventCallback):
+                callback = partial(attr, self)
+                event = attr.__event__
+                once = attr.__once__
+            else:
+                continue
+            self.add_listener(cast("EventCallback[Event]", callback), event=event, once=once)
+            setattr(self, name, callback)
 
-    def _handle_event(self, event: Event) -> Sequence[Awaitable[Any]]:
+    def _handle_event(self, event: Event) -> Collection[Awaitable[Any]]:
         tasks: list[Awaitable[None]] = []
-
-        instance_listeners, bare_listeners = self._listeners[type(event)]
-
-        tasks.extend(listener(event) for listener in bare_listeners)
-
-        tasks.extend(listener(self, event) for listener in instance_listeners)
+        tasks.extend(listener(event) for listener in self._listeners[type(event)])
 
         for gear in self._gears:
-            gear_tasks = gear._handle_event(event)
-            if gear_tasks:
-                tasks.extend(gear_tasks)
+            tasks.extend(gear._handle_event(event))
 
         return tasks
 
-    def add_gear(self, gear: "Gear") -> None:
-        self._gears.append(gear)
+    def attach_gear(self, gear: "Gear") -> None:
+        """Attaches a gear to this gear.
 
-    def remove_gear(self, gear: "Gear") -> None:
+        This will propagate all events from the attached gear to this gear.
+
+        Parameters
+        ----------
+        gear:
+            The gear to attach.
+        """
+        self._gears.add(gear)
+
+    def detach_gear(self, gear: "Gear") -> None:
+        """Detaches a gear from this gear.
+
+        Parameters
+        ----------
+        gear:
+            The gear to detach.
+
+        Raises
+        ------
+        KeyError
+            If the gear is not attached.
+        """
         self._gears.remove(gear)
 
-    def add_listener(self, event: type[E], callback: Callable[[E], Awaitable[None]]) -> None:
-        callback.__is_instance_method__ = False  # pyright: ignore[reportFunctionMemberAccess]
-        callback.__event__ = event  # pyright: ignore[reportFunctionMemberAccess]
-        self._listeners[event][1].append(cast(BareEventCallback[Event], callback))
-
-    def remove_listener(self, callback: Callable[[E], Awaitable[None]] | EventCallback[E]) -> None:
-        event_type: type[Event] | None = getattr(callback, "__event__", None)
-        if event_type is None:
-            raise TypeError("callback is not a listener")
-
-        is_instance_method = getattr(callback, "__is_instance_method__", False)
-        if is_instance_method:
-            self._listeners[event_type][0].remove(cast(InstanceEventCallback[Event], callback))
+    @staticmethod
+    def _parse_listener_signature(
+        callback: Callable[[E], Awaitable[None]], is_instance_function: bool = False
+    ) -> type[E]:
+        params = list(inspect.signature(callback).parameters.values())
+        if is_instance_function:
+            event = params[1].annotation
         else:
-            self._listeners[event_type][1].remove(cast(BareEventCallback[Event], callback))
+            event = params[0].annotation
+        if issubclass(event, Event):
+            return cast(type[E], event)
+        raise TypeError("Could not infer event type from callback. Please provide the event type explicitly.")
+
+    def add_listener(
+        self,
+        callback: Callable[[E], Awaitable[None]],
+        *,
+        event: type[E] | Undefined = MISSING,
+        is_instance_function: bool = False,
+        once: bool = False,
+    ) -> None:
+        """
+        Adds an event listener to the gear.
+
+        Parameters
+        ----------
+        callback:
+            The callback function to be called when the event is emitted.
+        event:
+            The type of event to listen for. If not provided, it will be inferred from the callback signature.
+        once:
+            Whether the listener should be removed after being called once.
+        is_instance_function:
+            Whether the callback is an instance method (i.e., it takes the gear instance as the first argument).
+
+        Raises
+        ------
+        TypeError
+            If the event type cannot be inferred from the callback signature.
+        """
+        if event is MISSING:
+            event = self._parse_listener_signature(callback, is_instance_function)
+        self._listeners[event].add(cast("EventCallback[Event]", callback))
+
+    def remove_listener(
+        self, callback: EventCallback[E], event: type[E] | Undefined = MISSING, is_instance_function: bool = False
+    ) -> None:
+        """
+        Removes an event listener from the gear.
+
+        Parameters
+        ----------
+        callback:
+            The callback function to be removed.
+        event:
+            The type of event the listener was registered for. If not provided, it will be inferred from the callback signature.
+        is_instance_function:
+            Whether the callback is an instance method (i.e., it takes the gear instance as the first argument).
+
+        Raises
+        ------
+        TypeError
+            If the event type cannot be inferred from the callback signature.
+        KeyError
+            If the listener is not found.
+        """
+        if event is MISSING:
+            event = self._parse_listener_signature(callback)
+        self._listeners[event].remove(cast("EventCallback[Event]", callback))
 
     if TYPE_CHECKING:
 
         @classmethod
         def listen(
             cls: type[_T],
-            event: type[E],  # pyright: ignore[reportUnusedParameter]
+            event: type[E] | Undefined = MISSING,  # pyright: ignore[reportUnusedParameter]
+            once: bool = False,
         ) -> Callable[
             [Callable[[E], Awaitable[None]] | Callable[[Any, E], Awaitable[None]]],
-            InstanceEventCallback[E] | BareEventCallback[E],
-        ]: ...
+            EventCallback[E],
+        ]:
+            """
+            A decorator that registers an event listener.
+
+            Parameters
+            ----------
+            event:
+                The type of event to listen for. If not provided, it will be inferred from the callback signature.
+            once:
+                Whether the listener should be removed after being called once.
+
+            Returns
+            -------
+            A decorator that registers the decorated function as an event listener.
+
+            Raises
+            ------
+            TypeError
+                If the event type cannot be inferred from the callback signature.
+            """
+            ...
     else:
-        # Instance events
+        # Instance function events (but not bound to an instance, this is why we have to manually pass self with partial above)
         @hybridmethod
         def listen(
-            cls: type[_T],
-            event: type[E],
-        ) -> Callable[[Callable[[Any, E], Awaitable[None]]], InstanceEventCallback[E]]:
-            def decorator(func: Callable[[Any, E], Awaitable[None]]) -> InstanceEventCallback[E]:
-                func.__is_instance_method__ = True
-                func.__event__ = event
-                return cast(InstanceEventCallback[E], func)
+            cls: type[_T],  # noqa: N805 # Ruff complains of our shenanigans here
+            event: type[E] | Undefined = MISSING,
+            once: bool = False,
+        ) -> Callable[[Callable[[Any, E], Awaitable[None]]], Callable[[Any, E], Awaitable[None]]]:
+            def decorator(func: Callable[[Any, E], Awaitable[None]]) -> Callable[[Any, E], Awaitable[None]]:
+                if isinstance(func, staticmethod):
+                    func.__func__.__event__ = event
+                    func.__func__.__once__ = once
+                    func.__func__.__staticmethod__ = True
+                else:
+                    func.__event__ = event
+                    func.__once__ = once
+                return func
 
             return decorator
 
-        # Bare events
+        # Bare events (everything else)
         @listen.instancemethod
-        def listen(self, event: type[E]) -> Callable[[Callable[[E], Awaitable[None]]], BareEventCallback[E]]:
-            def decorator(func: Callable[[E], Awaitable[None]]) -> BareEventCallback[E]:
-                func.__is_instance_method__ = False
-                func.__event__ = event
-                self._listeners[event][1].append(cast(BareEventCallback[Event], func))
-                return cast(BareEventCallback[E], func)
+        def listen(
+            self, event: type[E] | Undefined = MISSING, once: bool = False
+        ) -> Callable[[Callable[[E], Awaitable[None]]], EventCallback[E]]:
+            def decorator(func: Callable[[E], Awaitable[None]]) -> EventCallback[E]:
+                self.add_listener(func, event=event, is_instance_function=False, once=once)
+                return cast(EventCallback[E], func)
 
             return decorator

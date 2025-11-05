@@ -1,5 +1,5 @@
 # taken from https://stackoverflow.com/a/28238047/20324733
-from typing import Callable, Generic, TypeVar, overload
+from typing import Callable, Generic, Protocol, TypeVar, overload
 
 from typing_extensions import Concatenate, ParamSpec, Self, override
 

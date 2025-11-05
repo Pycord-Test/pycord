@@ -24,7 +24,7 @@ DEALINGS IN THE SOFTWARE.
 
 from typing import Any, cast
 
-from typing_extensions import override, Self
+from typing_extensions import Self, override
 
 from discord.emoji import Emoji
 from discord.flags import ApplicationFlags

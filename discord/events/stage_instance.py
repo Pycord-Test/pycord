@@ -26,7 +26,7 @@ import copy
 import logging
 from typing import Any
 
-from typing_extensions import override, Self
+from typing_extensions import Self, override
 
 from discord.app.event_emitter import Event
 from discord.app.state import ConnectionState

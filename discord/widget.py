@@ -259,7 +259,7 @@ class Widget:
         self.id: int = int(data["id"])
 
         self.channels: list[WidgetChannel] = []
-        for channel in data.get("channels", []):
+        for channel in data.get("channel", []):
             _id = int(channel["id"])
             self.channels.append(WidgetChannel(id=_id, name=channel["name"], position=channel["position"]))
 

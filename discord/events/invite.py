@@ -24,7 +24,7 @@ DEALINGS IN THE SOFTWARE.
 
 from typing import Any
 
-from typing_extensions import override, Self
+from typing_extensions import Self, override
 
 from discord.abc import GuildChannel
 from discord.app.event_emitter import Event

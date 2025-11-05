@@ -29,14 +29,14 @@ from typing import TYPE_CHECKING, Any
 
 from typing_extensions import Self, override
 
-from discord import Role
-from discord.app.event_emitter import Event
-from discord.app.state import ConnectionState
-from discord.emoji import Emoji
-from discord.guild import Guild
-from discord.member import Member
-from discord.raw_models import RawMemberRemoveEvent
-from discord.sticker import Sticker
+from ..app.event_emitter import Event
+from ..app.state import ConnectionState
+from ..emoji import Emoji
+from ..guild import Guild
+from ..member import Member
+from ..raw_models import RawMemberRemoveEvent
+from ..role import Role
+from ..sticker import Sticker
 
 if TYPE_CHECKING:
     from ..types.member import MemberWithUser
@@ -60,7 +60,7 @@ class GuildMemberJoin(Event, Member):
             )
             return
 
-        member = Member(guild=guild, data=data, state=state)
+        member = await Member._from_data(guild=guild, data=data, state=state)
         if state.member_cache_flags.joined:
             await guild._add_member(member)
 
@@ -68,7 +68,7 @@ class GuildMemberJoin(Event, Member):
             guild._member_count += 1
 
         self = cls()
-        self.__dict__.update(member.__dict__)
+        self._populate_from_slots(member)
         return self
 
 
@@ -93,7 +93,7 @@ class GuildMemberRemove(Event, Member):
                 raw.user = member
                 guild._remove_member(member)  # type: ignore
                 self = cls()
-                self.__dict__.update(member.__dict__)
+                self._populate_from_slots(member)
                 return self
         else:
             _log.debug(
@@ -131,12 +131,12 @@ class GuildMemberUpdate(Event, Member):
                 await state.emitter.emit("USER_UPDATE", user_update)
 
             self = cls()
-            self.__dict__.update(member.__dict__)
+            self._populate_from_slots(member)
             self.old = old_member
             return self
         else:
             if state.member_cache_flags.joined:
-                member = Member(data=data, guild=guild, state=state)
+                member = await Member._from_data(data=data, guild=guild, state=state)
 
                 # Force an update on the inner user if necessary
                 user_update = member._update_inner_user(user)
@@ -168,7 +168,8 @@ class GuildMembersChunk(Event):
         presences = data.get("presences", [])
 
         # the guild won't be None here
-        members = [Member(guild=guild, data=member, state=state) for member in data.get("members", [])]  # type: ignore
+        member_data_list = data.get("members", [])
+        members = await asyncio.gather(*[Member._from_data(guild=guild, data=member, state=state) for member in member_data_list])  # type: ignore
         _log.debug("Processed a chunk for %s members in guild ID %s.", len(members), guild_id)
 
         if presences:
@@ -342,7 +343,7 @@ class GuildUpdate(Event, Guild):
             old_guild = copy.copy(guild)
             guild = await guild._from_data(data, state)
             self = cls()
-            self.__dict__.update(guild.__dict__)
+            self._populate_from_slots(guild)
             self.old = old_guild
             return self
         else:
@@ -383,7 +384,7 @@ class GuildDelete(Event, Guild):
 
         await state._remove_guild(guild)
         self = cls()
-        self.__dict__.update(guild.__dict__)
+        self._populate_from_slots(guild)
         return self
 
 
@@ -412,10 +413,10 @@ class GuildBanAdd(Event, Member):
                 "deaf": False,
                 "mute": False,
             }
-            member = Member(guild=guild, data=fake_data, state=state)
+            member = await Member._from_data(guild=guild, data=fake_data, state=state)
 
         self = cls()
-        self.__dict__.update(member.__dict__)
+        self._populate_from_slots(member)
         return self
 
 
@@ -444,10 +445,10 @@ class GuildBanRemove(Event, Member):
                 "deaf": False,
                 "mute": False,
             }
-            member = Member(guild=guild, data=fake_data, state=state)
+            member = await Member._from_data(guild=guild, data=fake_data, state=state)
 
         self = cls()
-        self.__dict__.update(member.__dict__)
+        self._populate_from_slots(member)
         return self
 
 
@@ -471,7 +472,7 @@ class GuildRoleCreate(Event, Role):
         guild._add_role(role)
 
         self = cls()
-        self.__dict__.update(role.__dict__)
+        self._populate_from_slots(role)
         return self
 
 
@@ -491,7 +492,7 @@ class GuildRoleUpdate(Event, Role):
                 "GUILD_ROLE_UPDATE referencing an unknown guild ID: %s. Discarding.",
                 data["guild_id"],
             )
-            return
+            return None
 
         role_id: int = int(data["role"]["id"])
         role = guild.get_role(role_id)
@@ -500,13 +501,13 @@ class GuildRoleUpdate(Event, Role):
                 "GUILD_ROLE_UPDATE referencing an unknown role ID: %s. Discarding.",
                 data["role"]["id"],
             )
-            return
+            return None
 
         old_role = copy.copy(role)
-        await role._update(data["role"])
+        role._update(data["role"])
 
         self = cls()
-        self.__dict__.update(role.__dict__)
+        self._populate_from_slots(role)
         self.old = old_role
         return self
 
@@ -539,5 +540,5 @@ class GuildRoleDelete(Event, Role):
         guild._remove_role(role_id)
 
         self = cls()
-        self.__dict__.update(role.__dict__)
+        self._populate_from_slots(role)
         return self

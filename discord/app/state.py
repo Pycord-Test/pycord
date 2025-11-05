@@ -451,7 +451,7 @@ class ConnectionState:
             # guild_id is in data
             guild = await self._get_guild(int(guild_id or data["guild_id"]))  # type: ignore
         except KeyError:
-            channel = DMChannel._from_message(self, channel_id)
+            channel = DMChannel(id=channel_id, state=self)
             guild = None
         else:
             channel = guild and guild._resolve_channel(channel_id)
