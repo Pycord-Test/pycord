@@ -38,6 +38,7 @@ from typing import (
 
 from ..app.event_emitter import Event
 from ..utils import MISSING, Undefined
+from ..utils.annotations import get_annotations
 from ..utils.private import hybridmethod
 
 _T = TypeVar("_T", bound="Gear")
@@ -152,14 +153,16 @@ class Gear:
     def _parse_listener_signature(
         callback: Callable[[E], Awaitable[None]], is_instance_function: bool = False
     ) -> type[E]:
-        params = list(inspect.signature(callback).parameters.values())
+        params = get_annotations(
+            callback,
+            expected_types={0: type(Event)},
+            custom_error="""Type annotation mismatch for parameter "{parameter}": expected <class 'Event'>, got {got}.""",
+        )
         if is_instance_function:
-            event = params[1].annotation
+            event = list(params.values())[1]
         else:
-            event = params[0].annotation
-        if issubclass(event, Event):
-            return cast(type[E], event)
-        raise TypeError("Could not infer event type from callback. Please provide the event type explicitly.")
+            event = next(iter(params.values()))
+        return cast(type[E], event)
 
     def add_listener(
         self,
