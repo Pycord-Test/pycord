@@ -1207,7 +1207,7 @@ class Guild(Hashable):
         if overwrites is MISSING:
             overwrites = {}
         elif not isinstance(overwrites, dict):
-            raise ValueError("overwrites parameter expects a dict.")
+            raise TypeError("overwrites parameter expects a dict.")
 
         perms = []
         for target, perm in overwrites.items():
@@ -3297,7 +3297,7 @@ class Guild(Hashable):
             An invalid keyword argument was given.
         """
         if not isinstance(positions, dict):
-            raise ValueError("positions parameter expects a dict.")
+            raise TypeError("positions parameter expects a dict.")
 
         role_positions: list[dict[str, Any]] = []
         for role, position in positions.items():
