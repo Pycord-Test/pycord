@@ -44,7 +44,7 @@ from typing import (
 from . import utils
 from .context_managers import Typing
 from .enums import ChannelType
-from .errors import ClientException, InvalidArgument
+from .errors import ClientException
 from .file import File, VoiceMessage
 from .flags import ChannelFlags, MessageFlags
 from .invite import Invite
@@ -357,7 +357,7 @@ class GuildChannel:
         reason: str | None,
     ) -> None:
         if position < 0:
-            raise InvalidArgument("Channel position cannot be less than 0.")
+            raise ValueError("Channel position cannot be less than 0.")
 
         http = self._state.http
         bucket = self._sorting_bucket
@@ -460,7 +460,7 @@ class GuildChannel:
             perms = []
             for target, perm in overwrites.items():
                 if not isinstance(perm, PermissionOverwrite):
-                    raise InvalidArgument(f"Expected PermissionOverwrite received {perm.__class__.__name__}")
+                    raise TypeError(f"Expected PermissionOverwrite received {perm.__class__.__name__}")
 
                 allow, deny = perm.pair()
                 payload = {
@@ -479,7 +479,7 @@ class GuildChannel:
             pass
         else:
             if not isinstance(ch_type, ChannelType):
-                raise InvalidArgument("type field must be of type ChannelType")
+                raise TypeError("type field must be of type ChannelType")
             options["type"] = ch_type.value
 
         try:
@@ -496,7 +496,7 @@ class GuildChannel:
             elif default_reaction_emoji is None:
                 pass
             else:
-                raise InvalidArgument("default_reaction_emoji must be of type: GuildEmoji | int | str | None")
+                raise TypeError("default_reaction_emoji must be of type: GuildEmoji | int | str | None")
 
             options["default_reaction_emoji"] = (
                 default_reaction_emoji._to_forum_reaction_payload() if default_reaction_emoji else None
@@ -893,7 +893,7 @@ class GuildChannel:
             Editing channel specific permissions failed.
         ~discord.NotFound
             The role or member being edited is not part of the guild.
-        ~discord.InvalidArgument
+        TypeError or ValueError
             The overwrite parameter invalid or the target type was not
             :class:`~discord.Role` or :class:`~discord.Member`.
         """
@@ -905,17 +905,17 @@ class GuildChannel:
         elif isinstance(target, Role):
             perm_type = _Overwrites.ROLE
         else:
-            raise InvalidArgument("target parameter must be either Member or Role")
+            raise TypeError("target parameter must be either Member or Role")
 
         if overwrite is MISSING:
             if len(permissions) == 0:
-                raise InvalidArgument("No overwrite provided.")
+                raise ValueError("No overwrite provided.")
             try:
                 overwrite = PermissionOverwrite(**permissions)
             except (ValueError, TypeError) as e:
-                raise InvalidArgument("Invalid permissions given to keyword arguments.") from e
+                raise ValueError("Invalid permissions given to keyword arguments.") from e
         elif len(permissions) > 0:
-            raise InvalidArgument("Cannot mix overwrite and keyword arguments.")
+            raise ValueError("Cannot mix overwrite and keyword arguments.")
 
         # TODO: wait for event
 
@@ -925,7 +925,7 @@ class GuildChannel:
             (allow, deny) = overwrite.pair()
             await http.edit_channel_permissions(self.id, target.id, allow.value, deny.value, perm_type, reason=reason)
         else:
-            raise InvalidArgument("Invalid overwrite type provided.")
+            raise ValueError("Invalid overwrite type provided.")
 
     async def _clone_impl(
         self: GCH,
@@ -1074,7 +1074,7 @@ class GuildChannel:
 
         Raises
         ------
-        InvalidArgument
+        ValueError
             An invalid position was given or a bad mix of arguments was passed.
         Forbidden
             You do not have permissions to move the channel.
@@ -1089,7 +1089,7 @@ class GuildChannel:
         before, after = kwargs.get("before"), kwargs.get("after")
         offset = kwargs.get("offset", 0)
         if sum(bool(a) for a in (beginning, end, before, after)) > 1:
-            raise InvalidArgument("Only one of [before, after, end, beginning] can be used.")
+            raise ValueError("Only one of [before, after, end, beginning] can be used.")
 
         bucket = self._sorting_bucket
         parent_id = kwargs.get("category", MISSING)
@@ -1124,7 +1124,7 @@ class GuildChannel:
             index = next((i + 1 for i, c in enumerate(channels) if c.id == after.id), None)
 
         if index is None:
-            raise InvalidArgument("Could not resolve appropriate move position")
+            raise ValueError("Could not resolve appropriate move position")
 
         channels.insert(max((index + offset), 0), self)
         payload = []
@@ -1481,7 +1481,7 @@ class Messageable:
             Sending the message failed.
         ~discord.Forbidden
             You do not have the proper permissions to send the message.
-        ~discord.InvalidArgument
+        TypeError or ValueError
             The ``files`` list is not of the appropriate size,
             you specified both ``file`` and ``files``,
             or you specified both ``embed`` and ``embeds``,
@@ -1494,14 +1494,14 @@ class Messageable:
         content = str(content) if content is not None else None
 
         if embed is not None and embeds is not None:
-            raise InvalidArgument("cannot pass both embed and embeds parameter to send()")
+            raise ValueError("cannot pass both embed and embeds parameter to send()")
 
         if embed is not None:
             embed = embed.to_dict()
 
         elif embeds is not None:
             if len(embeds) > 10:
-                raise InvalidArgument("embeds parameter must be a list of up to 10 elements")
+                raise ValueError("embeds parameter must be a list of up to 10 elements")
             embeds = [embed.to_dict() for embed in embeds]
 
         flags = MessageFlags(
@@ -1537,13 +1537,13 @@ class Messageable:
                         "3.0",
                     )
             except AttributeError:
-                raise InvalidArgument(
+                raise ValueError(
                     "reference parameter must be Message, MessageReference, or PartialMessage"
                 ) from None
 
         if view:
             if not hasattr(view, "__discord_ui_view__"):
-                raise InvalidArgument(f"view parameter must be View not {view.__class__!r}")
+                raise TypeError(f"view parameter must be View not {view.__class__!r}")
 
             components = view.to_components()
             if view.is_components_v2():
@@ -1557,17 +1557,17 @@ class Messageable:
             poll = poll.to_dict()
 
         if file is not None and files is not None:
-            raise InvalidArgument("cannot pass both file and files parameter to send()")
+            raise ValueError("cannot pass both file and files parameter to send()")
 
         if file is not None:
             if not isinstance(file, File):
-                raise InvalidArgument("file parameter must be File")
+                raise TypeError("file parameter must be File")
             files = [file]
         elif files is not None:
             if len(files) > 10:
-                raise InvalidArgument("files parameter must be a list of up to 10 elements")
+                raise ValueError("files parameter must be a list of up to 10 elements")
             elif not all(isinstance(file, File) for file in files):
-                raise InvalidArgument("files parameter must be a list of File")
+                raise TypeError("files parameter must be a list of File")
 
         if files is not None:
             flags = flags + MessageFlags(is_voice_message=any(isinstance(f, VoiceMessage) for f in files))

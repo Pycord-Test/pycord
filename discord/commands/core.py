@@ -59,7 +59,6 @@ from ..errors import (
     ApplicationCommandInvokeError,
     CheckFailure,
     ClientException,
-    InvalidArgument,
     ValidationError,
 )
 from ..member import Member
@@ -240,9 +239,9 @@ class ApplicationCommand(_BaseCommand, Generic[CogT, P, T]):
                 reference="https://discord.com/developers/docs/change-log#userinstallable-apps-preview",
             )
         if contexts and guild_only:
-            raise InvalidArgument("cannot pass both 'contexts' and 'guild_only' to ApplicationCommand")
+            raise ValueError("cannot pass both 'contexts' and 'guild_only' to ApplicationCommand")
         if self.guild_ids and ((contexts is not None) or guild_only or integration_types):
-            raise InvalidArgument(
+            raise ValueError(
                 "the 'contexts' and 'integration_types' parameters are not available for guild commands"
             )
 
@@ -1214,9 +1213,9 @@ class SlashCommandGroup(ApplicationCommand):
         if guild_only is not MISSING:
             warn_deprecated("guild_only", "contexts", "2.6")
         if contexts and guild_only:
-            raise InvalidArgument("cannot pass both 'contexts' and 'guild_only' to ApplicationCommand")
+            raise ValueError("cannot pass both 'contexts' and 'guild_only' to ApplicationCommand")
         if self.guild_ids and ((contexts is not None) or guild_only or integration_types):
-            raise InvalidArgument(
+            raise ValueError(
                 "the 'contexts' and 'integration_types' parameters are not available for guild commands"
             )
 

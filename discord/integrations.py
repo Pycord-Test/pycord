@@ -31,7 +31,6 @@ from typing import TYPE_CHECKING, Any
 from discord import utils
 
 from .enums import ExpireBehaviour, try_enum
-from .errors import InvalidArgument
 from .user import User
 from .utils import MISSING
 from .utils.private import get_as_snowflake, parse_time
@@ -253,13 +252,13 @@ class StreamIntegration(Integration):
             You do not have permission to edit the integration.
         HTTPException
             Editing the guild failed.
-        InvalidArgument
+        TypeError or ValueError
             ``expire_behaviour`` did not receive a :class:`ExpireBehaviour`.
         """
         payload: dict[str, Any] = {}
         if expire_behaviour is not MISSING:
             if not isinstance(expire_behaviour, ExpireBehaviour):
-                raise InvalidArgument("expire_behaviour field must be of type ExpireBehaviour")
+                raise TypeError("expire_behaviour field must be of type ExpireBehaviour")
 
             payload["expire_behavior"] = expire_behaviour.value
 

@@ -28,7 +28,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from .enums import StagePrivacyLevel, try_enum
-from .errors import InvalidArgument
 from .mixins import Hashable
 from .utils import MISSING, Undefined
 from .utils.private import cached_slot_property
@@ -144,7 +143,7 @@ class StageInstance(Hashable):
 
         Raises
         ------
-        InvalidArgument
+        TypeError or ValueError
             If the ``privacy_level`` parameter is not the proper type.
         Forbidden
             You do not have permissions to edit the stage instance.
@@ -159,7 +158,7 @@ class StageInstance(Hashable):
 
         if privacy_level is not MISSING:
             if not isinstance(privacy_level, StagePrivacyLevel):
-                raise InvalidArgument("privacy_level field must be of type PrivacyLevel")
+                raise TypeError("privacy_level field must be of type PrivacyLevel")
 
             payload["privacy_level"] = privacy_level.value
 

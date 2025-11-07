@@ -32,7 +32,7 @@ from typing import TYPE_CHECKING, Any, Literal
 import yarl
 
 from . import utils
-from .errors import DiscordException, InvalidArgument
+from .errors import DiscordException
 
 __all__ = ("Asset",)
 
@@ -401,7 +401,7 @@ class Asset(AssetMixin):
 
         Raises
         ------
-        InvalidArgument
+        TypeError or ValueError
             An invalid size or format was passed.
         """
         url = yarl.URL(self._url)
@@ -410,21 +410,21 @@ class Asset(AssetMixin):
         if format is not MISSING:
             if self._animated:
                 if format not in VALID_ASSET_FORMATS:
-                    raise InvalidArgument(f"format must be one of {VALID_ASSET_FORMATS}")
+                    raise ValueError(f"format must be one of {VALID_ASSET_FORMATS}")
                 url = url.with_path(f"{path}.{format}")
             elif static_format is MISSING:
                 if format not in VALID_STATIC_FORMATS:
-                    raise InvalidArgument(f"format must be one of {VALID_STATIC_FORMATS}")
+                    raise ValueError(f"format must be one of {VALID_STATIC_FORMATS}")
                 url = url.with_path(f"{path}.{format}")
 
         if static_format is not MISSING and not self._animated:
             if static_format not in VALID_STATIC_FORMATS:
-                raise InvalidArgument(f"static_format must be one of {VALID_STATIC_FORMATS}")
+                raise ValueError(f"static_format must be one of {VALID_STATIC_FORMATS}")
             url = url.with_path(f"{path}.{static_format}")
 
         if size is not MISSING:
             if not _valid_icon_size(size):
-                raise InvalidArgument("size must be a power of 2 between 16 and 4096")
+                raise ValueError("size must be a power of 2 between 16 and 4096")
             url = url.with_query(size=size)
         else:
             url = url.with_query(url.raw_query_string)
@@ -447,11 +447,11 @@ class Asset(AssetMixin):
 
         Raises
         ------
-        InvalidArgument
+        TypeError or ValueError
             The asset had an invalid size.
         """
         if not _valid_icon_size(size):
-            raise InvalidArgument("size must be a power of 2 between 16 and 4096")
+            raise ValueError("size must be a power of 2 between 16 and 4096")
 
         url = str(yarl.URL(self._url).with_query(size=size))
         return Asset(state=self._state, url=url, key=self._key, animated=self._animated)
@@ -471,15 +471,15 @@ class Asset(AssetMixin):
 
         Raises
         ------
-        InvalidArgument
+        TypeError or ValueError
             The asset has an invalid format.
         """
 
         if self._animated:
             if format not in VALID_ASSET_FORMATS:
-                raise InvalidArgument(f"format must be one of {VALID_ASSET_FORMATS}")
+                raise ValueError(f"format must be one of {VALID_ASSET_FORMATS}")
         elif format not in VALID_STATIC_FORMATS:
-            raise InvalidArgument(f"format must be one of {VALID_STATIC_FORMATS}")
+            raise ValueError(f"format must be one of {VALID_STATIC_FORMATS}")
 
         url = yarl.URL(self._url)
         path, _ = os.path.splitext(url.path)
@@ -504,7 +504,7 @@ class Asset(AssetMixin):
 
         Raises
         ------
-        InvalidArgument
+        TypeError or ValueError
             The asset had an invalid format.
         """
 

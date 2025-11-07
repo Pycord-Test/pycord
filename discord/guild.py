@@ -66,7 +66,7 @@ from .enums import (
     VoiceRegion,
     try_enum,
 )
-from .errors import ClientException, InvalidArgument, InvalidData
+from .errors import ClientException, InvalidData
 from .file import File
 from .flags import SystemChannelFlags
 from .incidents import IncidentsData
@@ -1207,12 +1207,12 @@ class Guild(Hashable):
         if overwrites is MISSING:
             overwrites = {}
         elif not isinstance(overwrites, dict):
-            raise InvalidArgument("overwrites parameter expects a dict.")
+            raise ValueError("overwrites parameter expects a dict.")
 
         perms = []
         for target, perm in overwrites.items():
             if not isinstance(perm, PermissionOverwrite):
-                raise InvalidArgument(f"Expected PermissionOverwrite received {perm.__class__.__name__}")
+                raise TypeError(f"Expected PermissionOverwrite received {perm.__class__.__name__}")
 
             allow, deny = perm.pair()
             payload = {
@@ -1310,7 +1310,7 @@ class Guild(Hashable):
             You do not have the proper permissions to create this channel.
         HTTPException
             Creating the channel failed.
-        InvalidArgument
+        TypeError or ValueError
             The permission overwrite information is not in proper form.
 
         Examples
@@ -1437,7 +1437,7 @@ class Guild(Hashable):
             You do not have the proper permissions to create this channel.
         HTTPException
             Creating the channel failed.
-        InvalidArgument
+        TypeError or ValueError
             The permission overwrite information is not in proper form.
         """
         options = {}
@@ -1559,7 +1559,7 @@ class Guild(Hashable):
             You do not have the proper permissions to create this channel.
         HTTPException
             Creating the channel failed.
-        InvalidArgument
+        TypeError or ValueError
             The permission overwrite information is not in proper form.
         """
 
@@ -1696,7 +1696,7 @@ class Guild(Hashable):
             You do not have the proper permissions to create this channel.
         HTTPException
             Creating the channel failed.
-        InvalidArgument
+        TypeError or ValueError
             The argument is not in proper form.
 
         Examples
@@ -1755,7 +1755,7 @@ class Guild(Hashable):
             elif default_reaction_emoji is None:
                 pass
             else:
-                raise InvalidArgument("default_reaction_emoji must be of type: GuildEmoji | int | str | None")
+                raise TypeError("default_reaction_emoji must be of type: GuildEmoji | int | str | None")
 
             options["default_reaction_emoji"] = (
                 default_reaction_emoji._to_forum_reaction_payload() if default_reaction_emoji else None
@@ -1803,7 +1803,7 @@ class Guild(Hashable):
             You do not have the proper permissions to create this channel.
         HTTPException
             Creating the channel failed.
-        InvalidArgument
+        TypeError or ValueError
             The permission overwrite information is not in proper form.
         """
         options: dict[str, Any] = {}
@@ -1998,7 +1998,7 @@ class Guild(Hashable):
             You do not have permissions to edit the guild.
         HTTPException
             Editing the guild failed.
-        InvalidArgument
+        TypeError or ValueError
             The image format passed in to ``icon`` is invalid. It must be
             PNG or JPG. This is also raised if you are not the owner of the
             guild and request an ownership transfer.
@@ -2047,7 +2047,7 @@ class Guild(Hashable):
 
         if default_notifications is not MISSING:
             if not isinstance(default_notifications, NotificationLevel):
-                raise InvalidArgument("default_notifications field must be of type NotificationLevel")
+                raise TypeError("default_notifications field must be of type NotificationLevel")
             fields["default_message_notifications"] = default_notifications.value
 
         if afk_channel is not MISSING:
@@ -2076,25 +2076,25 @@ class Guild(Hashable):
 
         if owner is not MISSING:
             if self.owner_id != self._state.self_id:
-                raise InvalidArgument("To transfer ownership you must be the owner of the guild.")
+                raise ValueError("To transfer ownership you must be the owner of the guild.")
 
             fields["owner_id"] = owner.id
 
         if verification_level is not MISSING:
             if not isinstance(verification_level, VerificationLevel):
-                raise InvalidArgument("verification_level field must be of type VerificationLevel")
+                raise TypeError("verification_level field must be of type VerificationLevel")
 
             fields["verification_level"] = verification_level.value
 
         if explicit_content_filter is not MISSING:
             if not isinstance(explicit_content_filter, ContentFilter):
-                raise InvalidArgument("explicit_content_filter field must be of type ContentFilter")
+                raise TypeError("explicit_content_filter field must be of type ContentFilter")
 
             fields["explicit_content_filter"] = explicit_content_filter.value
 
         if system_channel_flags is not MISSING:
             if not isinstance(system_channel_flags, SystemChannelFlags):
-                raise InvalidArgument("system_channel_flags field must be of type SystemChannelFlags")
+                raise TypeError("system_channel_flags field must be of type SystemChannelFlags")
 
             fields["system_channel_flags"] = system_channel_flags.value
 
@@ -2109,7 +2109,7 @@ class Guild(Hashable):
                     if "COMMUNITY" not in features:
                         features.append("COMMUNITY")
                 else:
-                    raise InvalidArgument(
+                    raise ValueError(
                         "community field requires both rules_channel and public_updates_channel fields to be provided"
                     )
             else:
@@ -2522,7 +2522,7 @@ class Guild(Hashable):
             You do not have permissions to prune members.
         HTTPException
             An error occurred while pruning members.
-        InvalidArgument
+        TypeError or ValueError
             An integer was not passed for ``days``.
 
         Returns
@@ -2533,7 +2533,7 @@ class Guild(Hashable):
         """
 
         if not isinstance(days, int):
-            raise InvalidArgument(f"Expected int for ``days``, received {days.__class__.__name__} instead.")
+            raise TypeError(f"Expected int for ``days``, received {days.__class__.__name__} instead.")
 
         role_ids = [str(role.id) for role in roles] if roles else []
         data = await self._state.http.prune_members(
@@ -2620,12 +2620,12 @@ class Guild(Hashable):
             You do not have permissions to prune members.
         HTTPException
             An error occurred while fetching the prune members estimate.
-        InvalidArgument
+        TypeError or ValueError
             An integer was not passed for ``days``.
         """
 
         if not isinstance(days, int):
-            raise InvalidArgument(f"Expected int for ``days``, received {days.__class__.__name__} instead.")
+            raise TypeError(f"Expected int for ``days``, received {days.__class__.__name__} instead.")
 
         role_ids = [str(role.id) for role in roles] if roles else []
         data = await self._state.http.estimate_pruned_members(self.id, days, role_ids)
@@ -3194,7 +3194,7 @@ class Guild(Hashable):
             You do not have permissions to create the role.
         HTTPException
             Creating the role failed.
-        InvalidArgument
+        TypeError or ValueError
             An invalid keyword argument was given.
         """
         fields: dict[str, Any] = {}
@@ -3222,7 +3222,7 @@ class Guild(Hashable):
                 actual_colours.tertiary = None
             fields["colors"] = actual_colours._to_dict()
         else:
-            raise InvalidArgument(
+            raise TypeError(
                 "colours parameter must be of type RoleColours, not {}".format(actual_colours.__class__.__name__)
             )
 
@@ -3293,11 +3293,11 @@ class Guild(Hashable):
             You do not have permissions to move the roles.
         HTTPException
             Moving the roles failed.
-        InvalidArgument
+        TypeError or ValueError
             An invalid keyword argument was given.
         """
         if not isinstance(positions, dict):
-            raise InvalidArgument("positions parameter expects a dict.")
+            raise ValueError("positions parameter expects a dict.")
 
         role_positions: list[dict[str, Any]] = []
         for role, position in positions.items():

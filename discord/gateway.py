@@ -42,7 +42,7 @@ import aiohttp
 from . import utils
 from .activity import BaseActivity
 from .enums import SpeakingState
-from .errors import ConnectionClosed, InvalidArgument
+from .errors import ConnectionClosed
 from .utils.private import from_json, to_json
 
 _log = logging.getLogger(__name__)
@@ -662,7 +662,7 @@ class DiscordWebSocket:
     async def change_presence(self, *, activity=None, status=None, since=0.0):
         if activity is not None:
             if not isinstance(activity, BaseActivity):
-                raise InvalidArgument("activity must derive from BaseActivity.")
+                raise TypeError("activity must derive from BaseActivity.")
             activity = [activity.to_dict()]
         else:
             activity = []

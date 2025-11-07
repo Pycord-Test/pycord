@@ -32,7 +32,7 @@ from typing import (
     overload,
 )
 
-from ..errors import HTTPException, InvalidArgument
+from ..errors import HTTPException
 
 if TYPE_CHECKING:
     from ..invite import Invite
@@ -91,7 +91,7 @@ def get_mime_type_for_file(data: bytes):
     elif data.startswith((b"\x49\x44\x33", b"\xff\xfb")):
         return "audio/mpeg"
     else:
-        raise InvalidArgument("Unsupported file type given")
+        raise ValueError("Unsupported file type given")
 
 
 def bytes_to_base64_data(data: bytes) -> str:

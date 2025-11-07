@@ -47,7 +47,6 @@ from .components import _component_factory
 from .embeds import Embed
 from .emoji import AppEmoji, GuildEmoji
 from .enums import ChannelType, MessageReferenceType, MessageType, try_enum
-from .errors import InvalidArgument
 from .file import File
 from .flags import AttachmentFlags, MessageFlags
 from .guild import Guild
@@ -123,7 +122,7 @@ def convert_emoji_reaction(emoji):
         # No existing emojis have <> in them, so this should be okay.
         return emoji.strip("<>")
 
-    raise InvalidArgument(
+    raise TypeError(
         f"emoji argument must be str, GuildEmoji, AppEmoji, or Reaction not {emoji.__class__.__name__}."
     )
 
@@ -1665,7 +1664,7 @@ class Message(Hashable):
         Forbidden
             Tried to suppress a message without permissions or
             edited a message's content or embed that isn't yours.
-        ~discord.InvalidArgument
+        TypeError or ValueError
             You specified both ``embed`` and ``embeds``,
             specified both ``file`` and ``files``, or either``file``
             or ``files`` were of the wrong type.
@@ -1675,7 +1674,7 @@ class Message(Hashable):
         if content is not MISSING:
             payload["content"] = str(content) if content is not None else None
         if embed is not MISSING and embeds is not MISSING:
-            raise InvalidArgument("cannot pass both embed and embeds parameter to edit()")
+            raise ValueError("cannot pass both embed and embeds parameter to edit()")
 
         if embed is not MISSING:
             payload["embeds"] = [] if embed is None else [embed.to_dict()]
@@ -1705,7 +1704,7 @@ class Message(Hashable):
             if view and view.is_components_v2():
                 flags.is_components_v2 = True
         if file is not MISSING and files is not MISSING:
-            raise InvalidArgument("cannot pass both file and files parameter to edit()")
+            raise ValueError("cannot pass both file and files parameter to edit()")
 
         if flags.value != self.flags.value:
             payload["flags"] = flags.value
@@ -1713,13 +1712,13 @@ class Message(Hashable):
         if file is not MISSING or files is not MISSING:
             if file is not MISSING:
                 if not isinstance(file, File):
-                    raise InvalidArgument("file parameter must be of type File")
+                    raise TypeError("file parameter must be of type File")
                 files = [file]
             else:
                 if len(files) > 10:
-                    raise InvalidArgument("files parameter must be a list of up to 10 elements")
+                    raise ValueError("files parameter must be a list of up to 10 elements")
                 elif not all(isinstance(file, File) for file in files):
-                    raise InvalidArgument("files parameter must be a list of File")
+                    raise TypeError("files parameter must be a list of File")
 
             if "attachments" not in payload:
                 # don't want it to remove any attachments when we just add a new file
@@ -1850,7 +1849,7 @@ class Message(Hashable):
             You do not have the proper permissions to react to the message.
         NotFound
             The emoji you specified was not found.
-        InvalidArgument
+        TypeError or ValueError
             The emoji parameter is invalid.
         """
 
@@ -1885,7 +1884,7 @@ class Message(Hashable):
             You do not have the proper permissions to remove the reaction.
         NotFound
             The member or emoji you specified was not found.
-        InvalidArgument
+        TypeError or ValueError
             The emoji parameter is invalid.
         """
 
@@ -1920,7 +1919,7 @@ class Message(Hashable):
             You do not have the proper permissions to clear the reaction.
         NotFound
             The emoji you specified was not found.
-        InvalidArgument
+        TypeError or ValueError
             The emoji parameter is invalid.
         """
 
@@ -1983,11 +1982,11 @@ class Message(Hashable):
             You do not have permissions to create a thread.
         HTTPException
             Creating the thread failed.
-        InvalidArgument
+        TypeError or ValueError
             This message does not have guild info attached.
         """
         if self.guild is None:
-            raise InvalidArgument("This message does not have guild info attached.")
+            raise ValueError("This message does not have guild info attached.")
 
         default_auto_archive_duration: ThreadArchiveDuration = getattr(
             self.channel, "default_auto_archive_duration", 1440
@@ -2023,7 +2022,7 @@ class Message(Hashable):
             Sending the message failed.
         ~discord.Forbidden
             You do not have the proper permissions to send the message.
-        ~discord.InvalidArgument
+        TypeError or ValueError
             The ``files`` list is not of the appropriate size, or
             you specified both ``file`` and ``files``.
         """
@@ -2054,7 +2053,7 @@ class Message(Hashable):
             Sending the message failed.
         ~discord.Forbidden
             You do not have the proper permissions to send the message.
-        ~discord.InvalidArgument
+        TypeError or ValueError
             The ``files`` list is not of the appropriate size, or
             you specified both ``file`` and ``files``.
         """
@@ -2319,7 +2318,7 @@ class PartialMessage(Hashable):
         embeds = fields.pop("embeds", MISSING)
 
         if embed is not MISSING and embeds is not MISSING:
-            raise InvalidArgument("Cannot pass both embed and embeds parameters.")
+            raise ValueError("Cannot pass both embed and embeds parameters.")
 
         if embed is not MISSING:
             fields["embeds"] = [] if embed is None else [embed.to_dict()]

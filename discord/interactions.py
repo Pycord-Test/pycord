@@ -37,7 +37,7 @@ from .enums import (
     InteractionType,
     try_enum,
 )
-from .errors import ClientException, InteractionResponded, InvalidArgument
+from .errors import ClientException, InteractionResponded
 from .file import File, VoiceMessage
 from .flags import MessageFlags
 from .guild import Guild
@@ -1012,19 +1012,19 @@ class InteractionResponse:
         else:
             payload["allowed_mentions"] = allowed_mentions.to_dict()
         if file is not None and files is not None:
-            raise InvalidArgument("cannot pass both file and files parameter to send()")
+            raise ValueError("cannot pass both file and files parameter to send()")
 
         if file is not None:
             if not isinstance(file, File):
-                raise InvalidArgument("file parameter must be File")
+                raise TypeError("file parameter must be File")
             else:
                 files = [file]
 
         if files is not None:
             if len(files) > 10:
-                raise InvalidArgument("files parameter must be a list of up to 10 elements")
+                raise ValueError("files parameter must be a list of up to 10 elements")
             elif not all(isinstance(file, File) for file in files):
-                raise InvalidArgument("files parameter must be a list of File")
+                raise TypeError("files parameter must be a list of File")
 
             if any(isinstance(file, VoiceMessage) for file in files):
                 flags = flags + MessageFlags(is_voice_message=True)
@@ -1157,11 +1157,11 @@ class InteractionResponse:
             payload["components"] = [] if view is None else view.to_components()
 
         if file is not MISSING and files is not MISSING:
-            raise InvalidArgument("cannot pass both file and files parameter to edit_message()")
+            raise ValueError("cannot pass both file and files parameter to edit_message()")
 
         if file is not MISSING:
             if not isinstance(file, File):
-                raise InvalidArgument("file parameter must be a File")
+                raise TypeError("file parameter must be a File")
             else:
                 files = [file]
                 if "attachments" not in payload:
@@ -1170,9 +1170,9 @@ class InteractionResponse:
 
         if files is not MISSING:
             if len(files) > 10:
-                raise InvalidArgument("files parameter must be a list of up to 10 elements")
+                raise ValueError("files parameter must be a list of up to 10 elements")
             elif not all(isinstance(file, File) for file in files):
-                raise InvalidArgument("files parameter must be a list of File")
+                raise TypeError("files parameter must be a list of File")
             if "attachments" not in payload:
                 # we keep previous attachments when adding new files
                 payload["attachments"] = [a.to_dict() for a in msg.attachments]

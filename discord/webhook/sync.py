@@ -46,7 +46,6 @@ from ..errors import (
     DiscordServerError,
     Forbidden,
     HTTPException,
-    InvalidArgument,
     NotFound,
 )
 from ..http import Route
@@ -498,7 +497,7 @@ class SyncWebhookMessage(Message):
             You specified both ``embed`` and ``embeds`` or ``file`` and ``files``
         ValueError
             The length of ``embeds`` was invalid
-        InvalidArgument
+        ValueError
             There was no token associated with this webhook.
         """
         thread = MISSING
@@ -701,7 +700,7 @@ class SyncWebhook(BaseWebhook):
 
         Raises
         ------
-        InvalidArgument
+        ValueError
             The URL is invalid.
         """
         m = re.search(
@@ -709,7 +708,7 @@ class SyncWebhook(BaseWebhook):
             url,
         )
         if m is None:
-            raise InvalidArgument("Invalid webhook URL given.")
+            raise ValueError("Invalid webhook URL given.")
 
         data: dict[str, Any] = m.groupdict()
         data["type"] = 1
@@ -749,7 +748,7 @@ class SyncWebhook(BaseWebhook):
             Could not fetch the webhook
         NotFound
             Could not find the webhook by this ID
-        InvalidArgument
+        ValueError
             This webhook does not have a token associated with it.
         """
         adapter: WebhookAdapter = _get_webhook_adapter()
@@ -759,7 +758,7 @@ class SyncWebhook(BaseWebhook):
         elif self.token:
             data = adapter.fetch_webhook_with_token(self.id, self.token, session=self.session)
         else:
-            raise InvalidArgument("This webhook does not have a token associated with it")
+            raise ValueError("This webhook does not have a token associated with it")
 
         return SyncWebhook(data, self.session, token=self.auth_token, state=self._state)
 
@@ -784,11 +783,11 @@ class SyncWebhook(BaseWebhook):
             This webhook does not exist.
         Forbidden
             You do not have permissions to delete this webhook.
-        InvalidArgument
+        ValueError
             This webhook does not have a token associated with it.
         """
         if self.token is None and self.auth_token is None:
-            raise InvalidArgument("This webhook does not have a token associated with it")
+            raise ValueError("This webhook does not have a token associated with it")
 
         adapter: WebhookAdapter = _get_webhook_adapter()
 
@@ -835,12 +834,12 @@ class SyncWebhook(BaseWebhook):
             Editing the webhook failed.
         NotFound
             This webhook does not exist.
-        InvalidArgument
+        ValueError
             This webhook does not have a token associated with it, or
             it tried editing a channel without authentication.
         """
         if self.token is None and self.auth_token is None:
-            raise InvalidArgument("This webhook does not have a token associated with it")
+            raise ValueError("This webhook does not have a token associated with it")
 
         payload = {}
         if name is not MISSING:
@@ -855,7 +854,7 @@ class SyncWebhook(BaseWebhook):
         # If a channel is given, always use the authenticated endpoint
         if channel is not None:
             if self.auth_token is None:
-                raise InvalidArgument("Editing channel requires authenticated webhook")
+                raise ValueError("Editing channel requires authenticated webhook")
 
             payload["channel_id"] = channel.id
             data = adapter.edit_webhook(
@@ -1020,20 +1019,20 @@ class SyncWebhook(BaseWebhook):
             You specified both ``embed`` and ``embeds`` or ``file`` and ``files``
         ValueError
             The length of ``embeds`` was invalid
-        InvalidArgument
+        ValueError
             There was no token associated with this webhook, or you specified both
             a thread to send to and a thread to create (the ``thread`` and ``thread_name`` parameters).
         """
 
         if self.token is None:
-            raise InvalidArgument("This webhook does not have a token associated with it")
+            raise ValueError("This webhook does not have a token associated with it")
 
         previous_mentions: AllowedMentions | None = getattr(self._state, "allowed_mentions", None)
         if content is None:
             content = MISSING
 
         if thread and thread_name:
-            raise InvalidArgument("You cannot specify both a thread and a thread name")
+            raise ValueError("You cannot specify both a thread and a thread name")
 
         params = handle_message_parameters(
             content=content,
@@ -1092,12 +1091,12 @@ class SyncWebhook(BaseWebhook):
             You do not have the permissions required to get a message.
         ~discord.HTTPException
             Retrieving the message failed.
-        InvalidArgument
+        ValueError
             There was no token associated with this webhook.
         """
 
         if self.token is None:
-            raise InvalidArgument("This webhook does not have a token associated with it")
+            raise ValueError("This webhook does not have a token associated with it")
 
         adapter: WebhookAdapter = _get_webhook_adapter()
         data = adapter.get_webhook_message(
@@ -1165,12 +1164,12 @@ class SyncWebhook(BaseWebhook):
             You specified both ``embed`` and ``embeds`` or ``file`` and ``files``
         ValueError
             The length of ``embeds`` was invalid
-        InvalidArgument
+        ValueError
             There was no token associated with this webhook.
         """
 
         if self.token is None:
-            raise InvalidArgument("This webhook does not have a token associated with it")
+            raise ValueError("This webhook does not have a token associated with it")
 
         previous_mentions: AllowedMentions | None = getattr(self._state, "allowed_mentions", None)
         params = handle_message_parameters(
@@ -1224,7 +1223,7 @@ class SyncWebhook(BaseWebhook):
             Deleted a message that is not yours.
         """
         if self.token is None:
-            raise InvalidArgument("This webhook does not have a token associated with it")
+            raise ValueError("This webhook does not have a token associated with it")
 
         adapter: WebhookAdapter = _get_webhook_adapter()
         adapter.delete_webhook_message(

@@ -149,7 +149,7 @@ class Page:
         **kwargs,
     ):
         if content is None and embeds is None and custom_view is None:
-            raise discord.InvalidArgument("A page must at least have content, embeds, or custom_view set.")
+            raise ValueError("A page must at least have content, embeds, or custom_view set.")
         self._content = content
         self._embeds = embeds or []
         self._custom_view = custom_view

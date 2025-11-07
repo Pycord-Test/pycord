@@ -478,7 +478,7 @@ class ClientUser(BaseUser):
         ------
         HTTPException
             Editing your profile failed.
-        InvalidArgument
+        ValueError
             Wrong image format passed for ``avatar`` or ``banner``.
         """
         payload: dict[str, Any] = {}

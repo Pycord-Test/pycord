@@ -50,7 +50,6 @@ __all__ = (
     "NotFound",
     "DiscordServerError",
     "InvalidData",
-    "InvalidArgument",
     "LoginFailure",
     "ConnectionClosed",
     "PrivilegedIntentsRequired",
@@ -185,16 +184,6 @@ class DiscordServerError(HTTPException):
 class InvalidData(ClientException):
     """Exception that's raised when the library encounters unknown
     or invalid data from Discord.
-    """
-
-
-class InvalidArgument(ClientException):
-    """Exception that's raised when an argument to a function
-    is invalid some way (e.g. wrong value or wrong type).
-
-    This could be considered the parallel of ``ValueError`` and
-    ``TypeError`` except inherited from :exc:`ClientException` and thus
-    :exc:`DiscordException`.
     """
 
 

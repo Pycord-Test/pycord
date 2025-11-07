@@ -55,7 +55,7 @@ from .enums import (
     try_enum,
 )
 from .enums import ThreadArchiveDuration as ThreadArchiveDurationEnum
-from .errors import ClientException, InvalidArgument
+from .errors import ClientException
 from .file import File
 from .flags import ChannelFlags, MessageFlags
 from .invite import Invite
@@ -562,7 +562,7 @@ class _TextChannel(discord.abc.GuildChannel, Hashable):
             raise ClientException("The channel must be a news channel.")
 
         if not isinstance(destination, TextChannel):
-            raise InvalidArgument(f"Expected TextChannel received {destination.__class__.__name__}")
+            raise TypeError(f"Expected TextChannel received {destination.__class__.__name__}")
 
         from .webhook import Webhook  # noqa: PLC0415
 
@@ -827,7 +827,7 @@ class TextChannel(discord.abc.Messageable, _TextChannel):
 
         Raises
         ------
-        InvalidArgument
+        TypeError or ValueError
             If position is less than 0 or greater than the number of channels, or if
             the permission overwrite information is not in proper form.
         Forbidden
@@ -1138,7 +1138,7 @@ class ForumChannel(_TextChannel):
 
         Raises
         ------
-        InvalidArgument
+        TypeError or ValueError
             If position is less than 0 or greater than the number of channels, or if
             the permission overwrite information is not in proper form.
         Forbidden
@@ -1245,14 +1245,14 @@ class ForumChannel(_TextChannel):
         message_content = str(content) if content is not None else None
 
         if embed is not None and embeds is not None:
-            raise InvalidArgument("cannot pass both embed and embeds parameter to create_thread()")
+            raise ValueError("cannot pass both embed and embeds parameter to create_thread()")
 
         if embed is not None:
             embed = embed.to_dict()
 
         elif embeds is not None:
             if len(embeds) > 10:
-                raise InvalidArgument("embeds parameter must be a list of up to 10 elements")
+                raise ValueError("embeds parameter must be a list of up to 10 elements")
             embeds = [embed.to_dict() for embed in embeds]
 
         if stickers is not None:
@@ -1272,7 +1272,7 @@ class ForumChannel(_TextChannel):
 
         if view:
             if not hasattr(view, "__discord_ui_view__"):
-                raise InvalidArgument(f"view parameter must be View not {view.__class__!r}")
+                raise TypeError(f"view parameter must be View not {view.__class__!r}")
 
             components = view.to_components()
             if view.is_components_v2():
@@ -1286,17 +1286,17 @@ class ForumChannel(_TextChannel):
             applied_tags = [str(tag.id) for tag in applied_tags]
 
         if file is not None and files is not None:
-            raise InvalidArgument("cannot pass both file and files parameter to send()")
+            raise ValueError("cannot pass both file and files parameter to send()")
 
         if files is not None:
             if len(files) > 10:
-                raise InvalidArgument("files parameter must be a list of up to 10 elements")
+                raise ValueError("files parameter must be a list of up to 10 elements")
             elif not all(isinstance(file, File) for file in files):
-                raise InvalidArgument("files parameter must be a list of File")
+                raise TypeError("files parameter must be a list of File")
 
         if file is not None:
             if not isinstance(file, File):
-                raise InvalidArgument("file parameter must be File")
+                raise TypeError("file parameter must be File")
             files = [file]
 
         try:
@@ -1499,7 +1499,7 @@ class MediaChannel(ForumChannel):
 
         Raises
         ------
-        InvalidArgument
+        TypeError or ValueError
             If position is less than 0 or greater than the number of channels, or if
             the permission overwrite information is not in proper form.
         Forbidden
@@ -2074,7 +2074,7 @@ class VoiceChannel(discord.abc.Messageable, VocalGuildChannel):
 
         Raises
         ------
-        InvalidArgument
+        TypeError or ValueError
             If the permission overwrite information is not in proper form.
         Forbidden
             You do not have permissions to edit the channel.
@@ -2606,7 +2606,7 @@ class StageChannel(discord.abc.Messageable, VocalGuildChannel):
 
         Raises
         ------
-        InvalidArgument
+        TypeError or ValueError
             If the ``privacy_level`` parameter is not the proper type.
         Forbidden
             You do not have permissions to create a stage instance.
@@ -2622,7 +2622,7 @@ class StageChannel(discord.abc.Messageable, VocalGuildChannel):
 
         if privacy_level is not MISSING:
             if not isinstance(privacy_level, StagePrivacyLevel):
-                raise InvalidArgument("privacy_level field must be of type PrivacyLevel")
+                raise TypeError("privacy_level field must be of type PrivacyLevel")
 
             payload["privacy_level"] = privacy_level.value
 
@@ -2725,7 +2725,7 @@ class StageChannel(discord.abc.Messageable, VocalGuildChannel):
 
         Raises
         ------
-        InvalidArgument
+        TypeError or ValueError
             If the permission overwrite information is not in proper form.
         Forbidden
             You do not have permissions to edit the channel.
@@ -2870,7 +2870,7 @@ class CategoryChannel(discord.abc.GuildChannel, Hashable):
 
         Raises
         ------
-        InvalidArgument
+        TypeError or ValueError
             If position is less than 0 or greater than the number of categories.
         Forbidden
             You do not have permissions to edit the category.

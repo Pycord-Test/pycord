@@ -30,7 +30,6 @@ from typing import TYPE_CHECKING, Any, TypedDict, TypeVar
 
 from . import utils
 from .asset import Asset, AssetMixin
-from .errors import InvalidArgument
 from .utils.private import get_as_snowflake
 
 __all__ = ("PartialEmoji",)
@@ -245,6 +244,6 @@ class PartialEmoji(_EmojiTag, AssetMixin):
 
     async def read(self) -> bytes:
         if self.is_unicode_emoji():
-            raise InvalidArgument("PartialEmoji is not a custom emoji")
+            raise ValueError("PartialEmoji is not a custom emoji")
 
         return await super().read()

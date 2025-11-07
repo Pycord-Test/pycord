@@ -1454,7 +1454,7 @@ class Client:
 
         Raises
         ------
-        :exc:`InvalidArgument`
+        TypeError or ValueError
             If the ``activity`` parameter is not the proper type.
 
         Example
@@ -1659,7 +1659,7 @@ class Client:
         ------
         :exc:`HTTPException`
             Guild creation failed.
-        :exc:`InvalidArgument`
+        TypeError or ValueError
             Invalid icon image format given. Must be PNG or JPG.
         """
         if icon is not MISSING:

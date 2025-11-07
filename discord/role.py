@@ -32,7 +32,6 @@ from typing_extensions import Self
 
 from .asset import Asset
 from .colour import Colour
-from .errors import InvalidArgument
 from .flags import RoleFlags
 from .mixins import Hashable
 from .permissions import Permissions
@@ -513,10 +512,10 @@ class Role(Hashable):
 
     async def _move(self, position: int, reason: str | None) -> None:
         if position <= 0:
-            raise InvalidArgument("Cannot move role to position 0 or below")
+            raise ValueError("Cannot move role to position 0 or below")
 
         if self.is_default():
-            raise InvalidArgument("Cannot move default role")
+            raise ValueError("Cannot move default role")
 
         if self.position == position:
             return  # Save discord the extra request.
@@ -606,7 +605,7 @@ class Role(Hashable):
             You do not have permissions to change the role.
         HTTPException
             Editing the role failed.
-        InvalidArgument
+        ValueError
             An invalid position was given or the default
             role was asked to be moved.
         """
@@ -629,7 +628,7 @@ class Role(Hashable):
             colours = RoleColours.holographic()
         if colours is not MISSING:
             if not isinstance(colours, RoleColours):
-                raise InvalidArgument("colours must be a RoleColours object")
+                raise TypeError("colours must be a RoleColours object")
             if "ENHANCED_ROLE_COLORS" not in self.guild.features:
                 colours.secondary = None
                 colours.tertiary = None

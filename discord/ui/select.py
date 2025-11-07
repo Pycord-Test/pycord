@@ -35,7 +35,6 @@ from ..channel import _threaded_guild_channel_factory
 from ..components import SelectMenu, SelectOption
 from ..emoji import AppEmoji, GuildEmoji
 from ..enums import ChannelType, ComponentType
-from ..errors import InvalidArgument
 from ..interactions import Interaction
 from ..member import Member
 from ..partial_emoji import PartialEmoji
@@ -145,9 +144,9 @@ class Select(Item[V]):
         id: int | None = None,
     ) -> None:
         if options and select_type is not ComponentType.string_select:
-            raise InvalidArgument("options parameter is only valid for string selects")
+            raise ValueError("options parameter is only valid for string selects")
         if channel_types and select_type is not ComponentType.channel_select:
-            raise InvalidArgument("channel_types parameter is only valid for channel selects")
+            raise ValueError("channel_types parameter is only valid for channel selects")
         super().__init__()
         self._selected_values: list[str] = []
         self._interaction: Interaction | None = None
@@ -242,7 +241,7 @@ class Select(Item[V]):
     @channel_types.setter
     def channel_types(self, value: list[ChannelType]):
         if self._underlying.type is not ComponentType.channel_select:
-            raise InvalidArgument("channel_types can only be set on channel selects")
+            raise ValueError("channel_types can only be set on channel selects")
         self._underlying.channel_types = value
 
     @property
@@ -253,7 +252,7 @@ class Select(Item[V]):
     @options.setter
     def options(self, value: list[SelectOption]):
         if self._underlying.type is not ComponentType.string_select:
-            raise InvalidArgument("options can only be set on string selects")
+            raise ValueError("options can only be set on string selects")
         if not isinstance(value, list):
             raise TypeError("options must be a list of SelectOption")
         if not all(isinstance(obj, SelectOption) for obj in value):

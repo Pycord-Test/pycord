@@ -44,7 +44,6 @@ from ..errors import (
     DiscordServerError,
     Forbidden,
     HTTPException,
-    InvalidArgument,
     NotFound,
 )
 from ..file import VoiceMessage
@@ -641,7 +640,7 @@ def handle_message_parameters(
     payload = {}
     if embeds is not MISSING:
         if len(embeds) > 10:
-            raise InvalidArgument("embeds has a maximum of 10 elements.")
+            raise ValueError("embeds has a maximum of 10 elements.")
         payload["embeds"] = [e.to_dict() for e in embeds]
 
     if embed is not MISSING:
@@ -931,7 +930,7 @@ class WebhookMessage(Message):
             You specified both ``embed`` and ``embeds`` or ``file`` and ``files``
         ValueError
             The length of ``embeds`` was invalid
-        InvalidArgument
+        ValueError
             There was no token associated with this webhook.
         """
         thread = MISSING
@@ -1289,7 +1288,7 @@ class Webhook(BaseWebhook):
 
         Raises
         ------
-        InvalidArgument
+        ValueError
             The URL is invalid.
         """
         m = re.search(
@@ -1297,7 +1296,7 @@ class Webhook(BaseWebhook):
             url,
         )
         if m is None:
-            raise InvalidArgument("Invalid webhook URL given.")
+            raise ValueError("Invalid webhook URL given.")
 
         data: dict[str, Any] = m.groupdict()
         data["type"] = 1
@@ -1382,7 +1381,7 @@ class Webhook(BaseWebhook):
             Could not fetch the webhook
         NotFound
             Could not find the webhook by this ID
-        InvalidArgument
+        ValueError
             This webhook does not have a token associated with it.
         """
         adapter = async_context.get()
@@ -1404,7 +1403,7 @@ class Webhook(BaseWebhook):
                 proxy_auth=self.proxy_auth,
             )
         else:
-            raise InvalidArgument("This webhook does not have a token associated with it")
+            raise ValueError("This webhook does not have a token associated with it")
 
         return Webhook(
             data,
@@ -1440,11 +1439,11 @@ class Webhook(BaseWebhook):
             This webhook does not exist.
         Forbidden
             You do not have permissions to delete this webhook.
-        InvalidArgument
+        ValueError
             This webhook does not have a token associated with it.
         """
         if self.token is None and self.auth_token is None:
-            raise InvalidArgument("This webhook does not have a token associated with it")
+            raise ValueError("This webhook does not have a token associated with it")
 
         adapter = async_context.get()
 
@@ -1506,12 +1505,12 @@ class Webhook(BaseWebhook):
             Editing the webhook failed.
         NotFound
             This webhook does not exist.
-        InvalidArgument
+        ValueError
             This webhook does not have a token associated with it, or
             it tried editing a channel without authentication.
         """
         if self.token is None and self.auth_token is None:
-            raise InvalidArgument("This webhook does not have a token associated with it")
+            raise ValueError("This webhook does not have a token associated with it")
 
         payload = {}
         if name is not MISSING:
@@ -1526,7 +1525,7 @@ class Webhook(BaseWebhook):
         # If a channel is given, always use the authenticated endpoint
         if channel is not None:
             if self.auth_token is None:
-                raise InvalidArgument("Editing channel requires authenticated webhook")
+                raise ValueError("Editing channel requires authenticated webhook")
 
             payload["channel_id"] = channel.id
             data = await adapter.edit_webhook(
@@ -1743,7 +1742,7 @@ class Webhook(BaseWebhook):
             You specified both ``embed`` and ``embeds`` or ``file`` and ``files``.
         ValueError
             The length of ``embeds`` was invalid.
-        InvalidArgument
+        TypeError or ValueError
             Either there was no token associated with this webhook, ``ephemeral`` was passed
             with the improper webhook type, there was no state attached with this webhook when
             giving it a dispatchable view, you specified both ``thread_name`` and ``thread``,
@@ -1751,21 +1750,21 @@ class Webhook(BaseWebhook):
         """
 
         if self.token is None:
-            raise InvalidArgument("This webhook does not have a token associated with it")
+            raise ValueError("This webhook does not have a token associated with it")
 
         previous_mentions: AllowedMentions | None = getattr(self._state, "allowed_mentions", None)
         if content is None:
             content = MISSING
 
         if thread and thread_name:
-            raise InvalidArgument("You cannot specify both a thread and thread_name")
+            raise ValueError("You cannot specify both a thread and thread_name")
 
         if applied_tags and not (thread or thread_name):
-            raise InvalidArgument("You cannot specify applied_tags without a thread")
+            raise ValueError("You cannot specify applied_tags without a thread")
 
         application_webhook = self.type is WebhookType.application
         if ephemeral and not application_webhook:
-            raise InvalidArgument("ephemeral messages can only be sent from application webhooks")
+            raise ValueError("ephemeral messages can only be sent from application webhooks")
 
         if application_webhook:
             wait = True
@@ -1774,7 +1773,7 @@ class Webhook(BaseWebhook):
 
         if view is not MISSING:
             if isinstance(self._state, _WebhookState) and view and view.is_dispatchable():
-                raise InvalidArgument("Dispatchable Webhook views require an associated state with the webhook")
+                raise ValueError("Dispatchable Webhook views require an associated state with the webhook")
             if ephemeral is True and view.timeout is None:
                 view.timeout = 15 * 60.0
             if not application_webhook:
@@ -1868,12 +1867,12 @@ class Webhook(BaseWebhook):
             You do not have the permissions required to get a message.
         ~discord.HTTPException
             Retrieving the message failed.
-        InvalidArgument
+        TypeError or ValueError
             There was no token associated with this webhook.
         """
 
         if self.token is None:
-            raise InvalidArgument("This webhook does not have a token associated with it")
+            raise ValueError("This webhook does not have a token associated with it")
 
         adapter = async_context.get()
         data = await adapter.get_webhook_message(
@@ -1970,19 +1969,19 @@ class Webhook(BaseWebhook):
             You specified both ``embed`` and ``embeds`` or ``file`` and ``files``
         ValueError
             The length of ``embeds`` was invalid
-        InvalidArgument
+        TypeError or ValueError
             There was no token associated with this webhook or the webhook had
             no state.
         """
 
         if self.token is None:
-            raise InvalidArgument("This webhook does not have a token associated with it")
+            raise ValueError("This webhook does not have a token associated with it")
 
         with_components = False
 
         if view is not MISSING:
             if isinstance(self._state, _WebhookState) and view and view.is_dispatchable():
-                raise InvalidArgument("Dispatchable Webhook views require an associated state with the webhook")
+                raise ValueError("Dispatchable Webhook views require an associated state with the webhook")
 
             self._state.prevent_view_updates_for(message_id)
             if self.type is not WebhookType.application:
@@ -2054,7 +2053,7 @@ class Webhook(BaseWebhook):
             Deleted a message that is not yours.
         """
         if self.token is None:
-            raise InvalidArgument("This webhook does not have a token associated with it")
+            raise ValueError("This webhook does not have a token associated with it")
 
         adapter = async_context.get()
         await adapter.delete_webhook_message(
