@@ -515,7 +515,7 @@ class AutoShardedClient(Client):
 
         Raises
         ------
-        TypeError or ValueError
+        TypeError
             If the ``activity`` parameter is not of proper type.
         """
 

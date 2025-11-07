@@ -143,7 +143,7 @@ class StageInstance(Hashable):
 
         Raises
         ------
-        TypeError or ValueError
+        TypeError
             If the ``privacy_level`` parameter is not the proper type.
         Forbidden
             You do not have permissions to edit the stage instance.

@@ -204,7 +204,7 @@ class Reaction:
             You do not have the proper permissions to clear the reaction.
         NotFound
             The emoji you specified was not found.
-        TypeError or ValueError
+        TypeError
             The emoji parameter is invalid.
         """
         await self.message.clear_reaction(self.emoji)

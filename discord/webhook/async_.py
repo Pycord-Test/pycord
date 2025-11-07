@@ -1741,12 +1741,11 @@ class Webhook(BaseWebhook):
         TypeError
             You specified both ``embed`` and ``embeds`` or ``file`` and ``files``.
         ValueError
-            The length of ``embeds`` was invalid.
-        TypeError or ValueError
-            Either there was no token associated with this webhook, ``ephemeral`` was passed
-            with the improper webhook type, there was no state attached with this webhook when
-            giving it a dispatchable view, you specified both ``thread_name`` and ``thread``,
-            or ``applied_tags`` was passed with neither ``thread_name`` nor ``thread`` specified.
+            The length of ``embeds`` was invalid, there was no token associated with this webhook,
+            ``ephemeral`` was passed with the improper webhook type, there was no state attached
+            with this webhook when giving it a dispatchable view, you specified both ``thread_name``
+            and ``thread``, or ``applied_tags`` was passed with neither ``thread_name`` nor ``thread``
+            specified.
         """
 
         if self.token is None:

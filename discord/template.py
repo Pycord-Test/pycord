@@ -192,7 +192,7 @@ class Template:
         ------
         HTTPException
             Guild creation failed.
-        TypeError or ValueError
+        ValueError
             Invalid icon image format given. Must be PNG or JPG.
         """
         if icon is not None:
