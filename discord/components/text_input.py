@@ -136,7 +136,7 @@ class TextInput(Component[TextInputComponentPayload], ModalComponentMixin[TextIn
         return cls(
             style=style,
             custom_id=custom_id,
-            min_lenght=min_length,
+            min_length=min_length,
             max_length=max_length,
             placeholder=placeholder,
             required=required,
