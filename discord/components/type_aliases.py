@@ -5,12 +5,14 @@ from .button import Button
 from .channel_select_menu import ChannelSelect
 from .container import Container
 from .file_component import FileComponent
+from .file_upload import FileUpload
 from .label import Label
 from .media_gallery import MediaGallery
 from .mentionable_select_menu import MentionableSelect
 from .partial_components import (
     PartialButton,
     PartialChannelSelect,
+    PartialFileUpload,
     PartialLabel,
     PartialMentionableSelect,
     PartialRoleSelect,
@@ -47,6 +49,7 @@ AnyComponent: TypeAlias = (
     | Separator
     | Container
     | Label
+    | FileUpload
     | UnknownComponent
 )
 
@@ -65,6 +68,7 @@ AnyPartialComponent: TypeAlias = (
     | PartialRoleSelect
     | PartialMentionableSelect
     | PartialChannelSelect
+    | PartialFileUpload
     | UnknownPartialComponent
     | PartialButton
 )
