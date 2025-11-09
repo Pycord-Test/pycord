@@ -37,7 +37,7 @@ from discord.guild import Guild
 from discord.http import HTTPClient
 from discord.member import Member
 from discord.soundboard import SoundboardSound
-from discord.threads import Thread
+from discord.channel.thread import Thread
 from discord.user import ClientUser, User
 
 

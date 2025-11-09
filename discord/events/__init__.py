@@ -94,7 +94,7 @@ from .thread import (
     ThreadUpdate,
 )
 from .typing import TypingStart
-from .voice import VoiceChannelStatusUpdate, VoiceServerUpdate, VoiceStateUpdate
+from .voice import VoiceChannelEffectSend, VoiceChannelStatusUpdate, VoiceServerUpdate, VoiceStateUpdate
 from .webhook import WebhooksUpdate
 
 __all__ = (
@@ -201,6 +201,7 @@ __all__ = (
     # Typing
     "TypingStart",
     # Voice
+    "VoiceChannelEffectSend",
     "VoiceChannelStatusUpdate",
     "VoiceServerUpdate",
     "VoiceStateUpdate",
@@ -310,6 +311,7 @@ ALL_EVENTS: list[type[Event]] = [
     # Typing
     TypingStart,
     # Voice
+    VoiceChannelEffectSend,
     VoiceChannelStatusUpdate,
     VoiceServerUpdate,
     VoiceStateUpdate,

@@ -32,7 +32,7 @@ from discord.abc import Snowflake
 from discord.app.event_emitter import Event
 from discord.app.state import ConnectionState
 from discord.raw_models import RawThreadDeleteEvent, RawThreadMembersUpdateEvent, RawThreadUpdateEvent
-from discord.threads import Thread, ThreadMember
+from discord.channel.thread import Thread, ThreadMember
 from discord.types.raw_models import ThreadDeleteEvent, ThreadUpdateEvent
 from discord.types.threads import ThreadMember as ThreadMemberPayload
 
@@ -110,7 +110,7 @@ class ThreadCreate(Event, Thread):
         cached_thread = guild.get_thread(int(data["id"]))
         self = cls()
         if not cached_thread:
-            thread = Thread(guild=guild, state=guild._state, data=data)  # type: ignore
+            thread = await Thread._from_data(guild=guild, state=guild._state, data=data)  # type: ignore
             guild._add_thread(thread)
             if data.get("newly_created"):
                 thread._add_member(

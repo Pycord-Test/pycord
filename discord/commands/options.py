@@ -33,20 +33,26 @@ from enum import Enum
 from typing import (
     TYPE_CHECKING,
     Any,
+    Generic,
     Literal,
     Optional,
+    Sequence,
     Type,
-    TypeVar,
     Union,
     get_args,
+    overload,
 )
+
+from typing_extensions import TypeVar
+
+from discord.channel.base import BaseChannel, GuildChannel
 
 if sys.version_info >= (3, 12):
     from typing import TypeAliasType
 else:
     from typing_extensions import TypeAliasType
 
-from ..abc import GuildChannel, Mentionable
+from ..abc import Mentionable
 from ..channel import (
     CategoryChannel,
     DMChannel,
@@ -71,36 +77,26 @@ if TYPE_CHECKING:
     from ..user import User
 
     InputType = (
-        Type[str]
-        | Type[bool]
-        | Type[int]
-        | Type[float]
-        | Type[GuildChannel]
-        | Type[Thread]
-        | Type[Member]
-        | Type[User]
-        | Type[Attachment]
-        | Type[Role]
-        | Type[Mentionable]
+        type[
+            str | bool | int | float | GuildChannel | Thread | Member | User | Attachment | Role | Mentionable
+            #            | Converter
+        ]
         | SlashCommandOptionType
-        | Converter
-        | Type[Converter]
-        | Type[Enum]
-        | Type[DiscordEnum]
+        #        | Converter
     )
 
     AutocompleteReturnType = Iterable["OptionChoice"] | Iterable[str] | Iterable[int] | Iterable[float]
-    T = TypeVar("T", bound=AutocompleteReturnType)
-    MaybeAwaitable = T | Awaitable[T]
+    AR_T = TypeVar("AR_T =", bound=AutocompleteReturnType)
+    MaybeAwaitable = AR_T | Awaitable[AR_T]
     AutocompleteFunction = (
         Callable[[AutocompleteContext], MaybeAwaitable[AutocompleteReturnType]]
         | Callable[[Cog, AutocompleteContext], MaybeAwaitable[AutocompleteReturnType]]
         | Callable[
-            [AutocompleteContext, Any],  # pyright: ignore [reportExplicitAny]
+            [AutocompleteContext, Any],
             MaybeAwaitable[AutocompleteReturnType],
         ]
         | Callable[
-            [Cog, AutocompleteContext, Any],  # pyright: ignore [reportExplicitAny]
+            [Cog, AutocompleteContext, Any],
             MaybeAwaitable[AutocompleteReturnType],
         ]
     )
@@ -110,7 +106,6 @@ __all__ = (
     "ThreadOption",
     "Option",
     "OptionChoice",
-    "option",
 )
 
 CHANNEL_TYPE_MAP = {
@@ -147,7 +142,10 @@ class ThreadOption:
         self._type = type_map[thread_type]
 
 
-class Option:
+T = TypeVar("T", bound="str | int | float", default="str")
+
+
+class Option(Generic[T]):
     """Represents a selectable option for a slash command.
 
     Attributes
@@ -211,77 +209,78 @@ class Option:
     .. versionadded:: 2.0
     """
 
-    input_type: SlashCommandOptionType
-    converter: Converter | type[Converter] | None = None
+    @overload
+    def __init__(
+        self,
+        name: str,
+        input_type: type[T] = str,
+        *,
+        choices: OptionChoice[T],
+        description: str | None = None,
+        channel_types: None = None,
+    ) -> None: ...
 
-    def __init__(self, input_type: InputType = str, /, description: str | None = None, **kwargs) -> None:
-        self.name: str | None = kwargs.pop("name", None)
-        if self.name is not None:
-            self.name = str(self.name)
-        self._parameter_name = self.name  # default
-        input_type = self._parse_type_alias(input_type)
-        input_type = self._strip_none_type(input_type)
-        self._raw_type: InputType | tuple = input_type
+    @overload
+    def __init__(
+        self,
+        name: str,
+        input_type: Literal[SlashCommandOptionType.channel] = SlashCommandOptionType.channel,
+        *,
+        choices: None = None,
+        description: str | None = None,
+        channel_types: Sequence[ChannelType] | None = None,
+    ) -> None: ...
 
-        enum_choices = []
-        input_type_is_class = isinstance(input_type, type)
-        if input_type_is_class and issubclass(input_type, (Enum, DiscordEnum)):
-            if description is None and input_type.__doc__ is not None:
-                description = inspect.cleandoc(input_type.__doc__)
-                if description and len(description) > 100:
-                    description = description[:97] + "..."
-                    _log.warning(
-                        "Option %s's description was truncated due to Enum %s's docstring exceeding 100 characters.",
-                        self.name,
-                        input_type,
-                    )
-            enum_choices = [OptionChoice(e.name, e.value) for e in input_type]
-            value_class = enum_choices[0].value.__class__
-            if value_class in SlashCommandOptionType.__members__ and all(
-                isinstance(elem.value, value_class) for elem in enum_choices
-            ):
-                input_type = SlashCommandOptionType.from_datatype(enum_choices[0].value.__class__)
-            else:
-                enum_choices = [OptionChoice(e.name, str(e.value)) for e in input_type]
-                input_type = SlashCommandOptionType.string
+    def __init__(
+        self,
+        name: str,
+        input_type: InputType | type[T] = str,
+        *,
+        description: str | None = None,
+        choices: Sequence[OptionChoice[T]] | None = None,
+        channel_types: Sequence[ChannelType] | None = None,
+    ) -> None:
+        self.name: str = name
 
-        self.description = description or "No description provided"
-        self.channel_types: list[ChannelType] = kwargs.pop("channel_types", [])
+        self.description: str | None = description
 
-        if self.channel_types:
-            self.input_type = SlashCommandOptionType.channel
-        elif isinstance(input_type, SlashCommandOptionType):
+        self.choices: list[OptionChoice[T]] | None = choices
+        if self.choices is not None:
+            if len(self.choices) > 25:
+                raise InvalidArgument("Option choices cannot exceed 25 items.")
+            if not issubclass(input_type, (str, int, float)):
+                raise InvalidArgument("Option choices can only be used with str, int, or float input types.")
+
+        self.channel_types: list[ChannelType] | None = list(channel_types) if channel_types is not None else None
+
+        self.input_type: SlashCommandOptionType
+
+        if isinstance(input_type, SlashCommandOptionType):
             self.input_type = input_type
-        else:
-            from ..ext.commands import Converter  # noqa: PLC0415
+        elif issubclass(input_type, str):
+            self.input_type = SlashCommandOptionType.string
+        elif issubclass(input_type, bool):
+            self.input_type = SlashCommandOptionType.boolean
+        elif issubclass(input_type, int):
+            self.input_type = SlashCommandOptionType.integer
+        elif issubclass(input_type, float):
+            self.input_type = SlashCommandOptionType.number
+        elif issubclass(input_type, Attachment):
+            self.input_type = SlashCommandOptionType.attachment
+        elif issubclass(input_type, User):
+            self.input_type = SlashCommandOptionType.user
+        elif issubclass(input_type, Mentionable):
+            self.input_type = SlashCommandOptionType.mentionable
+        elif issubclass(input_type, Role):
+            self.input_type = SlashCommandOptionType.role
+        elif issubclass(input_type, BaseChannel):
+            self.input_type = SlashCommandOptionType.channel
 
-            if isinstance(input_type, tuple) and any(issubclass(op, ApplicationContext) for op in input_type):
-                input_type = next(op for op in input_type if issubclass(op, ApplicationContext))
+        if self.channel_types is not None:
+            self.input_type = SlashCommandOptionType.channel
+            if len(self.channel_types) == 0:
+                raise InvalidArgument("channel_types must contain at least one ChannelType.")
 
-            if isinstance(input_type, Converter) or input_type_is_class and issubclass(input_type, Converter):
-                self.converter = input_type
-                self._raw_type = str
-                self.input_type = SlashCommandOptionType.string
-            else:
-                try:
-                    self.input_type = SlashCommandOptionType.from_datatype(input_type)
-                except TypeError as exc:
-                    from ..ext.commands.converter import CONVERTER_MAPPING  # noqa: PLC0415
-
-                    if input_type not in CONVERTER_MAPPING:
-                        raise exc
-                    self.converter = CONVERTER_MAPPING[input_type]
-                    self._raw_type = str
-                    self.input_type = SlashCommandOptionType.string
-                else:
-                    if self.input_type == SlashCommandOptionType.channel:
-                        if not isinstance(self._raw_type, tuple):
-                            if hasattr(input_type, "__args__"):
-                                self._raw_type = input_type.__args__  # type: ignore # Union.__args__
-                            else:
-                                self._raw_type = (input_type,)
-                        if not self.channel_types:
-                            self.channel_types = [CHANNEL_TYPE_MAP[t] for t in self._raw_type if t is not GuildChannel]
         self.required: bool = kwargs.pop("required", True) if "default" not in kwargs else False
         self.default = kwargs.pop("default", None)
 
@@ -456,7 +455,7 @@ class Option:
             )
 
 
-class OptionChoice:
+class OptionChoice(Generic[T]):
     """
     Represents a name:value pairing for a selected :class:`.Option`.
 
@@ -466,9 +465,9 @@ class OptionChoice:
     ----------
     name: :class:`str`
         The name of the choice. Shown in the UI when selecting an option.
-    value: Optional[Union[:class:`str`, :class:`int`, :class:`float`]]
+    value: :class:`str` | :class:`int` | :class:`float`
         The value of the choice. If not provided, will use the value of ``name``.
-    name_localizations: Dict[:class:`str`, :class:`str`]
+    name_localizations: dict[:class:`str`, :class:`str`]
         The name localizations for this choice. The values of this should be ``"locale": "name"``.
         See `here <https://discord.com/developers/docs/reference#locales>`_ for a list of valid locales.
     """
@@ -476,37 +475,16 @@ class OptionChoice:
     def __init__(
         self,
         name: str,
-        value: str | int | float | None = None,
-        name_localizations: dict[str, str] | Undefined = MISSING,
+        value: T | None = None,
+        name_localizations: dict[str, str] | None = None,
     ):
-        self.name = str(name)
-        self.value = value if value is not None else name
-        self.name_localizations = name_localizations
+        self.name: str = str(name)
+        self.value: T = value if value is not None else name  # pyright: ignore [reportAttributeAccessIssue]
+        self.name_localizations: dict[str, str] | None = name_localizations
 
-    def to_dict(self) -> dict[str, str | int | float]:
-        as_dict = {"name": self.name, "value": self.value}
-        if self.name_localizations is not MISSING:
+    def to_dict(self) -> dict[str, Any]:
+        as_dict: dict[str, Any] = {"name": self.name, "value": self.value}
+        if self.name_localizations is not None:
             as_dict["name_localizations"] = self.name_localizations
 
         return as_dict
-
-
-def option(name, input_type=None, **kwargs):
-    """A decorator that can be used instead of typehinting :class:`.Option`.
-
-    .. versionadded:: 2.0
-
-    Attributes
-    ----------
-    parameter_name: :class:`str`
-        The name of the target function parameter this option is mapped to.
-        This allows you to have a separate UI ``name`` and parameter name.
-    """
-
-    def decorator(func):
-        resolved_name = kwargs.pop("parameter_name", None) or name
-        itype = kwargs.pop("type", None) or input_type or func.__annotations__.get(resolved_name, str)
-        func.__annotations__[resolved_name] = Option(itype, name=name, **kwargs)
-        return func
-
-    return decorator

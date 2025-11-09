@@ -67,7 +67,7 @@ from ..poll import Poll, PollAnswerCount
 from ..raw_models import *
 from ..role import Role
 from ..sticker import GuildSticker
-from ..threads import Thread, ThreadMember
+from ..channel.thread import Thread, ThreadMember
 from ..ui.modal import Modal
 from ..ui.view import View
 from ..user import ClientUser, User

@@ -24,19 +24,49 @@ DEALINGS IN THE SOFTWARE.
 
 from copy import copy
 from datetime import datetime
+from functools import lru_cache
 from typing import Any, TypeVar, cast
 
 from typing_extensions import Self, override
 
-from discord.abc import GuildChannel, PrivateChannel
+from discord.abc import PrivateChannel
 from discord.app.event_emitter import Event
 from discord.app.state import ConnectionState
-from discord.channel import GroupChannel, _channel_factory
+from discord.channel import GroupChannel, GuildChannel, _channel_factory
 from discord.enums import ChannelType, try_enum
-from discord.threads import Thread
+from discord.channel.thread import Thread
 from discord.utils.private import get_as_snowflake, parse_time
 
 T = TypeVar("T")
+
+
+@lru_cache(maxsize=128)
+def _create_event_channel_class(event_cls: type[Event], channel_cls: type[GuildChannel]) -> type[GuildChannel]:
+    """
+    Dynamically create a class that inherits from both an Event and a Channel type.
+
+    This allows the event to have the correct channel type while also being an Event.
+    Results are cached to avoid recreating the same class multiple times.
+
+    Parameters
+    ----------
+    event_cls: type[Event]
+        The event class (e.g., ChannelCreate)
+    channel_cls: type[GuildChannel]
+        The channel class (e.g., TextChannel, VoiceChannel)
+
+    Returns
+    -------
+    type[GuildChannel]
+        A new class that inherits from both the event and channel
+    """
+    class EventChannel(event_cls, channel_cls):  # type: ignore
+        __slots__ = ()
+
+    EventChannel.__name__ = f"{event_cls.__name__}_{channel_cls.__name__}"
+    EventChannel.__qualname__ = f"{event_cls.__qualname__}_{channel_cls.__name__}"
+
+    return EventChannel  # type: ignore
 
 
 class ChannelCreate(Event, GuildChannel):
@@ -56,11 +86,17 @@ class ChannelCreate(Event, GuildChannel):
         if guild is None:
             return
         # the factory can't be a DMChannel or GroupChannel here
+        # Create the real channel object to be stored in the guild
         channel = await factory._from_data(guild=guild, state=state, data=data)  # type: ignore
         guild._add_channel(channel)  # type: ignore
-        self = cls()
+
+        # Create a dynamic event class that combines this event type with the specific channel type
+        event_channel_cls = _create_event_channel_class(cls, factory)  # type: ignore
+        # Instantiate it using the event's stub __init__ (no arguments)
+        self = event_channel_cls()  # type: ignore
+        # Populate the event instance with data from the real channel
         self._populate_from_slots(channel)
-        return self
+        return self  # type: ignore
 
 
 class PrivateChannelUpdate(Event, PrivateChannel):
@@ -89,10 +125,15 @@ class GuildChannelUpdate(Event, PrivateChannel):
     @classmethod
     @override
     async def __load__(cls, data: tuple[GuildChannel | None, GuildChannel], state: ConnectionState) -> Self | None:
-        self = cls()
+        channel = data[1]
+        # Create a dynamic event class that combines this event type with the specific channel type
+        event_channel_cls = _create_event_channel_class(cls, type(channel))  # type: ignore
+        # Instantiate it using the event's stub __init__ (no arguments)
+        self = event_channel_cls()  # type: ignore
+        # Set the old channel and populate from the new channel
         self.old = data[0]
-        self._populate_from_slots(data[1])
-        return self
+        self._populate_from_slots(channel)
+        return self  # type: ignore
 
 
 class ChannelUpdate(Event, GuildChannel):
@@ -137,9 +178,13 @@ class ChannelDelete(Event, GuildChannel):
             channel = guild.get_channel(channel_id)
             if channel is not None:
                 guild._remove_channel(channel)
-                self = cls()
+                # Create a dynamic event class that combines this event type with the specific channel type
+                event_channel_cls = _create_event_channel_class(cls, type(channel))  # type: ignore
+                # Instantiate it using the event's stub __init__ (no arguments)
+                self = event_channel_cls()  # type: ignore
+                # Populate the event instance with data from the real channel
                 self._populate_from_slots(channel)
-                return self
+                return self  # type: ignore
 
 
 class ChannelPinsUpdate(Event):

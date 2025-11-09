@@ -1,7 +1,43 @@
 from ..enums import ChannelType, try_enum
-from ..threads import Thread
-from .channel import *
-from .dm import DMChannel, GroupDMChannel
+from .base import (
+    BaseChannel,
+    GuildChannel,
+    GuildMessageableChannel,
+    GuildPostableChannel,
+    GuildThreadableChannel,
+    GuildTopLevelChannel,
+)
+from .category import CategoryChannel
+from .dm import DMChannel
+from .dm import GroupDMChannel as GroupChannel
+from .forum import ForumChannel
+from .media import MediaChannel
+from .news import NewsChannel
+from .partial import PartialMessageable
+from .stage import StageChannel
+from .text import TextChannel
+from .thread import Thread
+from .voice import VoiceChannel
+
+__all__ = (
+    "BaseChannel",
+    "CategoryChannel",
+    "DMChannel",
+    "ForumChannel",
+    "GroupChannel",
+    "GuildChannel",
+    "GuildMessageableChannel",
+    "GuildPostableChannel",
+    "GuildThreadableChannel",
+    "GuildTopLevelChannel",
+    "MediaChannel",
+    "NewsChannel",
+    "PartialMessageable",
+    "StageChannel",
+    "TextChannel",
+    "Thread",
+    "VoiceChannel",
+)
 
 
 def _guild_channel_factory(channel_type: int):
@@ -13,7 +49,7 @@ def _guild_channel_factory(channel_type: int):
     elif value is ChannelType.category:
         return CategoryChannel, value
     elif value is ChannelType.news:
-        return TextChannel, value
+        return NewsChannel, value
     elif value is ChannelType.stage_voice:
         return StageChannel, value
     elif value is ChannelType.directory:
@@ -31,7 +67,7 @@ def _channel_factory(channel_type: int):
     if value is ChannelType.private:
         return DMChannel, value
     elif value is ChannelType.group:
-        return GroupDMChannel, value
+        return GroupChannel, value
     else:
         return cls, value
 

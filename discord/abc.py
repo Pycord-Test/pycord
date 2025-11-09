@@ -26,11 +26,9 @@ DEALINGS IN THE SOFTWARE.
 from __future__ import annotations
 
 import asyncio
-import copy
 import time
 from typing import (
     TYPE_CHECKING,
-    Any,
     Callable,
     Iterable,
     Protocol,
@@ -43,17 +41,11 @@ from typing import (
 
 from . import utils
 from .context_managers import Typing
-from .enums import ChannelType
 from .errors import ClientException, InvalidArgument
 from .file import File, VoiceMessage
-from .flags import ChannelFlags, MessageFlags
-from .invite import Invite
+from .flags import MessageFlags
 from .iterators import HistoryIterator, MessagePinIterator
 from .mentions import AllowedMentions
-from .partial_emoji import PartialEmoji, _EmojiTag
-from .permissions import PermissionOverwrite, Permissions
-from .role import Role
-from .scheduled_events import ScheduledEvent
 from .sticker import GuildSticker, StickerItem
 from .utils.private import warn_deprecated
 from .voice_client import VoiceClient, VoiceProtocol
@@ -62,7 +54,6 @@ __all__ = (
     "Snowflake",
     "User",
     "PrivateChannel",
-    "GuildChannel",
     "Messageable",
     "Connectable",
     "Mentionable",
@@ -76,7 +67,6 @@ if TYPE_CHECKING:
     from .app.state import ConnectionState
     from .asset import Asset
     from .channel import (
-        CategoryChannel,
         DMChannel,
         GroupChannel,
         PartialMessageable,
@@ -86,14 +76,9 @@ if TYPE_CHECKING:
     )
     from .client import Client
     from .embeds import Embed
-    from .enums import InviteTarget
-    from .guild import Guild
-    from .member import Member
     from .message import Message, MessageReference, PartialMessage
     from .poll import Poll
-    from .threads import Thread
-    from .types.channel import Channel as ChannelPayload
-    from .types.channel import GuildChannel as GuildChannelPayload
+    from .channel.thread import Thread
     from .types.channel import OverwriteType
     from .types.channel import PermissionOverwrite as PermissionOverwritePayload
     from .ui.view import View

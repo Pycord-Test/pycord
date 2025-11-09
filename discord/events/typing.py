@@ -33,7 +33,7 @@ from discord.app.state import ConnectionState
 from discord.channel import DMChannel, GroupChannel, TextChannel
 from discord.member import Member
 from discord.raw_models import RawTypingEvent
-from discord.threads import Thread
+from discord.channel.thread import Thread
 from discord.user import User
 
 if TYPE_CHECKING:

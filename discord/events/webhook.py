@@ -31,7 +31,7 @@ from discord.app.event_emitter import Event
 from discord.app.state import ConnectionState
 
 if TYPE_CHECKING:
-    from discord.abc import GuildChannel
+    from discord.channel.base import GuildChannel
 
 _log = logging.getLogger(__name__)
 

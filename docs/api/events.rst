@@ -1414,17 +1414,6 @@ Voice Channel Status Update
     :param payload: The raw voice channel status update payload.
     :type payload: :class:`RawVoiceChannelStatusUpdateEvent`
 
-Voice Channel Effects
----------------------
-.. function:: on_voice_channel_effect_send(event)
-
-    Called when a voice channel effect is sent.
-
-    .. versionadded:: 2.7
-
-    :param event: The voice channel effect event.
-    :type event: :class:`VoiceChannelEffectSendEvent`
-
 Soundboard Sound
 ----------------
 .. function:: on_soundboard_sounds_update(before, after)

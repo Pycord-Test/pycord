@@ -83,7 +83,7 @@ if TYPE_CHECKING:
     from .embeds import Embed
     from .mentions import AllowedMentions
     from .poll import Poll
-    from .threads import Thread
+    from .channel.thread import Thread
     from .types.interactions import Interaction as InteractionPayload
     from .types.interactions import InteractionCallback as InteractionCallbackPayload
     from .types.interactions import InteractionCallbackResponse, InteractionData

@@ -64,7 +64,7 @@ if TYPE_CHECKING:
     from .message import Message, MessagePin
     from .monetization import Entitlement, Subscription
     from .scheduled_events import ScheduledEvent
-    from .threads import Thread
+    from .channel.thread import Thread
     from .types.audit_log import AuditLog as AuditLogPayload
     from .types.guild import Guild as GuildPayload
     from .types.message import Message as MessagePayload
@@ -848,7 +848,7 @@ class ArchivedThreadIterator(_AsyncIterator["Thread"]):
             self.before = self.update_before(threads[-1])
 
     def create_thread(self, data: ThreadPayload) -> Thread:
-        from .threads import Thread  # noqa: PLC0415
+        from .channel.thread import Thread  # noqa: PLC0415
 
         return Thread(guild=self.guild, state=self.guild._state, data=data)
 

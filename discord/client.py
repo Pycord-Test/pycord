@@ -32,7 +32,7 @@ import sys
 import traceback
 from collections.abc import Awaitable
 from types import TracebackType
-from typing import TYPE_CHECKING, Any, AsyncGenerator, Callable, Coroutine, Final, Generator, Sequence, TypeVar
+from typing import TYPE_CHECKING, Any, AsyncGenerator, Callable, Coroutine, Generator, Sequence, TypeVar
 
 import aiohttp
 
@@ -64,13 +64,14 @@ from .soundboard import SoundboardSound
 from .stage_instance import StageInstance
 from .sticker import GuildSticker, StandardSticker, StickerPack, _sticker_factory
 from .template import Template
-from .threads import Thread
+from .channel.thread import Thread
 from .ui.view import View
 from .user import ClientUser, User
 from .utils import MISSING
 from .utils.private import (
     SequenceProxy,
     bytes_to_base64_data,
+    copy_doc,
     resolve_invite,
     resolve_template,
 )
@@ -79,8 +80,8 @@ from .webhook import Webhook
 from .widget import Widget
 
 if TYPE_CHECKING:
-    from .abc import GuildChannel, PrivateChannel, Snowflake, SnowflakeTime
-    from .channel import DMChannel
+    from .abc import PrivateChannel, Snowflake, SnowflakeTime
+    from .channel import DMChannel, GuildChannel
     from .interactions import Interaction
     from .member import Member
     from .message import Message
@@ -282,11 +283,6 @@ class Client:
         self._event_handlers: dict[str, list[Coro]] = {}
 
         self._main_gear: Gear = Gear()
-        self.attach_gear: Final = self._main_gear.attach_gear
-        self.detach_gear: Final = self._main_gear.detach_gear
-        self.add_listener: Final = self._main_gear.add_listener
-        self.remove_listener: Final = self._main_gear.remove_listener
-        self.listen: Final = self._main_gear.listen
 
         self._connection.emitter.add_receiver(self._handle_event)
 
@@ -318,6 +314,39 @@ class Client:
     ) -> None:
         if not self.is_closed():
             await self.close()
+
+    # Gear methods
+
+    @copy_doc(Gear.attach_gear)
+    def attach_gear(self, gear: Gear) -> None:
+        return self._main_gear.attach_gear(gear)
+
+    @copy_doc(Gear.detach_gear)
+    def detach_gear(self, gear: Gear) -> None:
+        return self._main_gear.detach_gear(gear)
+
+    @copy_doc(Gear.add_listener)
+    def add_listener(
+        self,
+        callback: Callable[[Event], Awaitable[None]],
+        *,
+        event: type[Event] | Undefined = MISSING,
+        is_instance_function: bool = False,
+        once: bool = False,
+    ) -> None:
+        return self._main_gear.add_listener(callback, event=event, is_instance_function=is_instance_function, once=once)
+
+    @copy_doc(Gear.remove_listener)
+    def remove_listener(
+        self, callback: Callable[[Event], Awaitable[None]], event: type[Event] | Undefined = MISSING, is_instance_function: bool = False
+    ) -> None:
+        return self._main_gear.remove_listener(callback, event=event, is_instance_function=is_instance_function)
+
+    @copy_doc(Gear.listen)
+    def listen(
+        self, event: type[Event] | Undefined = MISSING, once: bool = False
+    ) -> Callable[[Callable[[Event], Awaitable[None]]], Callable[[Event], Awaitable[None]]]:
+        return self._main_gear.listen(event=event, once=once)
 
     # internals
 

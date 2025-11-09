@@ -67,43 +67,6 @@ class DMChannel(BaseChannel[DMChannelPayload], Messageable):
         """Returns a URL that allows the client to jump to the channel."""
         return f"https://discord.com/channels/@me/{self.id}"
 
-    @override
-    def permissions_for(self, obj: Snowflake, /) -> Permissions:
-        """Handles permission resolution for a :class:`User`.
-
-        This function is there for compatibility with other channel types.
-
-        Actual direct messages do not really have the concept of permissions.
-
-        This returns all the Text related permissions set to ``True`` except:
-
-        - :attr:`~Permissions.send_tts_messages`: You cannot send TTS messages in a DM.
-        - :attr:`~Permissions.manage_messages`: You cannot delete others messages in a DM.
-
-        This also checks the kick_members permission if the user is the owner.
-
-        Parameters
-        ----------
-        obj: :class:`~discord.abc.Snowflake`
-            The user to check permissions for.
-
-        Returns
-        -------
-        :class:`Permissions`
-            The resolved permissions for the user.
-        """
-
-        base = Permissions.text()
-        base.read_messages = True
-        base.send_tts_messages = False
-        base.manage_messages = False
-        base.mention_everyone = True
-
-        if obj.id == self.owner_id:
-            base.kick_members = True
-
-        return base
-
 
 class GroupDMChannel(BaseChannel[GroupDMChannelPayload], Messageable):
     __slots__: tuple[str, ...] = ("recipients", "icon_hash", "owner", "name")
@@ -141,40 +104,3 @@ class GroupDMChannel(BaseChannel[GroupDMChannelPayload], Messageable):
         if self.icon_hash is None:
             return None
         return Asset._from_icon(self._state, self.id, self.icon_hash, path="channel")
-
-    @override
-    def permissions_for(self, obj: Snowflake, /) -> Permissions:
-        """Handles permission resolution for a :class:`User`.
-
-        This function is there for compatibility with other channel types.
-
-        Actual direct messages do not really have the concept of permissions.
-
-        This returns all the Text related permissions set to ``True`` except:
-
-        - :attr:`~Permissions.send_tts_messages`: You cannot send TTS messages in a DM.
-        - :attr:`~Permissions.manage_messages`: You cannot delete others messages in a DM.
-
-        This also checks the kick_members permission if the user is the owner.
-
-        Parameters
-        ----------
-        obj: :class:`~discord.abc.Snowflake`
-            The user to check permissions for.
-
-        Returns
-        -------
-        :class:`Permissions`
-            The resolved permissions for the user.
-        """
-
-        base = Permissions.text()
-        base.read_messages = True
-        base.send_tts_messages = False
-        base.manage_messages = False
-        base.mention_everyone = True
-
-        if obj.id == self.owner_id:
-            base.kick_members = True
-
-        return base

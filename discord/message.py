@@ -61,19 +61,19 @@ from .partial_emoji import PartialEmoji
 from .poll import Poll
 from .reaction import Reaction
 from .sticker import StickerItem
-from .threads import Thread
+from .channel.thread import Thread
 from .utils import MISSING, escape_mentions
 from .utils.private import cached_slot_property, delay_task, get_as_snowflake, parse_time, warn_deprecated
 
 if TYPE_CHECKING:
     from .abc import (
-        GuildChannel,
         MessageableChannel,
         PartialMessageableChannel,
         Snowflake,
     )
     from .app.state import ConnectionState
     from .channel import TextChannel
+    from .channel.base import GuildChannel
     from .components import Component
     from .interactions import MessageInteraction
     from .mentions import AllowedMentions

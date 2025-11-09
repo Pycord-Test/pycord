@@ -42,7 +42,7 @@ from discord.raw_models import (
     RawReactionClearEvent,
 )
 from discord.reaction import Reaction
-from discord.threads import Thread
+from discord.channel.thread import Thread
 from discord.types.message import Reaction as ReactionPayload
 from discord.types.raw_models import ReactionActionEvent, ReactionClearEvent
 from discord.user import User

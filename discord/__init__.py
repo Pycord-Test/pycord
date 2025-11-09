@@ -72,7 +72,7 @@ from .stage_instance import *
 from .sticker import *
 from .team import *
 from .template import *
-from .threads import *
+from .channel.thread import *
 from .user import *
 from .voice_client import *
 from .webhook import *

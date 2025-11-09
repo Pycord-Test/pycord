@@ -48,8 +48,8 @@ __all__ = (
 
 
 if TYPE_CHECKING:
-    from . import abc
     from .app.state import ConnectionState
+    from .channel.base import GuildChannel
     from .emoji import GuildEmoji
     from .guild import Guild
     from .member import Member
@@ -57,7 +57,7 @@ if TYPE_CHECKING:
     from .scheduled_events import ScheduledEvent
     from .stage_instance import StageInstance
     from .sticker import GuildSticker
-    from .threads import Thread
+    from .channel.thread import Thread
     from .types.audit_log import AuditLogChange as AuditLogChangePayload
     from .types.audit_log import AuditLogEntry as AuditLogEntryPayload
     from .types.automod import AutoModAction as AutoModActionPayload
@@ -80,13 +80,13 @@ def _transform_snowflake(entry: AuditLogEntry, data: Snowflake) -> int:
     return int(data)
 
 
-def _transform_channel(entry: AuditLogEntry, data: Snowflake | None) -> abc.GuildChannel | Object | None:
+def _transform_channel(entry: AuditLogEntry, data: Snowflake | None) -> GuildChannel | Object | None:
     if data is None:
         return None
     return entry.guild.get_channel(int(data)) or Object(id=data)
 
 
-def _transform_channels(entry: AuditLogEntry, data: list[Snowflake] | None) -> list[abc.GuildChannel | Object] | None:
+def _transform_channels(entry: AuditLogEntry, data: list[Snowflake] | None) -> list[GuildChannel | Object] | None:
     if data is None:
         return None
     return [_transform_channel(entry, channel) for channel in data]
@@ -438,7 +438,7 @@ class _AuditLogProxyMemberPrune:
 
 
 class _AuditLogProxyMemberMoveOrMessageDelete:
-    channel: abc.GuildChannel
+    channel: GuildChannel
     count: int
 
 
@@ -447,12 +447,12 @@ class _AuditLogProxyMemberDisconnect:
 
 
 class _AuditLogProxyPinAction:
-    channel: abc.GuildChannel
+    channel: GuildChannel
     message_id: int
 
 
 class _AuditLogProxyStageInstanceAction:
-    channel: abc.GuildChannel
+    channel: GuildChannel
 
 
 class AuditLogEntry(Hashable):
@@ -593,7 +593,7 @@ class AuditLogEntry(Hashable):
         self,
     ) -> (
         Guild
-        | abc.GuildChannel
+        | GuildChannel
         | Member
         | User
         | Role
@@ -639,7 +639,7 @@ class AuditLogEntry(Hashable):
     def _convert_target_guild(self, target_id: int) -> Guild:
         return self.guild
 
-    def _convert_target_channel(self, target_id: int) -> abc.GuildChannel | Object:
+    def _convert_target_channel(self, target_id: int) -> GuildChannel | Object:
         return self.guild.get_channel(target_id) or Object(id=target_id)
 
     async def _convert_target_user(self, target_id: int) -> Member | User | None:

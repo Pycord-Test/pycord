@@ -47,7 +47,7 @@ if TYPE_CHECKING:
     from .message import Message
     from .partial_emoji import PartialEmoji
     from .soundboard import PartialSoundboardSound, SoundboardSound
-    from .threads import Thread
+    from .channel.thread import Thread
     from .types.channel import VoiceChannelEffectSendEvent as VoiceChannelEffectSend
     from .types.raw_models import (
         AuditLogEntryEvent,

@@ -50,6 +50,7 @@ from .asset import Asset
 from .automod import AutoModAction, AutoModRule, AutoModTriggerMetadata
 from .channel import *
 from .channel import _guild_channel_factory, _threaded_guild_channel_factory
+from .channel.thread import Thread, ThreadMember
 from .colour import Colour
 from .emoji import GuildEmoji, PartialEmoji, _EmojiTag
 from .enums import (
@@ -92,7 +93,6 @@ from .scheduled_events import ScheduledEvent, ScheduledEventLocation
 from .soundboard import SoundboardSound
 from .stage_instance import StageInstance
 from .sticker import GuildSticker
-from .threads import Thread, ThreadMember
 from .user import User
 from .utils.private import bytes_to_base64_data, get_as_snowflake
 from .welcome_screen import WelcomeScreen, WelcomeScreenChannel
@@ -692,7 +692,7 @@ class Guild(Hashable):
         if "threads" in data:
             threads = data["threads"]
             for thread in threads:
-                self._add_thread(Thread(guild=self, state=self._state, data=thread))
+                self._add_thread(await Thread._from_data(guild=self, state=self._state, data=thread))
 
     @property
     def channels(self) -> list[GuildChannel]:
@@ -2177,7 +2177,7 @@ class Guild(Hashable):
 
         Returns
         -------
-        Sequence[:class:`abc.GuildChannel`]
+        Sequence[:class:`discord.channel.base.GuildChannel`]
             All channels in the guild.
 
         Raises

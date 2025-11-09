@@ -26,9 +26,9 @@ from typing import Any
 
 from typing_extensions import Self, override
 
-from discord.abc import GuildChannel
 from discord.app.event_emitter import Event
 from discord.app.state import ConnectionState
+from discord.channel.base import GuildChannel
 from discord.guild import Guild
 from discord.invite import Invite, PartialInviteChannel, PartialInviteGuild
 from discord.types.invite import GatewayInvite, VanityInvite

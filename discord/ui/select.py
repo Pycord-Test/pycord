@@ -40,7 +40,7 @@ from ..interactions import Interaction
 from ..member import Member
 from ..partial_emoji import PartialEmoji
 from ..role import Role
-from ..threads import Thread
+from ..channel.thread import Thread
 from ..user import User
 from ..utils import MISSING
 from .item import Item, ItemCallbackType
@@ -58,7 +58,7 @@ __all__ = (
 if TYPE_CHECKING:
     from typing_extensions import Self
 
-    from ..abc import GuildChannel
+    from ..channel.base import GuildChannel
     from ..types.components import SelectMenu as SelectMenuPayload
     from ..types.interactions import ComponentInteractionData
     from .view import View
