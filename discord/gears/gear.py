@@ -111,7 +111,11 @@ class Gear:
 
     def _handle_event(self, event: Event) -> Collection[Awaitable[Any]]:
         tasks: list[Awaitable[None]] = []
-        tasks.extend(listener(event) for listener in self._listeners[type(event)])
+
+        for listener in self._listeners[type(event)]:
+            if listener in self._once_listeners:
+                self._once_listeners.remove(listener)
+            tasks.append(listener(event))
 
         for gear in self._gears:
             tasks.extend(gear._handle_event(event))
