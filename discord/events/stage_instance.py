@@ -36,6 +36,11 @@ _log = logging.getLogger(__name__)
 
 
 class StageInstanceCreate(Event, StageInstance):
+    """Called when a stage instance is created for a stage channel.
+
+    This event inherits from :class:`StageInstance`.
+    """
+
     __event_name__: str = "STAGE_INSTANCE_CREATE"
 
     def __init__(self) -> None: ...
@@ -60,6 +65,20 @@ class StageInstanceCreate(Event, StageInstance):
 
 
 class StageInstanceUpdate(Event, StageInstance):
+    """Called when a stage instance is updated.
+
+    The following, but not limited to, examples illustrate when this event is called:
+    - The topic is changed.
+    - The privacy level is changed.
+
+    This event inherits from :class:`StageInstance`.
+
+    Attributes
+    ----------
+    old: :class:`StageInstance`
+        The stage instance before the update.
+    """
+
     __event_name__: str = "STAGE_INSTANCE_UPDATE"
 
     old: StageInstance
@@ -95,6 +114,11 @@ class StageInstanceUpdate(Event, StageInstance):
 
 
 class StageInstanceDelete(Event, StageInstance):
+    """Called when a stage instance is deleted for a stage channel.
+
+    This event inherits from :class:`StageInstance`.
+    """
+
     __event_name__: str = "STAGE_INSTANCE_DELETE"
 
     def __init__(self) -> None: ...

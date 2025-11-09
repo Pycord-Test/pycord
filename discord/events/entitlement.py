@@ -34,6 +34,11 @@ from ..monetization import Entitlement
 
 
 class EntitlementCreate(Event, Entitlement):
+    """Called when a user subscribes to an SKU.
+
+    This event inherits from :class:`Entitlement`.
+    """
+
     __event_name__: str = "ENTITLEMENT_CREATE"
 
     def __init__(self) -> None:
@@ -48,6 +53,17 @@ class EntitlementCreate(Event, Entitlement):
 
 
 class EntitlementUpdate(Event, Entitlement):
+    """Called when a user's subscription to an Entitlement is cancelled.
+
+    .. note::
+        Before October 1, 2024, this event was called when a user's subscription was renewed.
+
+        Entitlements that no longer follow this behavior will have a type of :attr:`EntitlementType.purchase`.
+        Those that follow the old behavior will have a type of :attr:`EntitlementType.application_subscription`.
+
+    This event inherits from :class:`Entitlement`.
+    """
+
     __event_name__: str = "ENTITLEMENT_UPDATE"
 
     def __init__(self) -> None:
@@ -62,6 +78,17 @@ class EntitlementUpdate(Event, Entitlement):
 
 
 class EntitlementDelete(Event, Entitlement):
+    """Called when a user's entitlement is deleted.
+
+    Entitlements are usually only deleted when Discord issues a refund for a subscription,
+    or manually removes an entitlement from a user.
+
+    .. note::
+        This is not called when a user's subscription is cancelled.
+
+    This event inherits from :class:`Entitlement`.
+    """
+
     __event_name__: str = "ENTITLEMENT_DELETE"
 
     def __init__(self) -> None:

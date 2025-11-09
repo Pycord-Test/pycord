@@ -37,6 +37,16 @@ _log = logging.getLogger(__name__)
 
 
 class WebhooksUpdate(Event):
+    """Called whenever a webhook is created, modified, or removed from a guild channel.
+
+    This requires :attr:`Intents.webhooks` to be enabled.
+
+    Attributes
+    ----------
+    channel: :class:`TextChannel` | :class:`VoiceChannel` | :class:`ForumChannel` | :class:`StageChannel`
+        The channel that had its webhooks updated.
+    """
+
     __event_name__: str = "WEBHOOKS_UPDATE"
 
     channel: "GuildChannel"

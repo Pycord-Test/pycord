@@ -34,6 +34,11 @@ from ..monetization import Subscription
 
 
 class SubscriptionCreate(Event, Subscription):
+    """Called when a subscription is created for the application.
+
+    This event inherits from :class:`Subscription`.
+    """
+
     __event_name__: str = "SUBSCRIPTION_CREATE"
 
     def __init__(self) -> None:
@@ -48,6 +53,13 @@ class SubscriptionCreate(Event, Subscription):
 
 
 class SubscriptionUpdate(Event, Subscription):
+    """Called when a subscription has been updated.
+
+    This could be a renewal, cancellation, or other payment related update.
+
+    This event inherits from :class:`Subscription`.
+    """
+
     __event_name__: str = "SUBSCRIPTION_UPDATE"
 
     def __init__(self) -> None:
@@ -62,6 +74,11 @@ class SubscriptionUpdate(Event, Subscription):
 
 
 class SubscriptionDelete(Event, Subscription):
+    """Called when a subscription has been deleted.
+
+    This event inherits from :class:`Subscription`.
+    """
+
     __event_name__: str = "SUBSCRIPTION_DELETE"
 
     def __init__(self) -> None:

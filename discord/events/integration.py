@@ -37,6 +37,16 @@ _log = logging.getLogger(__name__)
 
 
 class GuildIntegrationsUpdate(Event):
+    """Called whenever an integration is created, modified, or removed from a guild.
+
+    This requires :attr:`Intents.integrations` to be enabled.
+
+    Attributes
+    ----------
+    guild: :class:`Guild`
+        The guild that had its integrations updated.
+    """
+
     __event_name__: str = "GUILD_INTEGRATIONS_UPDATE"
 
     guild: Guild
@@ -58,6 +68,13 @@ class GuildIntegrationsUpdate(Event):
 
 
 class IntegrationCreate(Event, Integration):
+    """Called when an integration is created.
+
+    This requires :attr:`Intents.integrations` to be enabled.
+
+    This event inherits from :class:`Integration`.
+    """
+
     __event_name__: str = "INTEGRATION_CREATE"
 
     def __init__(self) -> None: ...
@@ -84,6 +101,13 @@ class IntegrationCreate(Event, Integration):
 
 
 class IntegrationUpdate(Event, Integration):
+    """Called when an integration is updated.
+
+    This requires :attr:`Intents.integrations` to be enabled.
+
+    This event inherits from :class:`Integration`.
+    """
+
     __event_name__: str = "INTEGRATION_UPDATE"
 
     def __init__(self) -> None: ...
@@ -110,6 +134,16 @@ class IntegrationUpdate(Event, Integration):
 
 
 class IntegrationDelete(Event):
+    """Called when an integration is deleted.
+
+    This requires :attr:`Intents.integrations` to be enabled.
+
+    Attributes
+    ----------
+    raw: :class:`RawIntegrationDeleteEvent`
+        The raw event payload data.
+    """
+
     __event_name__: str = "INTEGRATION_DELETE"
 
     raw: RawIntegrationDeleteEvent

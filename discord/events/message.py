@@ -54,6 +54,19 @@ from ..message import Message, PartialMessage
 
 
 class MessageCreate(Event, Message):
+    """Called when a message is created and sent.
+
+    This requires :attr:`Intents.messages` to be enabled.
+
+    .. warning::
+        Your bot's own messages and private messages are sent through this event.
+        This can lead to cases of 'recursion' depending on how your bot was programmed.
+        If you want the bot to not reply to itself, consider checking if :attr:`author`
+        equals the bot user.
+
+    This event inherits from :class:`Message`.
+    """
+
     __event_name__: str = "MESSAGE_CREATE"
 
     def __init__(self) -> None: ...
@@ -81,6 +94,20 @@ class MessageCreate(Event, Message):
 
 
 class MessageDelete(Event, Message):
+    """Called when a message is deleted.
+
+    This requires :attr:`Intents.messages` to be enabled.
+
+    This event inherits from :class:`Message`.
+
+    Attributes
+    ----------
+    raw: :class:`RawMessageDeleteEvent`
+        The raw event payload data.
+    is_cached: :class:`bool`
+        Whether the message was found in the internal cache.
+    """
+
     __event_name__: str = "MESSAGE_DELETE"
 
     raw: RawMessageDeleteEvent
@@ -106,6 +133,18 @@ class MessageDelete(Event, Message):
 
 
 class MessageDeleteBulk(Event):
+    """Called when messages are bulk deleted.
+
+    This requires :attr:`Intents.messages` to be enabled.
+
+    Attributes
+    ----------
+    raw: :class:`RawBulkMessageDeleteEvent`
+        The raw event payload data.
+    messages: list[:class:`Message`]
+        The messages that have been deleted (only includes cached messages).
+    """
+
     __event_name__: str = "MESSAGE_DELETE_BULK"
 
     raw: RawBulkMessageDeleteEvent
@@ -126,6 +165,28 @@ class MessageDeleteBulk(Event):
 
 
 class MessageUpdate(Event, Message):
+    """Called when a message receives an update event.
+
+    This requires :attr:`Intents.messages` to be enabled.
+
+    The following non-exhaustive cases trigger this event:
+    - A message has been pinned or unpinned.
+    - The message content has been changed.
+    - The message has received an embed.
+    - The message's embeds were suppressed or unsuppressed.
+    - A call message has received an update to its participants or ending time.
+    - A poll has ended and the results have been finalized.
+
+    This event inherits from :class:`Message`.
+
+    Attributes
+    ----------
+    raw: :class:`RawMessageUpdateEvent`
+        The raw event payload data.
+    old: :class:`Message` | :class:`Undefined`
+        The previous version of the message (if it was cached).
+    """
+
     __event_name__: str = "MESSAGE_UPDATE"
 
     raw: RawMessageUpdateEvent
@@ -157,6 +218,23 @@ class MessageUpdate(Event, Message):
 
 
 class ReactionAdd(Event):
+    """Called when a message has a reaction added to it.
+
+    This requires :attr:`Intents.reactions` to be enabled.
+
+    .. note::
+        To get the :class:`Message` being reacted to, access it via :attr:`reaction.message`.
+
+    Attributes
+    ----------
+    raw: :class:`RawReactionActionEvent`
+        The raw event payload data.
+    user: :class:`Member` | :class:`User` | :class:`Undefined`
+        The user who added the reaction.
+    reaction: :class:`Reaction`
+        The current state of the reaction.
+    """
+
     __event_name__: str = "MESSAGE_REACTION_ADD"
 
     raw: RawReactionActionEvent
@@ -198,6 +276,20 @@ class ReactionAdd(Event):
 
 
 class ReactionClear(Event):
+    """Called when a message has all its reactions removed from it.
+
+    This requires :attr:`Intents.reactions` to be enabled.
+
+    Attributes
+    ----------
+    raw: :class:`RawReactionClearEvent`
+        The raw event payload data.
+    message: :class:`Message` | :class:`Undefined`
+        The message that had its reactions cleared.
+    old_reactions: list[:class:`Reaction`] | :class:`Undefined`
+        The reactions that were removed.
+    """
+
     __event_name__: str = "MESSAGE_REACTION_REMOVE_ALL"
 
     raw: RawReactionClearEvent
@@ -222,6 +314,23 @@ class ReactionClear(Event):
 
 
 class ReactionRemove(Event):
+    """Called when a message has a reaction removed from it.
+
+    This requires :attr:`Intents.reactions` to be enabled.
+
+    .. note::
+        To get the :class:`Message` being reacted to, access it via :attr:`reaction.message`.
+
+    Attributes
+    ----------
+    raw: :class:`RawReactionActionEvent`
+        The raw event payload data.
+    user: :class:`Member` | :class:`User` | :class:`Undefined`
+        The user who removed the reaction.
+    reaction: :class:`Reaction`
+        The current state of the reaction.
+    """
+
     __event_name__: str = "MESSAGE_REACTION_REMOVE"
 
     raw: RawReactionActionEvent
@@ -266,6 +375,13 @@ class ReactionRemove(Event):
 
 
 class ReactionRemoveEmoji(Event, Reaction):
+    """Called when a message has a specific reaction removed from it.
+
+    This requires :attr:`Intents.reactions` to be enabled.
+
+    This event inherits from :class:`Reaction`.
+    """
+
     __event_name__: str = "MESSAGE_REACTION_REMOVE_EMOJI"
 
     def __init__(self):
@@ -294,6 +410,24 @@ class ReactionRemoveEmoji(Event, Reaction):
 
 
 class PollVoteAdd(Event):
+    """Called when a vote is cast on a poll.
+
+    This requires :attr:`Intents.polls` to be enabled.
+
+    Attributes
+    ----------
+    raw: :class:`RawMessagePollVoteEvent`
+        The raw event payload data.
+    guild: :class:`Guild` | :class:`Undefined`
+        The guild where the poll vote occurred, if in a guild.
+    user: :class:`User` | :class:`Member` | None
+        The user who added the vote.
+    poll: :class:`Poll`
+        The current state of the poll.
+    answer: :class:`PollAnswer`
+        The answer that was voted for.
+    """
+
     __event_name__: str = "MESSAGE_POLL_VOTE_ADD"
 
     raw: RawMessagePollVoteEvent
@@ -331,6 +465,24 @@ class PollVoteAdd(Event):
 
 
 class PollVoteRemove(Event):
+    """Called when a vote is removed from a poll.
+
+    This requires :attr:`Intents.polls` to be enabled.
+
+    Attributes
+    ----------
+    raw: :class:`RawMessagePollVoteEvent`
+        The raw event payload data.
+    guild: :class:`Guild` | :class:`Undefined`
+        The guild where the poll vote occurred, if in a guild.
+    user: :class:`User` | :class:`Member` | None
+        The user who removed the vote.
+    poll: :class:`Poll`
+        The current state of the poll.
+    answer: :class:`PollAnswer`
+        The answer that had its vote removed.
+    """
+
     __event_name__: str = "MESSAGE_POLL_VOTE_REMOVE"
 
     raw: RawMessagePollVoteEvent

@@ -49,6 +49,8 @@ from ..types.interactions import (
 
 
 class Resumed(Event):
+    """Called when the client has resumed a session."""
+
     __event_name__: str = "RESUMED"
 
     @classmethod
@@ -57,16 +59,35 @@ class Resumed(Event):
 
 
 class Ready(Event):
+    """Called when the client is done preparing the data received from Discord.
+
+    Usually after login is successful and the client's guilds and cache are filled up.
+
+    .. warning::
+        This event is not guaranteed to be the first event called.
+        Likewise, this event is **not** guaranteed to only be called once.
+        This library implements reconnection logic and thus will end up calling
+        this event whenever a RESUME request fails.
+
+    Attributes
+    ----------
+    user: :class:`ClientUser`
+        An instance representing the connected application user.
+    application_id: :class:`int`
+        A snowflake of the application's ID.
+    application_flags: :class:`ApplicationFlags`
+        An instance representing the application flags.
+    guilds: list[:class:`Guild`]
+        A list of guilds received in this event. Note it may have incomplete data
+        as ``GUILD_CREATE`` fills up other parts of guild data.
+    """
+
     __event_name__: str = "READY"
 
     user: ClientUser
-    """An instance of :class:`.user.ClientUser` representing the application"""
     application_id: int
-    """A snowflake of the application's id"""
     application_flags: ApplicationFlags
-    """An instance of :class:`.flags.ApplicationFlags` representing the application flags"""
     guilds: list[Guild]
-    """A list of guilds received in this event. Note it may have incomplete data as `GUILD_CREATE` fills up other parts of guild data."""
 
     @classmethod
     @override
@@ -113,7 +134,16 @@ class _CacheAppEmojis(Event):
 
 
 class GuildCreate(Event, Guild):
-    """An event which represents a guild becoming available via the gateway. Trickles down to the more distinct :class:`.GuildJoin` and :class:`.GuildAvailable` events."""
+    """Internal event representing a guild becoming available via the gateway.
+
+    This event trickles down to the more distinct :class:`GuildJoin` and :class:`GuildAvailable` events.
+    Users should typically listen to those events instead.
+
+    Attributes
+    ----------
+    guild: :class:`Guild`
+        The guild that became available.
+    """
 
     __event_name__: str = "GUILD_CREATE"
 
@@ -142,7 +172,15 @@ class GuildCreate(Event, Guild):
 
 
 class GuildJoin(Event, Guild):
-    """An event which represents joining a new guild."""
+    """Called when the client joins a new guild or when a guild is created.
+
+    This requires :attr:`Intents.guilds` to be enabled.
+
+    Attributes
+    ----------
+    guild: :class:`Guild`
+        The guild that was joined.
+    """
 
     __event_name__: str = "GUILD_JOIN"
 
@@ -161,7 +199,16 @@ class GuildJoin(Event, Guild):
 
 
 class GuildAvailable(Event, Guild):
-    """An event which represents a guild previously joined becoming available."""
+    """Called when a guild becomes available.
+
+    The guild must have existed in the client's cache.
+    This requires :attr:`Intents.guilds` to be enabled.
+
+    Attributes
+    ----------
+    guild: :class:`Guild`
+        The guild that became available.
+    """
 
     __event_name__: str = "GUILD_AVAILABLE"
 
@@ -190,18 +237,28 @@ class ApplicationCommandPermission:
 
 
 class ApplicationCommandPermissionsUpdate(Event):
-    """Represents an Application Command having permissions updated in a guild"""
+    """Called when application command permissions are updated for a guild.
+
+    This requires :attr:`Intents.guilds` to be enabled.
+
+    Attributes
+    ----------
+    id: :class:`int`
+        The ID of the command or application.
+    application_id: :class:`int`
+        The application ID.
+    guild_id: :class:`int`
+        The ID of the guild where permissions were updated.
+    permissions: list[:class:`ApplicationCommandPermission`]
+        The updated permissions for this application command.
+    """
 
     __event_name__: str = "APPLICATION_COMMAND_PERMISSIONS_UPDATE"
 
     id: int
-    """A snowflake of the application command's id"""
     application_id: int
-    """A snowflake of the application's id"""
     guild_id: int
-    """A snowflake of the guild's id where the permissions have been updated"""
     permissions: list[ApplicationCommandPermission]
-    """A list of permissions this Application Command has"""
 
     @classmethod
     @override
@@ -215,6 +272,22 @@ class ApplicationCommandPermissionsUpdate(Event):
 
 
 class PresenceUpdate(Event):
+    """Called when a member updates their presence.
+
+    This is called when one or more of the following things change:
+    - status
+    - activity
+
+    This requires :attr:`Intents.presences` and :attr:`Intents.members` to be enabled.
+
+    Attributes
+    ----------
+    old: :class:`Member`
+        The member's old presence info.
+    new: :class:`Member`
+        The member's updated presence info.
+    """
+
     __event_name__: str = "PRESENCE_UPDATE"
 
     old: Member
@@ -243,6 +316,24 @@ class PresenceUpdate(Event):
 
 
 class UserUpdate(Event, User):
+    """Called when a user updates their profile.
+
+    This is called when one or more of the following things change:
+    - avatar
+    - username
+    - discriminator
+    - global_name
+
+    This requires :attr:`Intents.members` to be enabled.
+
+    This event inherits from :class:`User`.
+
+    Attributes
+    ----------
+    old: :class:`User`
+        The user's old info before the update.
+    """
+
     __event_name__: str = "USER_UPDATE"
 
     old: User

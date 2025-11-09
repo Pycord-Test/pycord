@@ -41,6 +41,28 @@ if TYPE_CHECKING:
 
 
 class TypingStart(Event):
+    """Called when someone begins typing a message.
+
+    The :attr:`channel` can be a :class:`abc.Messageable` instance,
+    which could be :class:`TextChannel`, :class:`GroupChannel`, or :class:`DMChannel`.
+
+    If the :attr:`channel` is a :class:`TextChannel` then the :attr:`user` is a :class:`Member`,
+    otherwise it is a :class:`User`.
+
+    This requires :attr:`Intents.typing` to be enabled.
+
+    Attributes
+    ----------
+    raw: :class:`RawTypingEvent`
+        The raw event payload data.
+    channel: :class:`abc.Messageable`
+        The location where the typing originated from.
+    user: :class:`User` | :class:`Member`
+        The user that started typing.
+    when: :class:`datetime.datetime`
+        When the typing started as an aware datetime in UTC.
+    """
+
     __event_name__: str = "TYPING_START"
 
     raw: RawTypingEvent

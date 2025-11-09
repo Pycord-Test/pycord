@@ -62,6 +62,18 @@ class SoundboardSounds(Event):
 
 
 class GuildSoundboardSoundsUpdate(Event):
+    """Called when multiple guild soundboard sounds are updated at once.
+
+    This is called, for example, when a guild loses a boost level and some sounds become unavailable.
+
+    Attributes
+    ----------
+    old_sounds: list[:class:`SoundboardSound`] | None
+        The soundboard sounds prior to being updated (only if all were cached).
+    new_sounds: list[:class:`SoundboardSound`]
+        The soundboard sounds after being updated.
+    """
+
     __event_name__: str = "GUILD_SOUNDBOARD_SOUNDS_UPDATE"
 
     def __init__(
@@ -90,6 +102,16 @@ class GuildSoundboardSoundsUpdate(Event):
 
 
 class GuildSoundboardSoundUpdate(Event):
+    """Called when a soundboard sound is updated.
+
+    Attributes
+    ----------
+    old: :class:`SoundboardSound` | None
+        The soundboard sound prior to being updated (if it was cached).
+    new: :class:`SoundboardSound`
+        The soundboard sound after being updated.
+    """
+
     __event_name__: str = "GUILD_SOUNDBOARD_SOUND_UPDATE"
 
     def __init__(self, before: SoundboardSound, after: SoundboardSound) -> None:
@@ -108,6 +130,11 @@ class GuildSoundboardSoundUpdate(Event):
 
 
 class GuildSoundboardSoundCreate(Event):
+    """Called when a soundboard sound is created.
+
+    This event inherits from :class:`SoundboardSound`.
+    """
+
     __event_name__: str = "GUILD_SOUNDBOARD_SOUND_CREATE"
 
     def __init__(self, sound: SoundboardSound) -> None:
@@ -122,6 +149,16 @@ class GuildSoundboardSoundCreate(Event):
 
 
 class GuildSoundboardSoundDelete(Event):
+    """Called when a soundboard sound is deleted.
+
+    Attributes
+    ----------
+    raw: :class:`RawSoundboardSoundDeleteEvent`
+        The raw event payload data.
+    sound: :class:`SoundboardSound` | None
+        The deleted sound (if it was cached).
+    """
+
     __event_name__: str = "GUILD_SOUNDBOARD_SOUND_DELETE"
 
     def __init__(self, sound: SoundboardSound | None, raw: RawSoundboardSoundDeleteEvent) -> None:

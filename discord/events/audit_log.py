@@ -36,6 +36,19 @@ _log = logging.getLogger(__name__)
 
 
 class GuildAuditLogEntryCreate(Event, AuditLogEntry):
+    """Called when an audit log entry is created.
+
+    The bot must have :attr:`~Permissions.view_audit_log` to receive this, and
+    :attr:`Intents.moderation` must be enabled.
+
+    This event inherits from :class:`AuditLogEntry`.
+
+    Attributes
+    ----------
+    raw: :class:`RawAuditLogEntryEvent`
+        The raw event payload data.
+    """
+
     __event_name__: str = "GUILD_AUDIT_LOG_ENTRY_CREATE"
 
     raw: RawAuditLogEntryEvent

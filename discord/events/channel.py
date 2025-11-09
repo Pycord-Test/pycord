@@ -70,6 +70,19 @@ def _create_event_channel_class(event_cls: type[Event], channel_cls: type[GuildC
 
 
 class ChannelCreate(Event, GuildChannel):
+    """Called when a guild channel is created.
+
+    This requires :attr:`Intents.guilds` to be enabled.
+
+    This event inherits from the actual channel type that was created
+    (e.g., :class:`TextChannel`, :class:`VoiceChannel`, :class:`ForumChannel`, etc.).
+    You can access all channel attributes directly on the event object.
+
+    .. note::
+        While this class shows :class:`GuildChannel` in the signature, at runtime
+        the event will be an instance of the specific channel type that was created.
+    """
+
     __event_name__: str = "CHANNEL_CREATE"
 
     def __init__(self) -> None: ...
@@ -100,6 +113,18 @@ class ChannelCreate(Event, GuildChannel):
 
 
 class PrivateChannelUpdate(Event, PrivateChannel):
+    """Called whenever a private group DM is updated (e.g., changed name or topic).
+
+    This requires :attr:`Intents.messages` to be enabled.
+
+    This event inherits from :class:`GroupChannel`.
+
+    Attributes
+    ----------
+    old: :class:`GroupChannel` | None
+        The channel's old info before the update, or None if not in cache.
+    """
+
     __event_name__: str = "PRIVATE_CHANNEL_UPDATE"
 
     old: PrivateChannel | None
@@ -116,6 +141,24 @@ class PrivateChannelUpdate(Event, PrivateChannel):
 
 
 class GuildChannelUpdate(Event, PrivateChannel):
+    """Called whenever a guild channel is updated (e.g., changed name, topic, permissions).
+
+    This requires :attr:`Intents.guilds` to be enabled.
+
+    This event inherits from the actual channel type that was updated
+    (e.g., :class:`TextChannel`, :class:`VoiceChannel`, :class:`ForumChannel`, etc.).
+
+    .. note::
+        While this class shows :class:`GuildChannel` in the signature, at runtime
+        the event will be an instance of the specific channel type that was updated.
+
+    Attributes
+    ----------
+    old: :class:`TextChannel` | :class:`VoiceChannel` | :class:`CategoryChannel` | :class:`StageChannel` | :class:`ForumChannel` | None
+        The channel's old info before the update, or None if not in cache.
+        This will be the same type as the event itself.
+    """
+
     __event_name__: str = "GUILD_CHANNEL_UPDATE"
 
     old: GuildChannel | None
@@ -137,6 +180,12 @@ class GuildChannelUpdate(Event, PrivateChannel):
 
 
 class ChannelUpdate(Event, GuildChannel):
+    """Internal event that dispatches to either :class:`PrivateChannelUpdate` or :class:`GuildChannelUpdate`.
+
+    This event is not directly received by user code. It automatically routes to the appropriate
+    specific channel update event based on the channel type.
+    """
+
     __event_name__: str = "CHANNEL_UPDATE"
 
     def __init__(self) -> None: ...
@@ -165,6 +214,19 @@ class ChannelUpdate(Event, GuildChannel):
 
 
 class ChannelDelete(Event, GuildChannel):
+    """Called when a guild channel is deleted.
+
+    This requires :attr:`Intents.guilds` to be enabled.
+
+    This event inherits from the actual channel type that was deleted
+    (e.g., :class:`TextChannel`, :class:`VoiceChannel`, :class:`ForumChannel`, etc.).
+    You can access all channel attributes directly on the event object.
+
+    .. note::
+        While this class shows :class:`GuildChannel` in the signature, at runtime
+        the event will be an instance of the specific channel type that was deleted.
+    """
+
     __event_name__: str = "CHANNEL_DELETE"
 
     def __init__(self) -> None: ...
@@ -188,6 +250,16 @@ class ChannelDelete(Event, GuildChannel):
 
 
 class ChannelPinsUpdate(Event):
+    """Called whenever a message is pinned or unpinned from a channel.
+
+    Attributes
+    ----------
+    channel: :class:`abc.PrivateChannel` | :class:`TextChannel` | :class:`VoiceChannel` | :class:`StageChannel` | :class:`ForumChannel` | :class:`Thread`
+        The channel that had its pins updated. Can be any messageable channel type.
+    last_pin: :class:`datetime.datetime` | None
+        The latest message that was pinned as an aware datetime in UTC, or None if no pins exist.
+    """
+
     __event_name__: str = "CHANNEL_PINS_UPDATE"
     channel: PrivateChannel | GuildChannel | Thread
     last_pin: datetime | None

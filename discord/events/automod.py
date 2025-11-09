@@ -34,6 +34,17 @@ from ..app.event_emitter import Event
 
 
 class AutoModRuleCreate(Event):
+    """Called when an auto moderation rule is created.
+
+    The bot must have :attr:`~Permissions.manage_guild` to receive this, and
+    :attr:`Intents.auto_moderation_configuration` must be enabled.
+
+    Attributes
+    ----------
+    rule: :class:`AutoModRule`
+        The newly created rule.
+    """
+
     __event_name__: str = "AUTO_MODERATION_RULE_CREATE"
     __slots__ = ("rule",)
 
@@ -48,6 +59,17 @@ class AutoModRuleCreate(Event):
 
 
 class AutoModRuleUpdate(Event):
+    """Called when an auto moderation rule is updated.
+
+    The bot must have :attr:`~Permissions.manage_guild` to receive this, and
+    :attr:`Intents.auto_moderation_configuration` must be enabled.
+
+    Attributes
+    ----------
+    rule: :class:`AutoModRule`
+        The updated rule.
+    """
+
     __event_name__: str = "AUTO_MODERATION_RULE_UPDATE"
     __slots__ = ("rule",)
 
@@ -62,6 +84,17 @@ class AutoModRuleUpdate(Event):
 
 
 class AutoModRuleDelete(Event):
+    """Called when an auto moderation rule is deleted.
+
+    The bot must have :attr:`~Permissions.manage_guild` to receive this, and
+    :attr:`Intents.auto_moderation_configuration` must be enabled.
+
+    Attributes
+    ----------
+    rule: :class:`AutoModRule`
+        The deleted rule.
+    """
+
     __event_name__: str = "AUTO_MODERATION_RULE_DELETE"
     __slots__ = ("rule",)
 
@@ -76,7 +109,13 @@ class AutoModRuleDelete(Event):
 
 
 class AutoModActionExecution(Event, AutoModActionExecutionEvent):
-    """Represents the `AUTO_MODERATION_ACTION_EXECUTION` event"""
+    """Called when an auto moderation action is executed.
+
+    The bot must have :attr:`~Permissions.manage_guild` to receive this, and
+    :attr:`Intents.auto_moderation_execution` must be enabled.
+
+    This event inherits from :class:`AutoModActionExecutionEvent`.
+    """
 
     __event_name__: str = "AUTO_MODERATION_ACTION_EXECUTION"
 

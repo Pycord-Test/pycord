@@ -38,6 +38,13 @@ _log = logging.getLogger(__name__)
 
 
 class GuildScheduledEventCreate(Event, ScheduledEvent):
+    """Called when a scheduled event is created.
+
+    This requires :attr:`Intents.scheduled_events` to be enabled.
+
+    This event inherits from :class:`ScheduledEvent`.
+    """
+
     __event_name__: str = "GUILD_SCHEDULED_EVENT_CREATE"
 
     def __init__(self) -> None: ...
@@ -63,6 +70,18 @@ class GuildScheduledEventCreate(Event, ScheduledEvent):
 
 
 class GuildScheduledEventUpdate(Event, ScheduledEvent):
+    """Called when a scheduled event is updated.
+
+    This requires :attr:`Intents.scheduled_events` to be enabled.
+
+    This event inherits from :class:`ScheduledEvent`.
+
+    Attributes
+    ----------
+    old: :class:`ScheduledEvent`
+        The old scheduled event before the update.
+    """
+
     __event_name__: str = "GUILD_SCHEDULED_EVENT_UPDATE"
 
     old: ScheduledEvent | None
@@ -92,6 +111,13 @@ class GuildScheduledEventUpdate(Event, ScheduledEvent):
 
 
 class GuildScheduledEventDelete(Event, ScheduledEvent):
+    """Called when a scheduled event is deleted.
+
+    This requires :attr:`Intents.scheduled_events` to be enabled.
+
+    This event inherits from :class:`ScheduledEvent`.
+    """
+
     __event_name__: str = "GUILD_SCHEDULED_EVENT_DELETE"
 
     def __init__(self) -> None: ...
@@ -118,6 +144,20 @@ class GuildScheduledEventDelete(Event, ScheduledEvent):
 
 
 class GuildScheduledEventUserAdd(Event):
+    """Called when a user subscribes to a scheduled event.
+
+    This requires :attr:`Intents.scheduled_events` to be enabled.
+
+    Attributes
+    ----------
+    event: :class:`ScheduledEvent`
+        The scheduled event subscribed to.
+    member: :class:`Member`
+        The member who subscribed.
+    raw: :class:`RawScheduledEventSubscription`
+        The raw event payload data.
+    """
+
     __event_name__: str = "GUILD_SCHEDULED_EVENT_USER_ADD"
 
     raw: RawScheduledEventSubscription
@@ -152,6 +192,20 @@ class GuildScheduledEventUserAdd(Event):
 
 
 class GuildScheduledEventUserRemove(Event):
+    """Called when a user unsubscribes from a scheduled event.
+
+    This requires :attr:`Intents.scheduled_events` to be enabled.
+
+    Attributes
+    ----------
+    event: :class:`ScheduledEvent`
+        The scheduled event unsubscribed from.
+    member: :class:`Member`
+        The member who unsubscribed.
+    raw: :class:`RawScheduledEventSubscription`
+        The raw event payload data.
+    """
+
     __event_name__: str = "GUILD_SCHEDULED_EVENT_USER_REMOVE"
 
     raw: RawScheduledEventSubscription

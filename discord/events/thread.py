@@ -40,6 +40,15 @@ _log = logging.getLogger(__name__)
 
 
 class ThreadMemberJoin(Event, ThreadMember):
+    """Called when a thread member joins a thread.
+
+    You can get the thread a member belongs in by accessing :attr:`ThreadMember.thread`.
+
+    This requires :attr:`Intents.members` to be enabled.
+
+    This event inherits from :class:`ThreadMember`.
+    """
+
     __event_name__: str = "THREAD_MEMBER_JOIN"
 
     def __init__(self) -> None: ...
@@ -53,6 +62,15 @@ class ThreadMemberJoin(Event, ThreadMember):
 
 
 class ThreadJoin(Event, Thread):
+    """Called whenever the bot joins a thread.
+
+    Note that you can get the guild from :attr:`Thread.guild`.
+
+    This requires :attr:`Intents.guilds` to be enabled.
+
+    This event inherits from :class:`Thread`.
+    """
+
     __event_name__: str = "THREAD_JOIN"
 
     def __init__(self) -> None: ...
@@ -66,6 +84,15 @@ class ThreadJoin(Event, Thread):
 
 
 class ThreadMemberRemove(Event, ThreadMember):
+    """Called when a thread member leaves a thread.
+
+    You can get the thread a member belongs in by accessing :attr:`ThreadMember.thread`.
+
+    This requires :attr:`Intents.members` to be enabled.
+
+    This event inherits from :class:`ThreadMember`.
+    """
+
     __event_name__: str = "THREAD_MEMBER_REMOVE"
 
     def __init__(self) -> None: ...
@@ -79,6 +106,23 @@ class ThreadMemberRemove(Event, ThreadMember):
 
 
 class ThreadRemove(Event, Thread):
+    """Called whenever a thread is removed.
+
+    This is different from a thread being deleted.
+
+    Note that you can get the guild from :attr:`Thread.guild`.
+
+    This requires :attr:`Intents.guilds` to be enabled.
+
+    .. warning::
+        Due to technical limitations, this event might not be called
+        as soon as one expects. Since the library tracks thread membership
+        locally, the API only sends updated thread membership status upon being
+        synced by joining a thread.
+
+    This event inherits from :class:`Thread`.
+    """
+
     __event_name__: str = "THREAD_REMOVE"
 
     def __init__(self) -> None: ...
@@ -92,6 +136,20 @@ class ThreadRemove(Event, Thread):
 
 
 class ThreadCreate(Event, Thread):
+    """Called whenever a thread is created.
+
+    Note that you can get the guild from :attr:`Thread.guild`.
+
+    This requires :attr:`Intents.guilds` to be enabled.
+
+    This event inherits from :class:`Thread`.
+
+    Attributes
+    ----------
+    just_joined: :class:`bool`
+        Whether the bot just joined the thread.
+    """
+
     __event_name__: str = "THREAD_CREATE"
 
     def __init__(self) -> None: ...
@@ -139,6 +197,18 @@ class ThreadCreate(Event, Thread):
 
 
 class ThreadUpdate(Event, Thread):
+    """Called whenever a thread is updated.
+
+    This requires :attr:`Intents.guilds` to be enabled.
+
+    This event inherits from :class:`Thread`.
+
+    Attributes
+    ----------
+    old: :class:`Thread`
+        The thread's old info before the update.
+    """
+
     __event_name__: str = "THREAD_UPDATE"
 
     def __init__(self) -> None: ...
@@ -172,6 +242,15 @@ class ThreadUpdate(Event, Thread):
 
 
 class ThreadDelete(Event, Thread):
+    """Called whenever a thread is deleted.
+
+    Note that you can get the guild from :attr:`Thread.guild`.
+
+    This requires :attr:`Intents.guilds` to be enabled.
+
+    This event inherits from :class:`Thread`.
+    """
+
     __event_name__: str = "THREAD_DELETE"
 
     def __init__(self) -> None: ...

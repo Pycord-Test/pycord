@@ -45,6 +45,13 @@ _log = logging.getLogger(__name__)
 
 
 class GuildMemberJoin(Event, Member):
+    """Called when a member joins a guild.
+
+    This requires :attr:`Intents.members` to be enabled.
+
+    This event inherits from :class:`Member`.
+    """
+
     __event_name__: str = "GUILD_MEMBER_JOIN"
 
     def __init__(self) -> None: ...
@@ -73,6 +80,13 @@ class GuildMemberJoin(Event, Member):
 
 
 class GuildMemberRemove(Event, Member):
+    """Called when a member leaves a guild.
+
+    This requires :attr:`Intents.members` to be enabled.
+
+    This event inherits from :class:`Member`.
+    """
+
     __event_name__: str = "GUILD_MEMBER_REMOVE"
 
     def __init__(self) -> None: ...
@@ -103,6 +117,25 @@ class GuildMemberRemove(Event, Member):
 
 
 class GuildMemberUpdate(Event, Member):
+    """Called when a member updates their profile.
+
+    This is called when one or more of the following things change:
+    - nickname
+    - roles
+    - pending
+    - communication_disabled_until
+    - timed_out
+
+    This requires :attr:`Intents.members` to be enabled.
+
+    This event inherits from :class:`Member`.
+
+    Attributes
+    ----------
+    old: :class:`Member`
+        The member's old info before the update.
+    """
+
     __event_name__: str = "GUILD_MEMBER_UPDATE"
 
     old: Member
@@ -151,6 +184,29 @@ class GuildMemberUpdate(Event, Member):
 
 
 class GuildMembersChunk(Event):
+    """Called when a chunk of guild members is received.
+
+    This is sent when you request offline members via :meth:`Guild.chunk`.
+    This requires :attr:`Intents.members` to be enabled.
+
+    Attributes
+    ----------
+    guild: :class:`Guild`
+        The guild the members belong to.
+    members: list[:class:`Member`]
+        The members in this chunk.
+    chunk_index: :class:`int`
+        The chunk index in the expected chunks for this response (0 <= chunk_index < chunk_count).
+    chunk_count: :class:`int`
+        The total number of expected chunks for this response.
+    not_found: list[:class:`int`]
+        List of user IDs that were not found.
+    presences: list[Any]
+        List of presence data.
+    nonce: :class:`str`
+        The nonce used in the request, if any.
+    """
+
     __event_name__: str = "GUILD_MEMBERS_CHUNK"
     guild: Guild
     members: list[Member]
@@ -189,6 +245,20 @@ class GuildMembersChunk(Event):
 
 
 class GuildEmojisUpdate(Event):
+    """Called when a guild adds or removes emojis.
+
+    This requires :attr:`Intents.emojis_and_stickers` to be enabled.
+
+    Attributes
+    ----------
+    guild: :class:`Guild`
+        The guild who got their emojis updated.
+    emojis: list[:class:`Emoji`]
+        The list of emojis after the update.
+    old_emojis: list[:class:`Emoji`]
+        The list of emojis before the update.
+    """
+
     __event_name__: str = "GUILD_EMOJIS_UPDATE"
     guild: Guild
     emojis: list[Emoji]
@@ -220,6 +290,20 @@ class GuildEmojisUpdate(Event):
 
 
 class GuildStickersUpdate(Event):
+    """Called when a guild adds or removes stickers.
+
+    This requires :attr:`Intents.emojis_and_stickers` to be enabled.
+
+    Attributes
+    ----------
+    guild: :class:`Guild`
+        The guild who got their stickers updated.
+    stickers: list[:class:`GuildSticker`]
+        The list of stickers after the update.
+    old_stickers: list[:class:`GuildSticker`]
+        The list of stickers before the update.
+    """
+
     __event_name__: str = "GUILD_STICKERS_UPDATE"
 
     guild: Guild
@@ -252,6 +336,14 @@ class GuildStickersUpdate(Event):
 
 
 class GuildAvailable(Event, Guild):
+    """Called when a guild becomes available.
+
+    The guild must have existed in the client's cache.
+    This requires :attr:`Intents.guilds` to be enabled.
+
+    This event inherits from :class:`Guild`.
+    """
+
     __event_name__: str = "GUILD_AVAILABLE"
 
     def __init__(self) -> None: ...
@@ -265,6 +357,14 @@ class GuildAvailable(Event, Guild):
 
 
 class GuildUnavailable(Event, Guild):
+    """Called when a guild becomes unavailable.
+
+    The guild must have existed in the client's cache.
+    This requires :attr:`Intents.guilds` to be enabled.
+
+    This event inherits from :class:`Guild`.
+    """
+
     __event_name__: str = "GUILD_UNAVAILABLE"
 
     def __init__(self) -> None: ...
@@ -278,6 +378,13 @@ class GuildUnavailable(Event, Guild):
 
 
 class GuildJoin(Event, Guild):
+    """Called when the client joins a new guild or when a guild is created.
+
+    This requires :attr:`Intents.guilds` to be enabled.
+
+    This event inherits from :class:`Guild`.
+    """
+
     __event_name__: str = "GUILD_JOIN"
 
     def __init__(self) -> None: ...
@@ -291,6 +398,14 @@ class GuildJoin(Event, Guild):
 
 
 class GuildCreate(Event, Guild):
+    """Internal event representing a guild becoming available via the gateway.
+
+    This event trickles down to the more distinct :class:`GuildJoin` and :class:`GuildAvailable` events.
+    Users should typically listen to those events instead.
+
+    This event inherits from :class:`Guild`.
+    """
+
     __event_name__: str = "GUILD_CREATE"
 
     def __init__(self) -> None: ...
@@ -331,6 +446,24 @@ class GuildCreate(Event, Guild):
 
 
 class GuildUpdate(Event, Guild):
+    """Called when a guild is updated.
+
+    Examples of when this is called:
+    - Changed name
+    - Changed AFK channel
+    - Changed AFK timeout
+    - etc.
+
+    This requires :attr:`Intents.guilds` to be enabled.
+
+    This event inherits from :class:`Guild`.
+
+    Attributes
+    ----------
+    old: :class:`Guild`
+        The guild prior to being updated.
+    """
+
     __event_name__: str = "GUILD_UPDATE"
 
     old: Guild
@@ -356,6 +489,27 @@ class GuildUpdate(Event, Guild):
 
 
 class GuildDelete(Event, Guild):
+    """Called when a guild is removed from the client.
+
+    This happens through, but not limited to, these circumstances:
+    - The client got banned.
+    - The client got kicked.
+    - The client left the guild.
+    - The client or the guild owner deleted the guild.
+
+    In order for this event to be invoked then the client must have been part of the guild
+    to begin with (i.e., it is part of :attr:`Client.guilds`).
+
+    This requires :attr:`Intents.guilds` to be enabled.
+
+    This event inherits from :class:`Guild`.
+
+    Attributes
+    ----------
+    old: :class:`Guild`
+        The guild that was removed.
+    """
+
     __event_name__: str = "GUILD_DELETE"
 
     old: Guild
@@ -391,6 +545,13 @@ class GuildDelete(Event, Guild):
 
 
 class GuildBanAdd(Event, Member):
+    """Called when a user gets banned from a guild.
+
+    This requires :attr:`Intents.moderation` to be enabled.
+
+    This event inherits from :class:`Member`.
+    """
+
     __event_name__: str = "GUILD_BAN_ADD"
 
     def __init__(self) -> None: ...
@@ -423,6 +584,13 @@ class GuildBanAdd(Event, Member):
 
 
 class GuildBanRemove(Event, Member):
+    """Called when a user gets unbanned from a guild.
+
+    This requires :attr:`Intents.moderation` to be enabled.
+
+    This event inherits from :class:`Member`.
+    """
+
     __event_name__: str = "GUILD_BAN_REMOVE"
 
     def __init__(self) -> None: ...
@@ -455,6 +623,14 @@ class GuildBanRemove(Event, Member):
 
 
 class GuildRoleCreate(Event, Role):
+    """Called when a guild creates a role.
+
+    To get the guild it belongs to, use :attr:`Role.guild`.
+    This requires :attr:`Intents.guilds` to be enabled.
+
+    This event inherits from :class:`Role`.
+    """
+
     __event_name__: str = "GUILD_ROLE_CREATE"
 
     def __init__(self) -> None: ...
@@ -479,6 +655,18 @@ class GuildRoleCreate(Event, Role):
 
 
 class GuildRoleUpdate(Event, Role):
+    """Called when a role is changed guild-wide.
+
+    This requires :attr:`Intents.guilds` to be enabled.
+
+    This event inherits from :class:`Role`.
+
+    Attributes
+    ----------
+    old: :class:`Role`
+        The updated role's old info.
+    """
+
     __event_name__: str = "GUILD_ROLE_UPDATE"
 
     old: Role
@@ -515,6 +703,14 @@ class GuildRoleUpdate(Event, Role):
 
 
 class GuildRoleDelete(Event, Role):
+    """Called when a guild deletes a role.
+
+    To get the guild it belongs to, use :attr:`Role.guild`.
+    This requires :attr:`Intents.guilds` to be enabled.
+
+    This event inherits from :class:`Role`.
+    """
+
     __event_name__: str = "GUILD_ROLE_DELETE"
 
     def __init__(self) -> None: ...

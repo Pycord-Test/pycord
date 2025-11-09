@@ -54,6 +54,26 @@ async def logging_coroutine(coroutine, *, info: str) -> None:
 
 
 class VoiceStateUpdate(Event):
+    """Called when a member changes their voice state.
+
+    The following, but not limited to, examples illustrate when this event is called:
+    - A member joins a voice or stage channel.
+    - A member leaves a voice or stage channel.
+    - A member is muted or deafened by their own accord.
+    - A member is muted or deafened by a guild administrator.
+
+    This requires :attr:`Intents.voice_states` to be enabled.
+
+    Attributes
+    ----------
+    member: :class:`Member`
+        The member whose voice states changed.
+    before: :class:`VoiceState`
+        The voice state prior to the changes.
+    after: :class:`VoiceState`
+        The voice state after the changes.
+    """
+
     __event_name__: str = "VOICE_STATE_UPDATE"
 
     member: Member
@@ -102,6 +122,13 @@ class VoiceStateUpdate(Event):
 
 
 class VoiceServerUpdate(Event):
+    """Called when the voice server is updated.
+
+    .. note::
+        This is an internal event used by the voice protocol.
+        It is not dispatched to user code.
+    """
+
     __event_name__: str = "VOICE_SERVER_UPDATE"
 
     @classmethod
@@ -122,6 +149,20 @@ class VoiceServerUpdate(Event):
 
 
 class VoiceChannelStatusUpdate(Event):
+    """Called when someone updates a voice channel status.
+
+    Attributes
+    ----------
+    raw: :class:`RawVoiceChannelStatusUpdateEvent`
+        The raw voice channel status update payload.
+    channel: :class:`VoiceChannel` | :class:`StageChannel`
+        The channel where the voice channel status update originated from.
+    old_status: :class:`str` | None
+        The old voice channel status.
+    new_status: :class:`str` | None
+        The new voice channel status.
+    """
+
     __event_name__: str = "VOICE_CHANNEL_STATUS_UPDATE"
 
     raw: RawVoiceChannelStatusUpdateEvent
@@ -163,9 +204,7 @@ class VoiceChannelStatusUpdate(Event):
 
 
 class VoiceChannelEffectSend(Event):
-    """Represents a voice channel effect send event.
-
-    .. versionadded:: 2.7
+    """Called when a voice channel effect is sent.
 
     Attributes
     ----------
@@ -173,15 +212,15 @@ class VoiceChannelEffectSend(Event):
         The type of animation that is being sent.
     animation_id: :class:`int`
         The ID of the animation that is being sent.
-    sound: Optional[:class:`SoundboardSound` | :class:`PartialSoundboardSound`]
+    sound: :class:`SoundboardSound` | :class:`PartialSoundboardSound` | None
         The sound that is being sent, could be ``None`` if the effect is not a sound effect.
     guild: :class:`Guild`
         The guild in which the sound is being sent.
     user: :class:`Member`
         The member that sent the sound.
-    channel: :class:`VoiceChannel`
+    channel: :class:`VoiceChannel` | :class:`StageChannel`
         The voice channel in which the sound is being sent.
-    emoji: Optional[:class:`PartialEmoji`]
+    emoji: :class:`PartialEmoji` | None
         The emoji associated with the effect, if any.
     """
 

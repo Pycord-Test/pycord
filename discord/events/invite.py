@@ -36,6 +36,19 @@ from discord.types.invite import Invite as InvitePayload
 
 
 class InviteCreate(Event, Invite):
+    """Called when an invite is created.
+
+    You must have :attr:`~Permissions.manage_channels` permission to receive this.
+
+    .. note::
+        There is a rare possibility that the :attr:`Invite.guild` and :attr:`Invite.channel`
+        attributes will be of :class:`Object` rather than the respective models.
+
+    This requires :attr:`Intents.invites` to be enabled.
+
+    This event inherits from :class:`Invite`.
+    """
+
     __event_name__: str = "INVITE_CREATE"
 
     def __init__(self) -> None: ...
@@ -49,6 +62,22 @@ class InviteCreate(Event, Invite):
 
 
 class InviteDelete(Event, Invite):
+    """Called when an invite is deleted.
+
+    You must have :attr:`~Permissions.manage_channels` permission to receive this.
+
+    .. note::
+        There is a rare possibility that the :attr:`Invite.guild` and :attr:`Invite.channel`
+        attributes will be of :class:`Object` rather than the respective models.
+
+        Outside of those two attributes, the only other attribute guaranteed to be
+        filled by the Discord gateway for this event is :attr:`Invite.code`.
+
+    This requires :attr:`Intents.invites` to be enabled.
+
+    This event inherits from :class:`Invite`.
+    """
+
     __event_name__: str = "INVITE_DELETE"
 
     def __init__(self) -> None: ...

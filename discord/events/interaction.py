@@ -35,6 +35,18 @@ from ..interactions import Interaction
 
 
 class InteractionCreate(Event, Interaction):
+    """Called when an interaction is created.
+
+    This currently happens due to application command invocations or components being used.
+
+    .. warning::
+        This is a low level event that is not generally meant to be used.
+        If you are working with components, consider using the callbacks associated
+        with the :class:`~discord.ui.View` instead as it provides a nicer user experience.
+
+    This event inherits from :class:`Interaction`.
+    """
+
     __event_name__: str = "INTERACTION_CREATE"
 
     def __init__(self) -> None:
