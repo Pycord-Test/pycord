@@ -64,11 +64,6 @@ Objects
 Options
 -------
 
-Shortcut Decorators
-~~~~~~~~~~~~~~~~~~~
-.. autofunction:: discord.commands.option
-    :decorator:
-
 Objects
 ~~~~~~~
 
