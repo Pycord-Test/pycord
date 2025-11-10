@@ -78,12 +78,12 @@ if TYPE_CHECKING:
         TextChannel,
         VoiceChannel,
     )
+    from .channel.thread import Thread
     from .client import Client
     from .commands import ApplicationCommand, OptionChoice
     from .embeds import Embed
     from .mentions import AllowedMentions
     from .poll import Poll
-    from .channel.thread import Thread
     from .types.interactions import Interaction as InteractionPayload
     from .types.interactions import InteractionCallback as InteractionCallbackPayload
     from .types.interactions import InteractionCallbackResponse, InteractionData

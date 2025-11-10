@@ -31,13 +31,13 @@ from discord.app.cache import Cache
 from discord.app.state import ConnectionState
 from discord.bot import Bot
 from discord.channel import DMChannel, TextChannel
+from discord.channel.thread import Thread
 from discord.enums import ChannelType
 from discord.flags import Intents
 from discord.guild import Guild
 from discord.http import HTTPClient
 from discord.member import Member
 from discord.soundboard import SoundboardSound
-from discord.channel.thread import Thread
 from discord.user import ClientUser, User
 
 

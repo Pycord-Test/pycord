@@ -47,6 +47,7 @@ from .appinfo import AppInfo, PartialAppInfo
 from .application_role_connection import ApplicationRoleConnectionMetadata
 from .backoff import ExponentialBackoff
 from .channel import PartialMessageable, _threaded_channel_factory
+from .channel.thread import Thread
 from .emoji import AppEmoji, GuildEmoji
 from .enums import ChannelType, Status
 from .errors import *
@@ -64,7 +65,6 @@ from .soundboard import SoundboardSound
 from .stage_instance import StageInstance
 from .sticker import GuildSticker, StandardSticker, StickerPack, _sticker_factory
 from .template import Template
-from .channel.thread import Thread
 from .ui.view import View
 from .user import ClientUser, User
 from .utils import MISSING
@@ -338,7 +338,10 @@ class Client:
 
     @copy_doc(Gear.remove_listener)
     def remove_listener(
-        self, callback: Callable[[Event], Awaitable[None]], event: type[Event] | Undefined = MISSING, is_instance_function: bool = False
+        self,
+        callback: Callable[[Event], Awaitable[None]],
+        event: type[Event] | Undefined = MISSING,
+        is_instance_function: bool = False,
     ) -> None:
         return self._main_gear.remove_listener(callback, event=event, is_instance_function=is_instance_function)
 

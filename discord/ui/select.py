@@ -32,6 +32,7 @@ from typing import TYPE_CHECKING, Callable, TypeVar
 from discord import utils
 
 from ..channel import _threaded_guild_channel_factory
+from ..channel.thread import Thread
 from ..components import SelectMenu, SelectOption
 from ..emoji import AppEmoji, GuildEmoji
 from ..enums import ChannelType, ComponentType
@@ -40,7 +41,6 @@ from ..interactions import Interaction
 from ..member import Member
 from ..partial_emoji import PartialEmoji
 from ..role import Role
-from ..channel.thread import Thread
 from ..user import User
 from ..utils import MISSING
 from .item import Item, ItemCallbackType

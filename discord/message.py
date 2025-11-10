@@ -46,6 +46,7 @@ from typing_extensions import Self
 
 from . import utils
 from .channel import PartialMessageable
+from .channel.thread import Thread
 from .components import _component_factory
 from .embeds import Embed
 from .emoji import AppEmoji, GuildEmoji
@@ -61,7 +62,6 @@ from .partial_emoji import PartialEmoji
 from .poll import Poll
 from .reaction import Reaction
 from .sticker import StickerItem
-from .channel.thread import Thread
 from .utils import MISSING, escape_mentions
 from .utils.private import cached_slot_property, delay_task, get_as_snowflake, parse_time, warn_deprecated
 

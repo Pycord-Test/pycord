@@ -59,12 +59,12 @@ __all__ = (
 if TYPE_CHECKING:
     from .abc import Snowflake
     from .channel import MessageableChannel
+    from .channel.thread import Thread
     from .guild import BanEntry, Guild
     from .member import Member
     from .message import Message, MessagePin
     from .monetization import Entitlement, Subscription
     from .scheduled_events import ScheduledEvent
-    from .channel.thread import Thread
     from .types.audit_log import AuditLog as AuditLogPayload
     from .types.guild import Guild as GuildPayload
     from .types.message import Message as MessagePayload

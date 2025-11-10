@@ -51,6 +51,7 @@ from ..activity import BaseActivity
 from ..automod import AutoModRule
 from ..channel import *
 from ..channel import _channel_factory
+from ..channel.thread import Thread, ThreadMember
 from ..emoji import AppEmoji, GuildEmoji
 from ..enums import ChannelType, InteractionType, Status, try_enum
 from ..flags import ApplicationFlags, Intents, MemberCacheFlags
@@ -67,7 +68,6 @@ from ..poll import Poll, PollAnswerCount
 from ..raw_models import *
 from ..role import Role
 from ..sticker import GuildSticker
-from ..channel.thread import Thread, ThreadMember
 from ..ui.modal import Modal
 from ..ui.view import View
 from ..user import ClientUser, User

@@ -39,6 +39,7 @@ import aiohttp
 from .. import utils
 from ..asset import Asset
 from ..channel import ForumChannel, PartialMessageable
+from ..channel.thread import Thread
 from ..enums import WebhookType, try_enum
 from ..errors import (
     DiscordServerError,
@@ -53,7 +54,6 @@ from ..http import Route
 from ..message import Attachment, Message
 from ..mixins import Hashable
 from ..object import Object
-from ..channel.thread import Thread
 from ..user import BaseUser, User
 from ..utils.private import bytes_to_base64_data, get_as_snowflake, parse_ratelimit_header, to_json
 

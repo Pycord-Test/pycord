@@ -50,6 +50,7 @@ __all__ = (
 if TYPE_CHECKING:
     from .app.state import ConnectionState
     from .channel.base import GuildChannel
+    from .channel.thread import Thread
     from .emoji import GuildEmoji
     from .guild import Guild
     from .member import Member
@@ -57,7 +58,6 @@ if TYPE_CHECKING:
     from .scheduled_events import ScheduledEvent
     from .stage_instance import StageInstance
     from .sticker import GuildSticker
-    from .channel.thread import Thread
     from .types.audit_log import AuditLogChange as AuditLogChangePayload
     from .types.audit_log import AuditLogEntry as AuditLogEntryPayload
     from .types.automod import AutoModAction as AutoModActionPayload

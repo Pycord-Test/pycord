@@ -31,8 +31,8 @@ from discord import utils
 from discord.abc import Snowflake
 from discord.app.event_emitter import Event
 from discord.app.state import ConnectionState
-from discord.raw_models import RawThreadDeleteEvent, RawThreadMembersUpdateEvent, RawThreadUpdateEvent
 from discord.channel.thread import Thread, ThreadMember
+from discord.raw_models import RawThreadDeleteEvent, RawThreadMembersUpdateEvent, RawThreadUpdateEvent
 from discord.types.raw_models import ThreadDeleteEvent, ThreadUpdateEvent
 from discord.types.threads import ThreadMember as ThreadMemberPayload
 

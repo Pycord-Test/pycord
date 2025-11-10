@@ -37,14 +37,13 @@ from ..enums import (
     try_enum,
 )
 from ..enums import ThreadArchiveDuration as ThreadArchiveDurationEnum
-from .base import BaseChannel, GuildMessageableChannel
 from ..errors import ClientException
 from ..flags import ChannelFlags
 from ..mixins import Hashable
 from ..types.threads import Thread as ThreadPayload
 from ..utils import MISSING
 from ..utils.private import get_as_snowflake, parse_time
-from .base import GuildMessageableChannel
+from .base import BaseChannel, GuildMessageableChannel
 
 __all__ = (
     "Thread",

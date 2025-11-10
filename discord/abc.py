@@ -74,11 +74,11 @@ if TYPE_CHECKING:
         TextChannel,
         VoiceChannel,
     )
+    from .channel.thread import Thread
     from .client import Client
     from .embeds import Embed
     from .message import Message, MessageReference, PartialMessage
     from .poll import Poll
-    from .channel.thread import Thread
     from .types.channel import OverwriteType
     from .types.channel import PermissionOverwrite as PermissionOverwritePayload
     from .ui.view import View

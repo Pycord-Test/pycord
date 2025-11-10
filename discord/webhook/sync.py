@@ -42,6 +42,7 @@ from urllib.parse import quote as urlquote
 
 from .. import utils
 from ..channel import PartialMessageable
+from ..channel.thread import Thread
 from ..errors import (
     DiscordServerError,
     Forbidden,
@@ -52,7 +53,6 @@ from ..errors import (
 from ..http import Route
 from ..message import Message
 from ..object import Object
-from ..channel.thread import Thread
 from ..utils.private import bytes_to_base64_data, parse_ratelimit_header, to_json
 from .async_ import BaseWebhook, _WebhookState, handle_message_parameters
 

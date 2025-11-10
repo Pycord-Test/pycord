@@ -28,6 +28,7 @@ from typing_extensions import Self, override
 
 from discord.app.state import ConnectionState
 from discord.channel import StageChannel, TextChannel, VoiceChannel
+from discord.channel.thread import Thread
 from discord.guild import Guild
 from discord.member import Member
 from discord.partial_emoji import PartialEmoji
@@ -42,7 +43,6 @@ from discord.raw_models import (
     RawReactionClearEvent,
 )
 from discord.reaction import Reaction
-from discord.channel.thread import Thread
 from discord.types.message import Reaction as ReactionPayload
 from discord.types.raw_models import ReactionActionEvent, ReactionClearEvent
 from discord.user import User

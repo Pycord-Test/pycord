@@ -46,6 +46,7 @@ from typing import (
 )
 
 from ..channel import PartialMessageable, _threaded_guild_channel_factory
+from ..channel.thread import Thread
 from ..enums import Enum as DiscordEnum
 from ..enums import (
     IntegrationType,
@@ -66,7 +67,6 @@ from ..member import Member
 from ..message import Attachment, Message
 from ..object import Object
 from ..role import Role
-from ..channel.thread import Thread
 from ..user import User
 from ..utils import MISSING, find, utcnow
 from ..utils.private import async_all, maybe_awaitable, warn_deprecated

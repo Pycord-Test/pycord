@@ -42,12 +42,12 @@ from .enums import (
 if TYPE_CHECKING:
     from .abc import MessageableChannel
     from .app.state import ConnectionState
+    from .channel.thread import Thread
     from .guild import Guild
     from .member import Member
     from .message import Message
     from .partial_emoji import PartialEmoji
     from .soundboard import PartialSoundboardSound, SoundboardSound
-    from .channel.thread import Thread
     from .types.channel import VoiceChannelEffectSendEvent as VoiceChannelEffectSend
     from .types.raw_models import (
         AuditLogEntryEvent,

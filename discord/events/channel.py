@@ -33,8 +33,8 @@ from discord.abc import PrivateChannel
 from discord.app.event_emitter import Event
 from discord.app.state import ConnectionState
 from discord.channel import GroupChannel, GuildChannel, _channel_factory
-from discord.enums import ChannelType, try_enum
 from discord.channel.thread import Thread
+from discord.enums import ChannelType, try_enum
 from discord.utils.private import get_as_snowflake, parse_time
 
 T = TypeVar("T")
@@ -60,6 +60,7 @@ def _create_event_channel_class(event_cls: type[Event], channel_cls: type[GuildC
     type[GuildChannel]
         A new class that inherits from both the event and channel
     """
+
     class EventChannel(event_cls, channel_cls):  # type: ignore
         __slots__ = ()
 
