@@ -105,7 +105,7 @@ class GuildMemberRemove(Event, Member):
             member = await guild.get_member(user.id)
             if member is not None:
                 raw.user = member
-                guild._remove_member(member)  # type: ignore
+                await state.cache.delete_member(guild.id, member.id)
                 self = cls()
                 self._populate_from_slots(member)
                 return self
