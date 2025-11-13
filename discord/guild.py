@@ -2162,7 +2162,7 @@ class Guild(Hashable):
             fields["features"] = features
 
         data = await http.edit_guild(self.id, reason=reason, **fields)
-        return Guild._from_data(data=data, state=self._state)
+        return await Guild._from_data(data=data, state=self._state)
 
     async def fetch_channels(self) -> Sequence[GuildChannel]:
         """|coro|
