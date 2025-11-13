@@ -197,8 +197,6 @@ class ModalInteractionData(TypedDict):
 
 InteractionData = ApplicationCommandInteractionData | ComponentInteractionData | ModalInteractionData
 
-T = TypeVar("T", bound="InteractionData", default="InteractionData")
-
 
 class BareInteraction(TypedDict):
     id: Snowflake
