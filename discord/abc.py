@@ -1511,7 +1511,7 @@ class Messageable:
         if reference is not None:
             try:
                 _reference = reference.to_message_reference_dict()
-                from .message import MessageReference  # noqa: PLC0415
+                from .message import MessageReference
 
                 if not isinstance(reference, MessageReference):
                     warn_deprecated(
@@ -1945,6 +1945,10 @@ class Connectable(Protocol):
         return voice
 
 
-class Mentionable:
-    # TODO: documentation, methods if needed
-    pass
+@runtime_checkable
+class Mentionable(Protocol):
+    """An ABC that details the common operations on an object that can
+    be mentioned.
+    """
+
+    def mention(self) -> str: ...

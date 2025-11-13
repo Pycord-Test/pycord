@@ -45,6 +45,8 @@ from typing import (
     Union,
 )
 
+from discord.interactions import AutocompleteInteraction, Interaction
+
 from ..channel import PartialMessageable, _threaded_guild_channel_factory
 from ..channel.thread import Thread
 from ..enums import Enum as DiscordEnum
@@ -111,7 +113,7 @@ else:
 
 
 def wrap_callback(coro):
-    from ..ext.commands.errors import CommandError  # noqa: PLC0415
+    from ..ext.commands.errors import CommandError
 
     @functools.wraps(coro)
     async def wrapped(*args, **kwargs):
@@ -131,7 +133,7 @@ def wrap_callback(coro):
 
 
 def hooked_wrapped_callback(command, ctx, coro):
-    from ..ext.commands.errors import CommandError  # noqa: PLC0415
+    from ..ext.commands.errors import CommandError
 
     @functools.wraps(coro)
     async def wrapped(arg):
@@ -188,7 +190,7 @@ class ApplicationCommand(_BaseCommand, Generic[CogT, P, T]):
     cog = None
 
     def __init__(self, func: Callable, **kwargs) -> None:
-        from ..ext.commands.cooldowns import BucketType, CooldownMapping, MaxConcurrency  # noqa: PLC0415
+        from ..ext.commands.cooldowns import BucketType, CooldownMapping, MaxConcurrency
 
         cooldown = getattr(func, "__commands_cooldown__", kwargs.get("cooldown"))
 
@@ -330,7 +332,7 @@ class ApplicationCommand(_BaseCommand, Generic[CogT, P, T]):
                 retry_after = bucket.update_rate_limit(current)
 
                 if retry_after:
-                    from ..ext.commands.errors import CommandOnCooldown  # noqa: PLC0415
+                    from ..ext.commands.errors import CommandOnCooldown
 
                     raise CommandOnCooldown(bucket, retry_after, self._buckets.type)  # type: ignore
 
@@ -1005,7 +1007,7 @@ class SlashCommand(ApplicationCommand):
                     arg = Object(id=int(arg))
 
             elif op.input_type == SlashCommandOptionType.string and (converter := op.converter) is not None:
-                from discord.ext.commands import Converter  # noqa: PLC0415
+                from discord.ext.commands import Converter
 
                 if isinstance(converter, Converter):
                     if isinstance(converter, type):
@@ -1044,10 +1046,10 @@ class SlashCommand(ApplicationCommand):
         else:
             await self.callback(ctx, **kwargs)
 
-    async def invoke_autocomplete_callback(self, ctx: AutocompleteContext):
+    async def invoke_autocomplete_callback(self, interaction: AutocompleteInteraction) -> None:
         values = {i.name: i.default for i in self.options}
 
-        for op in ctx.interaction.data.get("options", []):
+        for op in interaction.data.get("options", []):
             if op.get("focused", False):
                 # op_name is used because loop variables leak in surrounding scope
                 option = find(lambda o, op_name=op["name"]: o.name == op_name, self.options)
@@ -1056,12 +1058,6 @@ class SlashCommand(ApplicationCommand):
                 ctx.focused = option
                 ctx.value = op.get("value")
                 ctx.options = values
-
-                if option.autocomplete._is_instance_method:
-                    instance = getattr(option.autocomplete, "__self__", ctx.cog)
-                    result = option.autocomplete(instance, ctx)
-                else:
-                    result = option.autocomplete(ctx)
 
                 if inspect.isawaitable(result):
                     result = await result
@@ -1232,7 +1228,7 @@ class SlashCommandGroup(ApplicationCommand):
         self.description_localizations: dict[str, str] = kwargs.get("description_localizations", MISSING)
 
         # similar to ApplicationCommand
-        from ..ext.commands.cooldowns import BucketType, CooldownMapping, MaxConcurrency  # noqa: PLC0415
+        from ..ext.commands.cooldowns import BucketType, CooldownMapping, MaxConcurrency
 
         # no need to getattr, since slash cmds groups cant be created using a decorator
 
@@ -1418,11 +1414,10 @@ class SlashCommandGroup(ApplicationCommand):
         ctx.interaction.data = option
         await command.invoke(ctx)
 
-    async def invoke_autocomplete_callback(self, ctx: AutocompleteContext) -> None:
-        option = ctx.interaction.data["options"][0]
+    async def invoke_autocomplete_callback(self, interaction: AutocompleteInteraction) -> None:
+        option = interaction.data["options"][0]
         command = find(lambda x: x.name == option["name"], self.subcommands)
-        ctx.interaction.data = option
-        await command.invoke_autocomplete_callback(ctx)
+        await command.invoke_autocomplete_callback(interaction)
 
     async def call_before_hooks(self, ctx: ApplicationContext) -> None:
         # only call local hooks

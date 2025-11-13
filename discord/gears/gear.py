@@ -22,7 +22,6 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
 
-import inspect
 from collections import defaultdict
 from collections.abc import Awaitable, Callable, Collection, Sequence
 from functools import partial
@@ -197,6 +196,8 @@ class Gear:
         """
         if event is MISSING:
             event = self._parse_listener_signature(callback, is_instance_function)
+        if once:
+            self._once_listeners.add(cast("EventCallback[Event]", callback))
         self._listeners[event].add(cast("EventCallback[Event]", callback))
 
     def remove_listener(

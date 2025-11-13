@@ -43,9 +43,11 @@ from typing import (
     overload,
 )
 
-from typing_extensions import TypeVar
+from typing_extensions import TypeAlias, TypeVar, override
 
-from discord.channel.base import BaseChannel, GuildChannel
+from discord.interactions import AutocompleteInteraction, Interaction
+
+from ..utils.private import maybe_awaitable
 
 if sys.version_info >= (3, 12):
     from typing import TypeAliasType
@@ -54,9 +56,11 @@ else:
 
 from ..abc import Mentionable
 from ..channel import (
+    BaseChannel,
     CategoryChannel,
     DMChannel,
     ForumChannel,
+    GuildChannel,
     MediaChannel,
     StageChannel,
     TextChannel,
@@ -86,17 +90,17 @@ if TYPE_CHECKING:
     )
 
     AutocompleteReturnType = Iterable["OptionChoice"] | Iterable[str] | Iterable[int] | Iterable[float]
-    AR_T = TypeVar("AR_T =", bound=AutocompleteReturnType)
+    AR_T = TypeVar("AR_T", bound=AutocompleteReturnType)
     MaybeAwaitable = AR_T | Awaitable[AR_T]
-    AutocompleteFunction = (
-        Callable[[AutocompleteContext], MaybeAwaitable[AutocompleteReturnType]]
-        | Callable[[Cog, AutocompleteContext], MaybeAwaitable[AutocompleteReturnType]]
+    AutocompleteFunction: TypeAlias = (
+        Callable[[AutocompleteInteraction], MaybeAwaitable[AutocompleteReturnType]]
+        | Callable[[Any, AutocompleteInteraction], MaybeAwaitable[AutocompleteReturnType]]
         | Callable[
-            [AutocompleteContext, Any],
+            [AutocompleteInteraction, Any],
             MaybeAwaitable[AutocompleteReturnType],
         ]
         | Callable[
-            [Cog, AutocompleteContext, Any],
+            [Any, AutocompleteInteraction, Any],
             MaybeAwaitable[AutocompleteReturnType],
         ]
     )
@@ -145,7 +149,18 @@ class ThreadOption:
 T = TypeVar("T", bound="str | int | float", default="str")
 
 
-class Option(Generic[T]):
+class ApplicationCommandOptionAutocomplete:
+    def __init__(self, autocomplete_function: AutocompleteFunction) -> None:
+        self.autocomplete_function: AutocompleteFunction = autocomplete_function
+        self.self: Any | None = None
+
+    async def __call__(self, interaction: AutocompleteInteraction) -> AutocompleteReturnType:
+        if self.self is not None:
+            return await maybe_awaitable(self.autocomplete_function(self.self, interaction))
+        return await maybe_awaitable(self.autocomplete_function(interaction))
+
+
+class Option(Generic[T]):  # TODO: Update docstring @Paillat-dev
     """Represents a selectable option for a slash command.
 
     Attributes
@@ -209,26 +224,257 @@ class Option(Generic[T]):
     .. versionadded:: 2.0
     """
 
+    # Overload for options with choices (str, int, or float types)
     @overload
     def __init__(
         self,
         name: str,
         input_type: type[T] = str,
         *,
-        choices: OptionChoice[T],
+        choices: Sequence[OptionChoice[T]],
         description: str | None = None,
         channel_types: None = None,
+        required: bool = ...,
+        default: Any | Undefined = ...,
+        min_value: None = None,
+        max_value: None = None,
+        min_length: None = None,
+        max_length: None = None,
+        name_localizations: dict[str, str] | None = None,
+        description_localizations: dict[str, str] | None = None,
+        autocomplete: None = None,
     ) -> None: ...
 
+    # Overload for channel options with optional channel_types filter
     @overload
     def __init__(
         self,
         name: str,
-        input_type: Literal[SlashCommandOptionType.channel] = SlashCommandOptionType.channel,
+        input_type: type[GuildChannel | Thread]
+        | Literal[SlashCommandOptionType.channel] = SlashCommandOptionType.channel,
         *,
         choices: None = None,
         description: str | None = None,
         channel_types: Sequence[ChannelType] | None = None,
+        required: bool = ...,
+        default: Any | Undefined = ...,
+        min_value: None = None,
+        max_value: None = None,
+        min_length: None = None,
+        max_length: None = None,
+        name_localizations: dict[str, str] | None = None,
+        description_localizations: dict[str, str] | None = None,
+        autocomplete: None = None,
+    ) -> None: ...
+
+    # Overload for required string options with min_length/max_length constraints
+    @overload
+    def __init__(
+        self,
+        name: str,
+        input_type: type[str] | Literal[SlashCommandOptionType.string] = str,
+        *,
+        description: str | None = None,
+        choices: None = None,
+        channel_types: None = None,
+        required: Literal[True],
+        default: Undefined = MISSING,
+        min_length: int | None = None,
+        max_length: int | None = None,
+        min_value: None = None,
+        max_value: None = None,
+        name_localizations: dict[str, str] | None = None,
+        description_localizations: dict[str, str] | None = None,
+        autocomplete: None = None,
+    ) -> None: ...
+
+    # Overload for optional string options with default value and min_length/max_length constraints
+    @overload
+    def __init__(
+        self,
+        name: str,
+        input_type: type[str] | Literal[SlashCommandOptionType.string] = str,
+        *,
+        description: str | None = None,
+        choices: None = None,
+        channel_types: None = None,
+        required: bool = False,
+        default: Any,
+        min_length: int | None = None,
+        max_length: int | None = None,
+        min_value: None = None,
+        max_value: None = None,
+        name_localizations: dict[str, str] | None = None,
+        description_localizations: dict[str, str] | None = None,
+        autocomplete: None = None,
+    ) -> None: ...
+
+    # Overload for required integer options with min_value/max_value constraints (integers only)
+    @overload
+    def __init__(
+        self,
+        name: str,
+        input_type: type[int] | Literal[SlashCommandOptionType.integer],
+        *,
+        description: str | None = None,
+        choices: None = None,
+        channel_types: None = None,
+        required: Literal[True],
+        default: Undefined = MISSING,
+        min_value: int | None = None,
+        max_value: int | None = None,
+        min_length: None = None,
+        max_length: None = None,
+        name_localizations: dict[str, str] | None = None,
+        description_localizations: dict[str, str] | None = None,
+        autocomplete: None = None,
+    ) -> None: ...
+
+    # Overload for optional integer options with default value and min_value/max_value constraints (integers only)
+    @overload
+    def __init__(
+        self,
+        name: str,
+        input_type: type[int] | Literal[SlashCommandOptionType.integer],
+        *,
+        description: str | None = None,
+        choices: None = None,
+        channel_types: None = None,
+        required: bool = False,
+        default: Any,
+        min_value: int | None = None,
+        max_value: int | None = None,
+        min_length: None = None,
+        max_length: None = None,
+        name_localizations: dict[str, str] | None = None,
+        description_localizations: dict[str, str] | None = None,
+        autocomplete: None = None,
+    ) -> None: ...
+
+    # Overload for required float options with min_value/max_value constraints (integers or floats)
+    @overload
+    def __init__(
+        self,
+        name: str,
+        input_type: type[float] | Literal[SlashCommandOptionType.number],
+        *,
+        description: str | None = None,
+        choices: None = None,
+        channel_types: None = None,
+        required: Literal[True],
+        default: Undefined = MISSING,
+        min_value: int | float | None = None,
+        max_value: int | float | None = None,
+        min_length: None = None,
+        max_length: None = None,
+        name_localizations: dict[str, str] | None = None,
+        description_localizations: dict[str, str] | None = None,
+        autocomplete: None = None,
+    ) -> None: ...
+
+    # Overload for optional float options with default value and min_value/max_value constraints (integers or floats)
+    @overload
+    def __init__(
+        self,
+        name: str,
+        input_type: type[float] | Literal[SlashCommandOptionType.number],
+        *,
+        description: str | None = None,
+        choices: None = None,
+        channel_types: None = None,
+        required: bool = False,
+        default: Any,
+        min_value: int | float | None = None,
+        max_value: int | float | None = None,
+        min_length: None = None,
+        max_length: None = None,
+        name_localizations: dict[str, str] | None = None,
+        description_localizations: dict[str, str] | None = None,
+        autocomplete: None = None,
+    ) -> None: ...
+
+    # Overload for required options with autocomplete (no choices or min/max constraints allowed)
+    @overload
+    def __init__(
+        self,
+        name: str,
+        input_type: type[str | int | float] = str,
+        *,
+        description: str | None = None,
+        choices: None = None,
+        channel_types: None = None,
+        required: Literal[True],
+        default: Undefined = MISSING,
+        min_value: None = None,
+        max_value: None = None,
+        min_length: None = None,
+        max_length: None = None,
+        autocomplete: ApplicationCommandOptionAutocomplete,
+        name_localizations: dict[str, str] | None = None,
+        description_localizations: dict[str, str] | None = None,
+    ) -> None: ...
+
+    # Overload for optional options with autocomplete and default value (no choices or min/max constraints allowed)
+    @overload
+    def __init__(
+        self,
+        name: str,
+        input_type: type[str | int | float] = str,
+        *,
+        description: str | None = None,
+        choices: None = None,
+        channel_types: None = None,
+        required: bool = False,
+        default: Any,
+        min_value: None = None,
+        max_value: None = None,
+        min_length: None = None,
+        max_length: None = None,
+        autocomplete: ApplicationCommandOptionAutocomplete,
+        name_localizations: dict[str, str] | None = None,
+        description_localizations: dict[str, str] | None = None,
+    ) -> None: ...
+
+    # Overload for required options of other types (bool, User, Member, Role, Attachment, Mentionable, etc.)
+    @overload
+    def __init__(
+        self,
+        name: str,
+        input_type: type[T] = str,
+        *,
+        description: str | None = None,
+        choices: None = None,
+        channel_types: None = None,
+        required: Literal[True],
+        default: Undefined = MISSING,
+        min_value: None = None,
+        max_value: None = None,
+        min_length: None = None,
+        max_length: None = None,
+        name_localizations: dict[str, str] | None = None,
+        description_localizations: dict[str, str] | None = None,
+        autocomplete: None = None,
+    ) -> None: ...
+
+    # Overload for optional options of other types with default value (bool, User, Member, Role, Attachment, Mentionable, etc.)
+    @overload
+    def __init__(
+        self,
+        name: str,
+        input_type: type[T] = str,
+        *,
+        description: str | None = None,
+        choices: None = None,
+        channel_types: None = None,
+        required: bool = False,
+        default: Any,
+        min_value: None = None,
+        max_value: None = None,
+        min_length: None = None,
+        max_length: None = None,
+        name_localizations: dict[str, str] | None = None,
+        description_localizations: dict[str, str] | None = None,
+        autocomplete: None = None,
     ) -> None: ...
 
     def __init__(
@@ -239,17 +485,26 @@ class Option(Generic[T]):
         description: str | None = None,
         choices: Sequence[OptionChoice[T]] | None = None,
         channel_types: Sequence[ChannelType] | None = None,
+        required: bool = True,
+        default: Any | Undefined = MISSING,
+        min_value: int | float | None = None,
+        max_value: int | float | None = None,
+        min_length: int | None = None,
+        max_length: int | None = None,
+        name_localizations: dict[str, str] | None = None,
+        description_localizations: dict[str, str] | None = None,
+        autocomplete: ApplicationCommandOptionAutocomplete | None = None,
     ) -> None:
         self.name: str = name
 
         self.description: str | None = description
 
-        self.choices: list[OptionChoice[T]] | None = choices
+        self.choices: list[OptionChoice[T]] | None = list(choices) if choices is not None else None
         if self.choices is not None:
             if len(self.choices) > 25:
-                raise InvalidArgument("Option choices cannot exceed 25 items.")
-            if not issubclass(input_type, (str, int, float)):
-                raise InvalidArgument("Option choices can only be used with str, int, or float input types.")
+                raise ValueError("Option choices cannot exceed 25 items.")
+            if not issubclass(input_type, str | int | float):
+                raise TypeError("Option choices can only be used with str, int, or float input types.")
 
         self.channel_types: list[ChannelType] | None = list(channel_types) if channel_types is not None else None
 
@@ -267,141 +522,58 @@ class Option(Generic[T]):
             self.input_type = SlashCommandOptionType.number
         elif issubclass(input_type, Attachment):
             self.input_type = SlashCommandOptionType.attachment
-        elif issubclass(input_type, User):
+        elif issubclass(input_type, User | Member):
             self.input_type = SlashCommandOptionType.user
-        elif issubclass(input_type, Mentionable):
-            self.input_type = SlashCommandOptionType.mentionable
         elif issubclass(input_type, Role):
             self.input_type = SlashCommandOptionType.role
-        elif issubclass(input_type, BaseChannel):
+        elif issubclass(input_type, GuildChannel | Thread):
             self.input_type = SlashCommandOptionType.channel
+        elif issubclass(input_type, Mentionable):
+            self.input_type = SlashCommandOptionType.mentionable
 
-        if self.channel_types is not None:
-            self.input_type = SlashCommandOptionType.channel
-            if len(self.channel_types) == 0:
-                raise InvalidArgument("channel_types must contain at least one ChannelType.")
+        self.required: bool = required if default is MISSING else False
+        self.default: Any | Undefined = default
 
-        self.required: bool = kwargs.pop("required", True) if "default" not in kwargs else False
-        self.default = kwargs.pop("default", None)
+        self.autocomplete: ApplicationCommandOptionAutocomplete | None = autocomplete
 
-        self._autocomplete: AutocompleteFunction | None = None
-        self.autocomplete = kwargs.pop("autocomplete", None)
-        if len(enum_choices) > 25:
-            self.choices: list[OptionChoice] = []
-            for e in enum_choices:
-                e.value = str(e.value)
-            self.autocomplete = basic_autocomplete(enum_choices)
-            self.input_type = SlashCommandOptionType.string
-        else:
-            self.choices: list[OptionChoice] = enum_choices or [
-                o if isinstance(o, OptionChoice) else OptionChoice(o) for o in kwargs.pop("choices", [])
-            ]
-
-        if self.input_type == SlashCommandOptionType.integer:
-            minmax_types = (int, type(None))
-            minmax_typehint = Optional[int]  # noqa: UP045
-        elif self.input_type == SlashCommandOptionType.number:
-            minmax_types = (int, float, type(None))
-            minmax_typehint = Optional[int | float]  # noqa: UP045
-        else:
-            minmax_types = (type(None),)
-            minmax_typehint = type(None)
-
-        if self.input_type == SlashCommandOptionType.string:
-            minmax_length_types = (int, type(None))
-            minmax_length_typehint = Optional[int]  # noqa: UP045
-        else:
-            minmax_length_types = (type(None),)
-            minmax_length_typehint = type(None)
-
-        self.min_value: int | float | None = kwargs.pop("min_value", None)
-        self.max_value: int | float | None = kwargs.pop("max_value", None)
-        self.min_length: int | None = kwargs.pop("min_length", None)
-        self.max_length: int | None = kwargs.pop("max_length", None)
-
-        if (
-            self.input_type != SlashCommandOptionType.integer
-            and self.input_type != SlashCommandOptionType.number
-            and (self.min_value or self.max_value)
+        self.min_value: int | float | None = min_value
+        self.max_value: int | float | None = max_value
+        if self.input_type not in (SlashCommandOptionType.integer, SlashCommandOptionType.number) and (
+            self.min_value is not None or self.max_value is not None
         ):
-            raise AttributeError(
-                "Option does not take min_value or max_value if not of type "
-                "SlashCommandOptionType.integer or SlashCommandOptionType.number"
+            raise TypeError(
+                f"min_value and max_value can only be used with int or float input types, not {self.input_type.name}"
             )
-        if self.input_type != SlashCommandOptionType.string and (self.min_length or self.max_length):
-            raise AttributeError("Option does not take min_length or max_length if not of type str")
+        if self.input_type is not SlashCommandOptionType.integer and (
+            isinstance(self.min_value, float) or isinstance(self.max_value, float)
+        ):
+            raise TypeError("min_value and max_value must be integers when input_type is integer")
 
-        if self.min_value is not None and not isinstance(self.min_value, minmax_types):
-            raise TypeError(f'Expected {minmax_typehint} for min_value, got "{type(self.min_value).__name__}"')
-        if self.max_value is not None and not isinstance(self.max_value, minmax_types):
-            raise TypeError(f'Expected {minmax_typehint} for max_value, got "{type(self.max_value).__name__}"')
+        self.min_length: int | None = min_length
+        self.max_length: int | None = max_length
+        if self.input_type is not SlashCommandOptionType.string and (
+            self.min_length is not None or self.max_length is not None
+        ):
+            raise TypeError(
+                f"min_length and max_length can only be used with str input type, not {self.input_type.name}"
+            )
 
-        if self.min_length is not None:
-            if not isinstance(self.min_length, minmax_length_types):
-                raise TypeError(
-                    f'Expected {minmax_length_typehint} for min_length, got "{type(self.min_length).__name__}"'
-                )
-            if self.min_length < 0 or self.min_length > 6000:
-                raise AttributeError("min_length must be between 0 and 6000 (inclusive)")
-        if self.max_length is not None:
-            if not isinstance(self.max_length, minmax_length_types):
-                raise TypeError(
-                    f'Expected {minmax_length_typehint} for max_length, got "{type(self.max_length).__name__}"'
-                )
-            if self.max_length < 1 or self.max_length > 6000:
-                raise AttributeError("max_length must between 1 and 6000 (inclusive)")
+        self.name_localizations: dict[str, str] | None = name_localizations
+        self.description_localizations: dict[str, str] | None = description_localizations
 
-        self.name_localizations = kwargs.pop("name_localizations", MISSING)
-        self.description_localizations = kwargs.pop("description_localizations", MISSING)
-
-        if input_type is None:
-            raise TypeError("input_type cannot be NoneType.")
-
-    @staticmethod
-    def _parse_type_alias(input_type: InputType) -> InputType:
-        if isinstance(input_type, TypeAliasType):
-            return input_type.__value__
-        return input_type
-
-    @staticmethod
-    def _strip_none_type(input_type):
-        if isinstance(input_type, SlashCommandOptionType):
-            return input_type
-
-        if input_type is type(None):
-            raise TypeError("Option type cannot be only NoneType")
-
-        args = ()
-        if isinstance(input_type, types.UnionType):
-            args = get_args(input_type)
-        elif getattr(input_type, "__origin__", None) is Union:
-            args = get_args(input_type)
-        elif isinstance(input_type, tuple):
-            args = input_type
-
-        if args:
-            filtered = tuple(t for t in args if t is not type(None))
-            if not filtered:
-                raise TypeError("Option type cannot be only NoneType")
-            if len(filtered) == 1:
-                return filtered[0]
-
-            return filtered
-
-        return input_type
-
-    def to_dict(self) -> dict:
-        as_dict = {
+    def to_dict(self) -> dict[str, Any]:
+        as_dict: dict[str, Any] = {
             "name": self.name,
             "description": self.description,
             "type": self.input_type.value,
             "required": self.required,
-            "choices": [c.to_dict() for c in self.choices],
             "autocomplete": bool(self.autocomplete),
         }
-        if self.name_localizations is not MISSING:
+        if self.choices:
+            as_dict["choices"] = [choice.to_dict() for choice in self.choices]
+        if self.name_localizations:
             as_dict["name_localizations"] = self.name_localizations
-        if self.description_localizations is not MISSING:
+        if self.description_localizations:
             as_dict["description_localizations"] = self.description_localizations
         if self.channel_types:
             as_dict["channel_types"] = [t.value for t in self.channel_types]
@@ -416,43 +588,9 @@ class Option(Generic[T]):
 
         return as_dict
 
+    @override
     def __repr__(self):
-        return f"<discord.commands.{self.__class__.__name__} name={self.name}>"
-
-    @property
-    def autocomplete(self) -> AutocompleteFunction | None:
-        """
-        The autocomplete handler for the option. Accepts a callable (sync or async)
-        that takes a single required argument of :class:`AutocompleteContext` or two arguments
-        of :class:`discord.Cog` (being the command's cog) and :class:`AutocompleteContext`.
-        The callable must return an iterable of :class:`str` or :class:`OptionChoice`.
-        Alternatively, :func:`discord.utils.basic_autocomplete` may be used in place of the callable.
-
-        Returns
-        -------
-        Optional[AutocompleteFunction]
-
-        .. versionchanged:: 2.7
-
-        .. note::
-            Does not validate the input value against the autocomplete results.
-        """
-        return self._autocomplete
-
-    @autocomplete.setter
-    def autocomplete(self, value: AutocompleteFunction | None) -> None:
-        self._autocomplete = value
-        # this is done here so it does not have to be computed every time the autocomplete is invoked
-        if self._autocomplete is not None:
-            self._autocomplete._is_instance_method = (  # pyright: ignore [reportFunctionMemberAccess]
-                sum(
-                    1
-                    for param in inspect.signature(self._autocomplete).parameters.values()
-                    if param.default == param.empty  # pyright: ignore[reportAny]
-                    and param.kind not in (param.VAR_POSITIONAL, param.VAR_KEYWORD)
-                )
-                == 2
-            )
+        return f"<Option name={self.name!r} input_type={self.input_type} required={self.required}>"
 
 
 class OptionChoice(Generic[T]):
