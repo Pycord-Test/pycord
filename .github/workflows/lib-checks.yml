@@ -12,14 +12,6 @@ on:
       - ".*"
     branches: [master]
   pull_request:
-    paths:
-      - "discord/**"
-      - "examples/**"
-      - "scripts/**"
-      - "tests/**"
-      - "*.toml"
-      - "*.py"
-      - ".*"
   workflow_dispatch:
   schedule:
     - cron: "0 0 * * *"
