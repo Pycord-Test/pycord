@@ -392,7 +392,7 @@ class ReactionRemoveEmoji(Event, Reaction):
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         emoji = data["emoji"]
         emoji_id = utils.get_as_snowflake(emoji, "id")
-        emoji = PartialEmoji.with_state(self, id=emoji_id, name=emoji["name"])  # noqa: F821 # TODO: self is unbound
+        emoji = PartialEmoji.with_state(state, id=emoji_id, name=emoji["name"])
         raw = RawReactionClearEmojiEvent(data, emoji)
 
         message = await state._get_message(raw.message_id)
