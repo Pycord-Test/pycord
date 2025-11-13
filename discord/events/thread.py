@@ -375,7 +375,7 @@ class BulkThreadMemberUpdate(Event):
 
         thread_id = int(data["id"])
         thread: Thread | None = guild.get_thread(thread_id)
-        raw = RawThreadMembersUpdateEvent(data)  # TODO: Not used @VincentRPS # noqa: F841
+        # raw = RawThreadMembersUpdateEvent(data)  # TODO: Not used @VincentRPS # noqa: F841
         if thread is None:
             _log.debug(
                 ("THREAD_MEMBERS_UPDATE referencing an unknown thread ID: %s. Discarding"),
