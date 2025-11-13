@@ -400,7 +400,7 @@ class ConnectionState:
         return await self.cache.get_all_stickers()
 
     async def get_emoji(self, emoji_id: int | None) -> GuildEmoji | AppEmoji | None:
-        return await self.get_emoji(emoji_id)
+        return await self.cache.get_emoji(emoji_id)
 
     async def _remove_emoji(self, emoji: GuildEmoji | AppEmoji) -> None:
         await self.cache.delete_emoji(emoji)
