@@ -163,7 +163,6 @@ class GroupDMChannel(_BaseNamedChannel, DMChannel):
     type: Literal[3]
     icon: str | None
     owner_id: Snowflake
-    name: str
 
 
 Channel = GuildChannel | DMChannel | GroupDMChannel
