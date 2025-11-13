@@ -35,6 +35,7 @@ from discord.channel.thread import Thread, ThreadMember
 from discord.raw_models import RawThreadDeleteEvent, RawThreadMembersUpdateEvent, RawThreadUpdateEvent
 from discord.types.raw_models import ThreadDeleteEvent, ThreadUpdateEvent
 from discord.types.threads import ThreadMember as ThreadMemberPayload
+from copy import copy
 
 _log = logging.getLogger(__name__)
 
