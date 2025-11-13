@@ -27,6 +27,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from typing_extensions import Self
+
 from .guild import Guild
 from .utils import MISSING, Undefined
 from .utils.private import bytes_to_base64_data, parse_time
@@ -132,7 +134,7 @@ class Template:
     )
 
     @classmethod
-    async def from_data(cls, state: ConnectionState, data: TemplatePayload) -> None:
+    async def from_data(cls, state: ConnectionState, data: TemplatePayload) -> Self:
         self = cls()
         self._state = state
 
@@ -160,6 +162,7 @@ class Template:
             self.source_guild = guild
 
         self.is_dirty: bool | None = data.get("is_dirty", None)
+        return self
 
     def __repr__(self) -> str:
         return (
