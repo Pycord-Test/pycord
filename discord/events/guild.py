@@ -287,6 +287,7 @@ class GuildEmojisUpdate(Event):
         self.guild = guild
         self.old_emojis = guild.emojis
         self.emojis = emojis
+        return self
 
 
 class GuildStickersUpdate(Event):
@@ -333,6 +334,7 @@ class GuildStickersUpdate(Event):
         self.old_stickers = stickers
         self.stickers = stickers
         self.guild = guild
+        return self
 
 
 class GuildAvailable(Event, Guild):
@@ -352,7 +354,7 @@ class GuildAvailable(Event, Guild):
     @override
     async def __load__(cls, data: Guild, state: ConnectionState) -> Self:
         self = cls()
-        # self.__dict__.update(data.__dict__) # TODO: Find another way to do this
+        self._populate_from_slots(data)
         return self
 
 
@@ -373,7 +375,7 @@ class GuildUnavailable(Event, Guild):
     @override
     async def __load__(cls, data: Guild, state: ConnectionState) -> Self:
         self = cls()
-        self.__dict__.update(data.__dict__)
+        self._populate_from_slots(data)
         return self
 
 
@@ -393,7 +395,7 @@ class GuildJoin(Event, Guild):
     @override
     async def __load__(cls, data: Guild, state: ConnectionState) -> Self:
         self = cls()
-        # self.__dict__.update(data.__dict__) # TODO: Find another way to do this
+        self._populate_from_slots(data)
         return self
 
 
@@ -441,7 +443,7 @@ class GuildCreate(Event, Guild):
             await state.emitter.emit("GUILD_JOIN", guild)
 
         self = cls()
-        # self.__dict__.update(data.__dict__) # TODO: Find another way to do this
+        self._populate_from_slots(guild)
         return self
 
 
