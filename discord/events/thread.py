@@ -264,15 +264,18 @@ class ThreadDelete(Event, Thread):
         if guild is None:
             return
 
-        self = cls()  # TODO: self is unused @VincentRPS # noqa: F841
+        self = cls()
 
         thread = guild.get_thread(raw.thread_id)
         if thread:
             guild._remove_thread(thread)
             if (msg := await thread.get_starting_message()) is not None:
                 msg.thread = None  # type: ignore
+            self.__dict__.update(thread.__dict__)
+        else:
+            return None
 
-        return cast(Self, thread)  # TODO: this is an incorrect rtype @VincentRPS
+        return self
 
 
 class ThreadListSync(Event):
