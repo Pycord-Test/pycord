@@ -313,7 +313,7 @@ class Section(Item[V]):
 
     @classmethod
     def from_component(cls: type[S], component: SectionComponent) -> S:
-        from .view import _component_to_item  # noqa: PLC0415
+        from .view import _component_to_item
 
         items = [_component_to_item(c) for c in component.components]
         accessory = _component_to_item(component.accessory)

@@ -46,6 +46,7 @@ from typing_extensions import Self
 
 from . import utils
 from .channel import PartialMessageable
+from .channel.thread import Thread
 from .components import _component_factory
 from .embeds import Embed
 from .emoji import AppEmoji, GuildEmoji
@@ -61,19 +62,18 @@ from .partial_emoji import PartialEmoji
 from .poll import Poll
 from .reaction import Reaction
 from .sticker import StickerItem
-from .threads import Thread
 from .utils import MISSING, escape_mentions
 from .utils.private import cached_slot_property, delay_task, get_as_snowflake, parse_time, warn_deprecated
 
 if TYPE_CHECKING:
     from .abc import (
-        GuildChannel,
         MessageableChannel,
         PartialMessageableChannel,
         Snowflake,
     )
     from .app.state import ConnectionState
     from .channel import TextChannel
+    from .channel.base import GuildChannel
     from .components import Component
     from .interactions import MessageInteraction
     from .mentions import AllowedMentions
@@ -1049,7 +1049,7 @@ class Message(Hashable):
         except KeyError:
             self.snapshots = []
 
-        from .interactions import InteractionMetadata, MessageInteraction  # noqa: PLC0415 # circular import
+        from .interactions import InteractionMetadata, MessageInteraction  # circular import
 
         self._interaction: MessageInteraction | None
         try:
@@ -1085,14 +1085,14 @@ class Message(Hashable):
             found = await self.guild.get_member(self.author.id)
             if found is not None:
                 self.author = found
-
-        try:
-            # Update member reference
-            self.author._update_from_message(member)  # type: ignore # noqa: F821 # TODO: member is unbound
-        except AttributeError:
-            # It's a user here
-            # TODO: consider adding to cache here
-            self.author = Member._from_message(message=self, data=data["member"])
+        if data.get("member"):
+            try:
+                # Update member reference
+                self.author._update_from_message(member)  # type: ignore # noqa: F821 # TODO: member is unbound
+            except AttributeError:
+                # It's a user here
+                # TODO: consider adding to cache here
+                self.author = Member._from_message(message=self, data=data["member"])
 
         self.mentions = r = []
         if not isinstance(self.guild, Guild):

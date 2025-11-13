@@ -50,6 +50,7 @@ from .asset import Asset
 from .automod import AutoModAction, AutoModRule, AutoModTriggerMetadata
 from .channel import *
 from .channel import _guild_channel_factory, _threaded_guild_channel_factory
+from .channel.thread import Thread, ThreadMember
 from .colour import Colour
 from .emoji import GuildEmoji, PartialEmoji, _EmojiTag
 from .enums import (
@@ -92,7 +93,6 @@ from .scheduled_events import ScheduledEvent, ScheduledEventLocation
 from .soundboard import SoundboardSound
 from .stage_instance import StageInstance
 from .sticker import GuildSticker
-from .threads import Thread, ThreadMember
 from .user import User
 from .utils.private import bytes_to_base64_data, get_as_snowflake
 from .welcome_screen import WelcomeScreen, WelcomeScreenChannel
@@ -324,7 +324,7 @@ class Guild(Hashable):
         return self._voice_states.get(user_id)
 
     async def _add_member(self, member: Member, /) -> None:
-        await cast(ConnectionState, self._state).cache.store_member(member)
+        await cast("ConnectionState", self._state).cache.store_member(member)
 
     async def _get_and_update_member(self, payload: MemberPayload, user_id: int, cache_flag: bool, /) -> Member:
         members = await cast(ConnectionState, self._state).cache.get_guild_members(self.id)
@@ -528,7 +528,7 @@ class Guild(Hashable):
             events.append(ScheduledEvent(state=self._state, guild=self, creator=creator, data=event))
         self._scheduled_events_from_list(events)
 
-        self._sync(guild)
+        await self._sync(guild)
         self._large: bool | None = None if self._member_count is None else self._member_count >= 250
 
         self.owner_id: int | None = get_as_snowflake(guild, "owner_id")
@@ -539,7 +539,7 @@ class Guild(Hashable):
 
         for sound in guild.get("soundboard_sounds", []):
             sound = SoundboardSound(state=state, http=state.http, data=sound)
-            self._add_sound(sound)
+            await self._add_sound(sound)
 
         incidents_payload = guild.get("incidents_data")
         self.incidents_data: IncidentsData | None = (
@@ -547,9 +547,9 @@ class Guild(Hashable):
         )
         return self
 
-    def _add_sound(self, sound: SoundboardSound) -> None:
+    async def _add_sound(self, sound: SoundboardSound) -> None:
         self._sounds[sound.id] = sound
-        self._state._add_sound(sound)
+        await self._state._add_sound(sound)
 
     def _remove_sound(self, sound_id: int) -> None:
         self._sounds.pop(sound_id, None)
@@ -669,7 +669,7 @@ class Guild(Hashable):
         )
 
     # TODO: refactor/remove?
-    def _sync(self, data: GuildPayload) -> None:
+    async def _sync(self, data: GuildPayload) -> None:
         try:
             self._large = data["large"]
         except KeyError:
@@ -687,12 +687,12 @@ class Guild(Hashable):
             for c in channels:
                 factory, _ch_type = _guild_channel_factory(c["type"])
                 if factory:
-                    self._add_channel(factory(guild=self, data=c, state=self._state))  # type: ignore
+                    self._add_channel(await factory._from_data(guild=self, data=c, state=self._state))  # type: ignore
 
         if "threads" in data:
             threads = data["threads"]
             for thread in threads:
-                self._add_thread(Thread(guild=self, state=self._state, data=thread))
+                self._add_thread(await Thread._from_data(guild=self, state=self._state, data=thread))
 
     @property
     def channels(self) -> list[GuildChannel]:
@@ -990,7 +990,7 @@ class Guild(Hashable):
         Optional[:class:`Member`]
             The member or ``None`` if not found.
         """
-        return await cast(ConnectionState, self._state).cache.get_member(self.id, user_id)
+        return await cast("ConnectionState", self._state).cache.get_member(self.id, user_id)
 
     @property
     def premium_subscribers(self) -> list[Member]:
@@ -2177,7 +2177,7 @@ class Guild(Hashable):
 
         Returns
         -------
-        Sequence[:class:`abc.GuildChannel`]
+        Sequence[:class:`discord.channel.base.GuildChannel`]
             All channels in the guild.
 
         Raises

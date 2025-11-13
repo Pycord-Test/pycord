@@ -22,11 +22,13 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
 
-from typing import Any, Self
+from typing import Any
 
-from discord.abc import GuildChannel
+from typing_extensions import Self, override
+
 from discord.app.event_emitter import Event
 from discord.app.state import ConnectionState
+from discord.channel.base import GuildChannel
 from discord.guild import Guild
 from discord.invite import Invite, PartialInviteChannel, PartialInviteGuild
 from discord.types.invite import GatewayInvite, VanityInvite
@@ -34,11 +36,25 @@ from discord.types.invite import Invite as InvitePayload
 
 
 class InviteCreate(Event, Invite):
-    __event_name__ = "INVITE_CREATE"
+    """Called when an invite is created.
+
+    You must have :attr:`~Permissions.manage_channels` permission to receive this.
+
+    .. note::
+        There is a rare possibility that the :attr:`Invite.guild` and :attr:`Invite.channel`
+        attributes will be of :class:`Object` rather than the respective models.
+
+    This requires :attr:`Intents.invites` to be enabled.
+
+    This event inherits from :class:`Invite`.
+    """
+
+    __event_name__: str = "INVITE_CREATE"
 
     def __init__(self) -> None: ...
 
     @classmethod
+    @override
     async def __load__(cls, data: GatewayInvite, state: ConnectionState) -> Self | None:
         invite = await Invite.from_gateway(state=state, data=data)
         self = cls()
@@ -46,11 +62,28 @@ class InviteCreate(Event, Invite):
 
 
 class InviteDelete(Event, Invite):
-    __event_name__ = "INVITE_DELETE"
+    """Called when an invite is deleted.
+
+    You must have :attr:`~Permissions.manage_channels` permission to receive this.
+
+    .. note::
+        There is a rare possibility that the :attr:`Invite.guild` and :attr:`Invite.channel`
+        attributes will be of :class:`Object` rather than the respective models.
+
+        Outside of those two attributes, the only other attribute guaranteed to be
+        filled by the Discord gateway for this event is :attr:`Invite.code`.
+
+    This requires :attr:`Intents.invites` to be enabled.
+
+    This event inherits from :class:`Invite`.
+    """
+
+    __event_name__: str = "INVITE_DELETE"
 
     def __init__(self) -> None: ...
 
     @classmethod
+    @override
     async def __load__(cls, data: GatewayInvite, state: ConnectionState) -> Self | None:
         invite = await Invite.from_gateway(state=state, data=data)
         self = cls()

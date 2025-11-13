@@ -33,6 +33,7 @@ from .audit_logs import *
 from .automod import *
 from .bot import *
 from .channel import *
+from .channel.thread import *
 from .client import *
 from .cog import *
 from .collectibles import *
@@ -72,7 +73,6 @@ from .stage_instance import *
 from .sticker import *
 from .team import *
 from .template import *
-from .threads import *
 from .user import *
 from .voice_client import *
 from .webhook import *

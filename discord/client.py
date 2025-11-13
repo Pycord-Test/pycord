@@ -30,6 +30,7 @@ import logging
 import signal
 import sys
 import traceback
+from collections.abc import Awaitable
 from types import TracebackType
 from typing import TYPE_CHECKING, Any, AsyncGenerator, Callable, Coroutine, Generator, Sequence, TypeVar
 
@@ -40,16 +41,19 @@ from discord.banners import print_banner, start_logging
 from . import utils
 from .activity import ActivityTypes, BaseActivity, create_activity
 from .app.cache import Cache, MemoryCache
+from .app.event_emitter import Event
 from .app.state import ConnectionState
 from .appinfo import AppInfo, PartialAppInfo
 from .application_role_connection import ApplicationRoleConnectionMetadata
 from .backoff import ExponentialBackoff
 from .channel import PartialMessageable, _threaded_channel_factory
+from .channel.thread import Thread
 from .emoji import AppEmoji, GuildEmoji
 from .enums import ChannelType, Status
 from .errors import *
 from .flags import ApplicationFlags, Intents
 from .gateway import *
+from .gears import Gear
 from .guild import Guild
 from .http import HTTPClient
 from .invite import Invite
@@ -61,13 +65,13 @@ from .soundboard import SoundboardSound
 from .stage_instance import StageInstance
 from .sticker import GuildSticker, StandardSticker, StickerPack, _sticker_factory
 from .template import Template
-from .threads import Thread
 from .ui.view import View
 from .user import ClientUser, User
 from .utils import MISSING
 from .utils.private import (
     SequenceProxy,
     bytes_to_base64_data,
+    copy_doc,
     resolve_invite,
     resolve_template,
 )
@@ -76,8 +80,8 @@ from .webhook import Webhook
 from .widget import Widget
 
 if TYPE_CHECKING:
-    from .abc import GuildChannel, PrivateChannel, Snowflake, SnowflakeTime
-    from .channel import DMChannel
+    from .abc import PrivateChannel, Snowflake, SnowflakeTime
+    from .channel import DMChannel, GuildChannel
     from .interactions import Interaction
     from .member import Member
     from .message import Message
@@ -243,7 +247,6 @@ class Client:
         # self.ws is set in the connect method
         self.ws: DiscordWebSocket = None  # type: ignore
         self.loop: asyncio.AbstractEventLoop = asyncio.get_event_loop() if loop is None else loop
-        self._listeners: dict[str, list[tuple[asyncio.Future, Callable[..., bool]]]] = {}
         self.shard_id: int | None = options.get("shard_id")
         self.shard_count: int | None = options.get("shard_count")
 
@@ -264,7 +267,14 @@ class Client:
         self._hooks: dict[str, Callable] = {"before_identify": self._call_before_identify_hook}
 
         self._enable_debug_events: bool = options.pop("enable_debug_events", False)
-        self._connection: ConnectionState = self._get_state(**options)
+        self._connection: ConnectionState = ConnectionState(
+            handlers=self._handlers,
+            hooks=self._hooks,
+            http=self.http,
+            loop=self.loop,
+            cache=MemoryCache(),
+            **options,
+        )
         self._connection.shard_count = self.shard_count
         self._closed: bool = False
         self._ready: asyncio.Event = asyncio.Event()
@@ -272,12 +282,19 @@ class Client:
         self._connection._get_client = lambda: self
         self._event_handlers: dict[str, list[Coro]] = {}
 
+        self._main_gear: Gear = Gear()
+
+        self._connection.emitter.add_receiver(self._handle_event)
+
         if VoiceClient.warn_nacl:
             VoiceClient.warn_nacl = False
             _log.warning("PyNaCl is not installed, voice will NOT be supported")
 
         # Used to hard-reference tasks so they don't get garbage collected (discarded with done_callbacks)
         self._tasks = set()
+
+    async def _handle_event(self, event: Event) -> None:
+        await asyncio.gather(*self._main_gear._handle_event(event))
 
     async def __aenter__(self) -> Client:
         loop = asyncio.get_running_loop()
@@ -298,21 +315,46 @@ class Client:
         if not self.is_closed():
             await self.close()
 
+    # Gear methods
+
+    @copy_doc(Gear.attach_gear)
+    def attach_gear(self, gear: Gear) -> None:
+        return self._main_gear.attach_gear(gear)
+
+    @copy_doc(Gear.detach_gear)
+    def detach_gear(self, gear: Gear) -> None:
+        return self._main_gear.detach_gear(gear)
+
+    @copy_doc(Gear.add_listener)
+    def add_listener(
+        self,
+        callback: Callable[[Event], Awaitable[None]],
+        *,
+        event: type[Event] | Undefined = MISSING,
+        is_instance_function: bool = False,
+        once: bool = False,
+    ) -> None:
+        return self._main_gear.add_listener(callback, event=event, is_instance_function=is_instance_function, once=once)
+
+    @copy_doc(Gear.remove_listener)
+    def remove_listener(
+        self,
+        callback: Callable[[Event], Awaitable[None]],
+        event: type[Event] | Undefined = MISSING,
+        is_instance_function: bool = False,
+    ) -> None:
+        return self._main_gear.remove_listener(callback, event=event, is_instance_function=is_instance_function)
+
+    @copy_doc(Gear.listen)
+    def listen(
+        self, event: type[Event] | Undefined = MISSING, once: bool = False
+    ) -> Callable[[Callable[[Event], Awaitable[None]]], Callable[[Event], Awaitable[None]]]:
+        return self._main_gear.listen(event=event, once=once)
+
     # internals
 
     def _get_websocket(self, guild_id: int | None = None, *, shard_id: int | None = None) -> DiscordWebSocket:
         return self.ws
-
-    def _get_state(self, **options: Any) -> ConnectionState:
-        return ConnectionState(
-            dispatch=self.dispatch,
-            handlers=self._handlers,
-            hooks=self._hooks,
-            http=self.http,
-            loop=self.loop,
-            cache=MemoryCache(),
-            **options,
-        )
 
     def _handle_ready(self) -> None:
         self._ready.set()
@@ -464,71 +506,6 @@ class Client:
         self._tasks.add(task)
         task.add_done_callback(self._tasks.discard)
         return task
-
-    def dispatch(self, event: str, *args: Any, **kwargs: Any) -> None:
-        _log.debug("Dispatching event %s", event)
-        method = f"on_{event}"
-
-        listeners = self._listeners.get(event)
-        if listeners:
-            removed = []
-            for i, (future, condition) in enumerate(listeners):
-                if future.cancelled():
-                    removed.append(i)
-                    continue
-
-                try:
-                    result = condition(*args)
-                except Exception as exc:
-                    future.set_exception(exc)
-                    removed.append(i)
-                else:
-                    if result:
-                        if len(args) == 0:
-                            future.set_result(None)
-                        elif len(args) == 1:
-                            future.set_result(args[0])
-                        else:
-                            future.set_result(args)
-                        removed.append(i)
-
-            if len(removed) == len(listeners):
-                self._listeners.pop(event)
-            else:
-                for idx in reversed(removed):
-                    del listeners[idx]
-
-        # Schedule the main handler registered with @event
-        try:
-            coro = getattr(self, method)
-        except AttributeError:
-            pass
-        else:
-            self._schedule_event(coro, method, *args, **kwargs)
-
-        # collect the once listeners as removing them from the list
-        # while iterating over it causes issues
-        once_listeners = []
-
-        # Schedule additional handlers registered with @listen
-        for coro in self._event_handlers.get(method, []):
-            self._schedule_event(coro, method, *args, **kwargs)
-
-            try:
-                if coro._once:  # added using @listen()
-                    once_listeners.append(coro)
-
-            except AttributeError:  # added using @Cog.add_listener()
-                # https://github.com/Pycord-Development/pycord/pull/1989
-                # Although methods are similar to functions, attributes can't be added to them.
-                # This means that we can't add the `_once` attribute in the `add_listener` method
-                # and can only be added using the `@listen` decorator.
-
-                continue
-
-        # remove the once listeners
-        for coro in once_listeners:
-            self._event_handlers[method].remove(coro)
 
     async def on_error(self, event_method: str, *args: Any, **kwargs: Any) -> None:
         """|coro|
@@ -691,7 +668,7 @@ class Client:
                     await self.ws.poll_event()
             except ReconnectWebSocket as e:
                 _log.info("Got a request to %s the websocket.", e.op)
-                self.dispatch("disconnect")
+                # self.dispatch("disconnect") # TODO: dispatch event
                 ws_params.update(
                     sequence=self.ws.sequence,
                     resume=e.resume,
@@ -1151,283 +1128,12 @@ class Client:
             for member in guild.members:
                 yield member
 
-    # listeners/waiters
-
     async def wait_until_ready(self) -> None:
         """|coro|
 
         Waits until the client's internal cache is all ready.
         """
         await self._ready.wait()
-
-    def wait_for(
-        self,
-        event: str,
-        *,
-        check: Callable[..., bool] | None = None,
-        timeout: float | None = None,
-    ) -> Any:
-        """|coro|
-
-        Waits for a WebSocket event to be dispatched.
-
-        This could be used to wait for a user to reply to a message,
-        or to react to a message, or to edit a message in a self-contained
-        way.
-
-        The ``timeout`` parameter is passed onto :func:`asyncio.wait_for`. By default,
-        it does not timeout. Note that this does propagate the
-        :exc:`asyncio.TimeoutError` for you in case of timeout and is provided for
-        ease of use.
-
-        In case the event returns multiple arguments, a :class:`tuple` containing those
-        arguments is returned instead. Please check the
-        :ref:`documentation <discord-api-events>` for a list of events and their
-        parameters.
-
-        This function returns the **first event that meets the requirements**.
-
-        Parameters
-        ----------
-        event: :class:`str`
-            The event name, similar to the :ref:`event reference <discord-api-events>`,
-            but without the ``on_`` prefix, to wait for.
-        check: Optional[Callable[..., :class:`bool`]]
-            A predicate to check what to wait for. The arguments must meet the
-            parameters of the event being waited for.
-        timeout: Optional[:class:`float`]
-            The number of seconds to wait before timing out and raising
-            :exc:`asyncio.TimeoutError`.
-
-        Returns
-        -------
-        Any
-            Returns no arguments, a single argument, or a :class:`tuple` of multiple
-            arguments that mirrors the parameters passed in the
-            :ref:`event reference <discord-api-events>`.
-
-        Raises
-        ------
-        asyncio.TimeoutError
-            Raised if a timeout is provided and reached.
-
-        Examples
-        --------
-
-        Waiting for a user reply: ::
-
-            @client.event
-            async def on_message(message):
-                if message.content.startswith("$greet"):
-                    channel = message.channel
-                    await channel.send("Say hello!")
-
-                    def check(m):
-                        return m.content == "hello" and m.channel == channel
-
-                    msg = await client.wait_for("message", check=check)
-                    await channel.send(f"Hello {msg.author}!")
-
-        Waiting for a thumbs up reaction from the message author: ::
-
-            @client.event
-            async def on_message(message):
-                if message.content.startswith("$thumb"):
-                    channel = message.channel
-                    await channel.send("Send me that \N{THUMBS UP SIGN} reaction, mate")
-
-                    def check(reaction, user):
-                        return user == message.author and str(reaction.emoji) == "\N{THUMBS UP SIGN}"
-
-                    try:
-                        reaction, user = await client.wait_for("reaction_add", timeout=60.0, check=check)
-                    except asyncio.TimeoutError:
-                        await channel.send("\N{THUMBS DOWN SIGN}")
-                    else:
-                        await channel.send("\N{THUMBS UP SIGN}")
-        """
-
-        future = self.loop.create_future()
-        if check is None:
-
-            def _check(*args):
-                return True
-
-            check = _check
-
-        ev = event.lower()
-        try:
-            listeners = self._listeners[ev]
-        except KeyError:
-            listeners = []
-            self._listeners[ev] = listeners
-
-        listeners.append((future, check))
-        return asyncio.wait_for(future, timeout)
-
-    # event registration
-    def add_listener(self, func: Coro, name: str | utils.Undefined = MISSING) -> None:
-        """The non decorator alternative to :meth:`.listen`.
-
-        Parameters
-        ----------
-        func: :ref:`coroutine <coroutine>`
-            The function to call.
-        name: :class:`str`
-            The name of the event to listen for. Defaults to ``func.__name__``.
-
-        Raises
-        ------
-        TypeError
-            The ``func`` parameter is not a coroutine function.
-        ValueError
-            The ``name`` (event name) does not start with ``on_``.
-
-        Example
-        -------
-
-        .. code-block:: python3
-
-            async def on_ready():
-                pass
-
-
-            async def my_message(message):
-                pass
-
-
-            client.add_listener(on_ready)
-            client.add_listener(my_message, "on_message")
-        """
-        name = func.__name__ if name is MISSING else name
-
-        if not name.startswith("on_"):
-            raise ValueError("The 'name' parameter must start with 'on_'")
-
-        if not asyncio.iscoroutinefunction(func):
-            raise TypeError("Listeners must be coroutines")
-
-        if name in self._event_handlers:
-            self._event_handlers[name].append(func)
-        else:
-            self._event_handlers[name] = [func]
-
-        _log.debug(
-            "%s has successfully been registered as a handler for event %s",
-            func.__name__,
-            name,
-        )
-
-    def remove_listener(self, func: Coro, name: str | utils.Undefined = MISSING) -> None:
-        """Removes a listener from the pool of listeners.
-
-        Parameters
-        ----------
-        func
-            The function that was used as a listener to remove.
-        name: :class:`str`
-            The name of the event we want to remove. Defaults to
-            ``func.__name__``.
-        """
-
-        name = func.__name__ if name is MISSING else name
-
-        if name in self._event_handlers:
-            try:
-                self._event_handlers[name].remove(func)
-            except ValueError:
-                pass
-
-    def listen(self, name: str | utils.Undefined = MISSING, once: bool = False) -> Callable[[Coro], Coro]:
-        """A decorator that registers another function as an external
-        event listener. Basically this allows you to listen to multiple
-        events from different places e.g. such as :func:`.on_ready`
-
-        The functions being listened to must be a :ref:`coroutine <coroutine>`.
-
-        Raises
-        ------
-        TypeError
-            The function being listened to is not a coroutine.
-        ValueError
-            The ``name`` (event name) does not start with ``on_``.
-
-        Example
-        -------
-
-        .. code-block:: python3
-
-            @client.listen()
-            async def on_message(message):
-                print("one")
-
-
-            # in some other file...
-
-
-            @client.listen("on_message")
-            async def my_message(message):
-                print("two")
-
-
-            # listen to the first event only
-            @client.listen("on_ready", once=True)
-            async def on_ready():
-                print("ready!")
-
-        Would print one and two in an unspecified order.
-        """
-
-        def decorator(func: Coro) -> Coro:
-            # Special case, where default should be overwritten
-            if name == "on_application_command_error":
-                return self.event(func)
-
-            func._once = once
-            self.add_listener(func, name)
-            return func
-
-        if asyncio.iscoroutinefunction(name):
-            coro = name
-            name = coro.__name__
-            return decorator(coro)
-
-        return decorator
-
-    def event(self, coro: Coro) -> Coro:
-        """A decorator that registers an event to listen to.
-
-        You can find more info about the events on the :ref:`documentation below <discord-api-events>`.
-
-        The events must be a :ref:`coroutine <coroutine>`, if not, :exc:`TypeError` is raised.
-
-        .. note::
-
-            This replaces any default handlers.
-            Developers are encouraged to use :py:meth:`~discord.Client.listen` for adding additional handlers
-            instead of :py:meth:`~discord.Client.event` unless default method replacement is intended.
-
-        Raises
-        ------
-        TypeError
-            The coroutine passed is not actually a coroutine.
-
-        Example
-        -------
-
-        .. code-block:: python3
-
-            @client.event
-            async def on_ready():
-                print("Ready!")
-        """
-
-        if not asyncio.iscoroutinefunction(coro):
-            raise TypeError("event registered must be a coroutine function")
-
-        setattr(self, coro.__name__, coro)
-        _log.debug("%s has successfully been registered as an event", coro.__name__)
-        return coro
 
     async def change_presence(
         self,

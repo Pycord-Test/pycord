@@ -140,7 +140,7 @@ class VoiceState:
         self.session_id: str = data.get("session_id")
         self._update(data, channel)
 
-    async def _update(
+    def _update(
         self,
         data: VoiceStatePayload | GuildVoiceStatePayload,
         channel: VocalGuildChannel | None,
@@ -422,7 +422,7 @@ class Member(discord.abc.Messageable, _UserTag):
         ch = await self.create_dm()
         return ch
 
-    async def _update(self, data: MemberPayload) -> None:
+    def _update(self, data: MemberPayload) -> None:
         # the nickname change is optional,
         # if it isn't in the payload then it didn't change
         try:

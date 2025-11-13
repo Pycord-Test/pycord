@@ -23,23 +23,36 @@ DEALINGS IN THE SOFTWARE.
 """
 
 import logging
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Any
+
+from typing_extensions import Self, override
 
 from discord.app.event_emitter import Event
 from discord.app.state import ConnectionState
 
 if TYPE_CHECKING:
-    from discord.abc import GuildChannel
+    from discord.channel.base import GuildChannel
 
 _log = logging.getLogger(__name__)
 
 
 class WebhooksUpdate(Event):
-    __event_name__ = "WEBHOOKS_UPDATE"
+    """Called whenever a webhook is created, modified, or removed from a guild channel.
+
+    This requires :attr:`Intents.webhooks` to be enabled.
+
+    Attributes
+    ----------
+    channel: :class:`TextChannel` | :class:`VoiceChannel` | :class:`ForumChannel` | :class:`StageChannel`
+        The channel that had its webhooks updated.
+    """
+
+    __event_name__: str = "WEBHOOKS_UPDATE"
 
     channel: "GuildChannel"
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         guild = await state._get_guild(int(data["guild_id"]))
         if guild is None:

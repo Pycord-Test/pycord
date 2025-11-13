@@ -92,7 +92,7 @@ async def _get_from_guilds(bot, getter, argument):
 
 T = TypeVar("T")
 T_co = TypeVar("T_co", covariant=True)
-CT = TypeVar("CT", bound=discord.abc.GuildChannel)
+CT = TypeVar("CT", bound=discord.channel.GuildChannel)
 TT = TypeVar("TT", bound=discord.Thread)
 
 
@@ -411,7 +411,7 @@ class MessageConverter(IDConverter[discord.Message]):
             raise ChannelNotReadable(channel) from e
 
 
-class GuildChannelConverter(IDConverter[discord.abc.GuildChannel]):
+class GuildChannelConverter(IDConverter[discord.channel.GuildChannel]):
     """Converts to a :class:`~discord.abc.GuildChannel`.
 
     All lookups are via the local guild. If in a DM context, then the lookup
@@ -426,8 +426,8 @@ class GuildChannelConverter(IDConverter[discord.abc.GuildChannel]):
     .. versionadded:: 2.0
     """
 
-    async def convert(self, ctx: Context, argument: str) -> discord.abc.GuildChannel:
-        return await self._resolve_channel(ctx, argument, "channels", discord.abc.GuildChannel)
+    async def convert(self, ctx: Context, argument: str) -> discord.channel.GuildChannel:
+        return await self._resolve_channel(ctx, argument, "channels", discord.channel.base.GuildChannel)
 
     @staticmethod
     async def _resolve_channel(ctx: Context, argument: str, attribute: str, type: type[CT]) -> CT:
@@ -1078,7 +1078,7 @@ CONVERTER_MAPPING: dict[type[Any], Any] = {
     discord.CategoryChannel: CategoryChannelConverter,
     discord.ForumChannel: ForumChannelConverter,
     discord.Thread: ThreadConverter,
-    discord.abc.GuildChannel: GuildChannelConverter,
+    discord.channel.GuildChannel: GuildChannelConverter,
     discord.GuildSticker: GuildStickerConverter,
 }
 

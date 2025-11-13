@@ -22,55 +22,60 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
 
-from typing import Any, Self
+from functools import lru_cache
+from typing import Any
+
+from typing_extensions import Self, override
 
 from discord.enums import InteractionType
 from discord.types.interactions import Interaction as InteractionPayload
 
 from ..app.event_emitter import Event
 from ..app.state import ConnectionState
-from ..interactions import Interaction
+from ..interactions import ApplicationCommandInteraction, AutocompleteInteraction, Interaction
+
+
+def _interaction_factory(payload: InteractionPayload) -> type[Interaction]:
+    type: int = payload["type"]
+    if type == InteractionType.application_command:
+        return ApplicationCommandInteraction
+    if type == InteractionType.auto_complete:
+        return AutocompleteInteraction
+    return Interaction
+
+
+@lru_cache(maxsize=128)
+def _create_event_interaction_class(event_cls: type[Event], interaction_cls: type[Interaction]) -> type[Interaction]:
+    class EventInteraction(event_cls, interaction_cls):  # type: ignore
+        __slots__ = ()
+
+    return EventInteraction  # type: ignore
 
 
 class InteractionCreate(Event, Interaction):
-    __event_name__ = "INTERACTION_CREATE"
+    """Called when an interaction is created.
+
+    This currently happens due to application command invocations or components being used.
+
+    .. warning::
+        This is a low level event that is not generally meant to be used.
+        If you are working with components, consider using the callbacks associated
+        with the :class:`~discord.ui.View` instead as it provides a nicer user experience.
+
+    This event inherits from :class:`Interaction`.
+    """
+
+    __event_name__: str = "INTERACTION_CREATE"
 
     def __init__(self) -> None:
         pass
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
-        interaction = Interaction(data=data, state=state)
-        if data["type"] == 3:
-            custom_id = interaction.data["custom_id"]  # type: ignore
-            component_type = interaction.data["component_type"]  # type: ignore
-            views = await state.cache.get_all_views()
-            for view in views:
-                if view.id == custom_id:
-                    for item in view.children:
-                        if item.type == component_type:
-                            item.refresh_state(interaction)
-                            view._dispatch_item(item, interaction)
-        if interaction.type == InteractionType.modal_submit:
-            custom_id = interaction.data["custom_id"]
-            for modal in await state.cache.get_all_modals():
-                if modal.custom_id != custom_id:
-                    continue
-                try:
-                    components = [
-                        component
-                        for parent_component in interaction.data["components"]
-                        for component in parent_component["components"]
-                    ]
-                    for component in components:
-                        for child in modal.children:
-                            if child.custom_id == component["custom_id"]:  # type: ignore
-                                child.refresh_state(component)
-                                break
-                    await modal.callback(interaction)
-                    await state.cache.delete_modal(modal.custom_id)
-                except Exception as e:
-                    return await modal.on_error(e, interaction)
-        self = cls()
-        self.__dict__.update(interaction.__dict__)
+        factory = _interaction_factory(data)
+        interaction = await factory._from_data(payload=data, state=state)
+        interaction_event_cls = _create_event_interaction_class(cls, factory)
+        self = interaction_event_cls()
+        self._populate_from_slots(interaction)
         return self

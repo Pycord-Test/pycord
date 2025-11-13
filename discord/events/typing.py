@@ -23,15 +23,17 @@ DEALINGS IN THE SOFTWARE.
 """
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Any
+
+from typing_extensions import Self, override
 
 from discord import utils
 from discord.app.event_emitter import Event
 from discord.app.state import ConnectionState
 from discord.channel import DMChannel, GroupChannel, TextChannel
+from discord.channel.thread import Thread
 from discord.member import Member
 from discord.raw_models import RawTypingEvent
-from discord.threads import Thread
 from discord.user import User
 
 if TYPE_CHECKING:
@@ -39,7 +41,29 @@ if TYPE_CHECKING:
 
 
 class TypingStart(Event):
-    __event_name__ = "TYPING_START"
+    """Called when someone begins typing a message.
+
+    The :attr:`channel` can be a :class:`abc.Messageable` instance,
+    which could be :class:`TextChannel`, :class:`GroupChannel`, or :class:`DMChannel`.
+
+    If the :attr:`channel` is a :class:`TextChannel` then the :attr:`user` is a :class:`Member`,
+    otherwise it is a :class:`User`.
+
+    This requires :attr:`Intents.typing` to be enabled.
+
+    Attributes
+    ----------
+    raw: :class:`RawTypingEvent`
+        The raw event payload data.
+    channel: :class:`abc.Messageable`
+        The location where the typing originated from.
+    user: :class:`User` | :class:`Member`
+        The user that started typing.
+    when: :class:`datetime.datetime`
+        When the typing started as an aware datetime in UTC.
+    """
+
+    __event_name__: str = "TYPING_START"
 
     raw: RawTypingEvent
     channel: "MessageableChannel"
@@ -47,6 +71,7 @@ class TypingStart(Event):
     when: datetime
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         raw = RawTypingEvent(data)
 

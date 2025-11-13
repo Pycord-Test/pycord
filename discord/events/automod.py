@@ -22,7 +22,9 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
 
-from typing import Any, Self
+from typing import Any
+
+from typing_extensions import Self, override
 
 from discord.app.state import ConnectionState
 from discord.automod import AutoModRule
@@ -32,12 +34,24 @@ from ..app.event_emitter import Event
 
 
 class AutoModRuleCreate(Event):
-    __event_name__ = "AUTO_MODERATION_RULE_CREATE"
+    """Called when an auto moderation rule is created.
+
+    The bot must have :attr:`~Permissions.manage_guild` to receive this, and
+    :attr:`Intents.auto_moderation_configuration` must be enabled.
+
+    Attributes
+    ----------
+    rule: :class:`AutoModRule`
+        The newly created rule.
+    """
+
+    __event_name__: str = "AUTO_MODERATION_RULE_CREATE"
     __slots__ = ("rule",)
 
     rule: AutoModRule
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self:
         self = cls()
         self.rule = AutoModRule(state=state, data=data)
@@ -45,12 +59,24 @@ class AutoModRuleCreate(Event):
 
 
 class AutoModRuleUpdate(Event):
-    __event_name__ = "AUTO_MODERATION_RULE_UPDATE"
+    """Called when an auto moderation rule is updated.
+
+    The bot must have :attr:`~Permissions.manage_guild` to receive this, and
+    :attr:`Intents.auto_moderation_configuration` must be enabled.
+
+    Attributes
+    ----------
+    rule: :class:`AutoModRule`
+        The updated rule.
+    """
+
+    __event_name__: str = "AUTO_MODERATION_RULE_UPDATE"
     __slots__ = ("rule",)
 
     rule: AutoModRule
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self:
         self = cls()
         self.rule = AutoModRule(state=state, data=data)
@@ -58,12 +84,24 @@ class AutoModRuleUpdate(Event):
 
 
 class AutoModRuleDelete(Event):
-    __event_name__ = "AUTO_MODERATION_RULE_DELETE"
+    """Called when an auto moderation rule is deleted.
+
+    The bot must have :attr:`~Permissions.manage_guild` to receive this, and
+    :attr:`Intents.auto_moderation_configuration` must be enabled.
+
+    Attributes
+    ----------
+    rule: :class:`AutoModRule`
+        The deleted rule.
+    """
+
+    __event_name__: str = "AUTO_MODERATION_RULE_DELETE"
     __slots__ = ("rule",)
 
     rule: AutoModRule
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self:
         self = cls()
         self.rule = AutoModRule(state=state, data=data)
@@ -71,11 +109,18 @@ class AutoModRuleDelete(Event):
 
 
 class AutoModActionExecution(Event, AutoModActionExecutionEvent):
-    """Represents the `AUTO_MODERATION_ACTION_EXECUTION` event"""
+    """Called when an auto moderation action is executed.
 
-    __event_name__ = "AUTO_MODERATION_ACTION_EXECUTION"
+    The bot must have :attr:`~Permissions.manage_guild` to receive this, and
+    :attr:`Intents.auto_moderation_execution` must be enabled.
+
+    This event inherits from :class:`AutoModActionExecutionEvent`.
+    """
+
+    __event_name__: str = "AUTO_MODERATION_ACTION_EXECUTION"
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self:
         self = cls()
         event = await AutoModActionExecutionEvent.from_data(state, data)

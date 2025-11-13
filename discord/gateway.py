@@ -367,31 +367,6 @@ class DiscordWebSocket:
         await ws.resume()
         return ws
 
-    def wait_for(self, event, predicate, result=None):
-        """Waits for a DISPATCH'd event that meets the predicate.
-
-        Parameters
-        ----------
-        event: :class:`str`
-            The event name in all upper case to wait for.
-        predicate
-            A function that takes a data parameter to check for event
-            properties. The data parameter is the 'd' key in the JSON message.
-        result
-            A function that takes the same data parameter and executes to send
-            the result to the future. If ``None``, returns the data.
-
-        Returns
-        -------
-        asyncio.Future
-            A future to wait for.
-        """
-
-        future = self.loop.create_future()
-        entry = EventListener(event=event, predicate=predicate, result=result, future=future)
-        self._dispatch_listeners.append(entry)
-        return future
-
     async def identify(self):
         """Sends the IDENTIFY packet."""
         payload = {
@@ -537,31 +512,6 @@ class DiscordWebSocket:
             )
 
         await self._emitter.emit(event, data)
-
-        # remove the dispatched listeners
-        removed = []
-        for index, entry in enumerate(self._dispatch_listeners):
-            if entry.event != event:
-                continue
-
-            future = entry.future
-            if future.cancelled():
-                removed.append(index)
-                continue
-
-            try:
-                valid = entry.predicate(data)
-            except Exception as exc:
-                future.set_exception(exc)
-                removed.append(index)
-            else:
-                if valid:
-                    ret = data if entry.result is None else entry.result(data)
-                    future.set_result(ret)
-                    removed.append(index)
-
-        for index in reversed(removed):
-            del self._dispatch_listeners[index]
 
     @property
     def latency(self) -> float:

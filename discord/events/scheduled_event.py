@@ -23,7 +23,9 @@ DEALINGS IN THE SOFTWARE.
 """
 
 import logging
-from typing import Any, Self
+from typing import Any
+
+from typing_extensions import Self, override
 
 from discord.app.event_emitter import Event
 from discord.app.state import ConnectionState
@@ -36,11 +38,19 @@ _log = logging.getLogger(__name__)
 
 
 class GuildScheduledEventCreate(Event, ScheduledEvent):
-    __event_name__ = "GUILD_SCHEDULED_EVENT_CREATE"
+    """Called when a scheduled event is created.
+
+    This requires :attr:`Intents.scheduled_events` to be enabled.
+
+    This event inherits from :class:`ScheduledEvent`.
+    """
+
+    __event_name__: str = "GUILD_SCHEDULED_EVENT_CREATE"
 
     def __init__(self) -> None: ...
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         guild = await state._get_guild(int(data["guild_id"]))
         if guild is None:
@@ -60,13 +70,26 @@ class GuildScheduledEventCreate(Event, ScheduledEvent):
 
 
 class GuildScheduledEventUpdate(Event, ScheduledEvent):
-    __event_name__ = "GUILD_SCHEDULED_EVENT_UPDATE"
+    """Called when a scheduled event is updated.
+
+    This requires :attr:`Intents.scheduled_events` to be enabled.
+
+    This event inherits from :class:`ScheduledEvent`.
+
+    Attributes
+    ----------
+    old: :class:`ScheduledEvent`
+        The old scheduled event before the update.
+    """
+
+    __event_name__: str = "GUILD_SCHEDULED_EVENT_UPDATE"
 
     old: ScheduledEvent | None
 
     def __init__(self) -> None: ...
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         guild = await state._get_guild(int(data["guild_id"]))
         if guild is None:
@@ -88,11 +111,19 @@ class GuildScheduledEventUpdate(Event, ScheduledEvent):
 
 
 class GuildScheduledEventDelete(Event, ScheduledEvent):
-    __event_name__ = "GUILD_SCHEDULED_EVENT_DELETE"
+    """Called when a scheduled event is deleted.
+
+    This requires :attr:`Intents.scheduled_events` to be enabled.
+
+    This event inherits from :class:`ScheduledEvent`.
+    """
+
+    __event_name__: str = "GUILD_SCHEDULED_EVENT_DELETE"
 
     def __init__(self) -> None: ...
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         guild = await state._get_guild(int(data["guild_id"]))
         if guild is None:
@@ -113,13 +144,28 @@ class GuildScheduledEventDelete(Event, ScheduledEvent):
 
 
 class GuildScheduledEventUserAdd(Event):
-    __event_name__ = "GUILD_SCHEDULED_EVENT_USER_ADD"
+    """Called when a user subscribes to a scheduled event.
+
+    This requires :attr:`Intents.scheduled_events` to be enabled.
+
+    Attributes
+    ----------
+    event: :class:`ScheduledEvent`
+        The scheduled event subscribed to.
+    member: :class:`Member`
+        The member who subscribed.
+    raw: :class:`RawScheduledEventSubscription`
+        The raw event payload data.
+    """
+
+    __event_name__: str = "GUILD_SCHEDULED_EVENT_USER_ADD"
 
     raw: RawScheduledEventSubscription
     event: ScheduledEvent
     member: Member
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         guild = await state._get_guild(int(data["guild_id"]))
         if guild is None:
@@ -146,13 +192,28 @@ class GuildScheduledEventUserAdd(Event):
 
 
 class GuildScheduledEventUserRemove(Event):
-    __event_name__ = "GUILD_SCHEDULED_EVENT_USER_REMOVE"
+    """Called when a user unsubscribes from a scheduled event.
+
+    This requires :attr:`Intents.scheduled_events` to be enabled.
+
+    Attributes
+    ----------
+    event: :class:`ScheduledEvent`
+        The scheduled event unsubscribed from.
+    member: :class:`Member`
+        The member who unsubscribed.
+    raw: :class:`RawScheduledEventSubscription`
+        The raw event payload data.
+    """
+
+    __event_name__: str = "GUILD_SCHEDULED_EVENT_USER_REMOVE"
 
     raw: RawScheduledEventSubscription
     event: ScheduledEvent
     member: Member
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         guild = await state._get_guild(int(data["guild_id"]))
         if guild is None:

@@ -22,7 +22,9 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
 
-from typing import Any, Self
+from typing import Any
+
+from typing_extensions import Self, override
 
 from discord.types.monetization import Entitlement as EntitlementPayload
 
@@ -32,12 +34,18 @@ from ..monetization import Entitlement
 
 
 class EntitlementCreate(Event, Entitlement):
-    __event_name__ = "ENTITLEMENT_CREATE"
+    """Called when a user subscribes to an SKU.
+
+    This event inherits from :class:`Entitlement`.
+    """
+
+    __event_name__: str = "ENTITLEMENT_CREATE"
 
     def __init__(self) -> None:
         pass
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self:
         self = cls()
         self.__dict__.update(Entitlement(data=data, state=state).__dict__)
@@ -45,12 +53,24 @@ class EntitlementCreate(Event, Entitlement):
 
 
 class EntitlementUpdate(Event, Entitlement):
-    __event_name__ = "ENTITLEMENT_UPDATE"
+    """Called when a user's subscription to an Entitlement is cancelled.
+
+    .. note::
+        Before October 1, 2024, this event was called when a user's subscription was renewed.
+
+        Entitlements that no longer follow this behavior will have a type of :attr:`EntitlementType.purchase`.
+        Those that follow the old behavior will have a type of :attr:`EntitlementType.application_subscription`.
+
+    This event inherits from :class:`Entitlement`.
+    """
+
+    __event_name__: str = "ENTITLEMENT_UPDATE"
 
     def __init__(self) -> None:
         pass
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self:
         self = cls()
         self.__dict__.update(Entitlement(data=data, state=state).__dict__)
@@ -58,12 +78,24 @@ class EntitlementUpdate(Event, Entitlement):
 
 
 class EntitlementDelete(Event, Entitlement):
-    __event_name__ = "ENTITLEMENT_DELETE"
+    """Called when a user's entitlement is deleted.
+
+    Entitlements are usually only deleted when Discord issues a refund for a subscription,
+    or manually removes an entitlement from a user.
+
+    .. note::
+        This is not called when a user's subscription is cancelled.
+
+    This event inherits from :class:`Entitlement`.
+    """
+
+    __event_name__: str = "ENTITLEMENT_DELETE"
 
     def __init__(self) -> None:
         pass
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self:
         self = cls()
         self.__dict__.update(Entitlement(data=data, state=state).__dict__)

@@ -22,7 +22,9 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
 
-from typing import Any, Self
+from typing import Any
+
+from typing_extensions import Self, override
 
 from discord.types.monetization import Entitlement as EntitlementPayload
 
@@ -32,12 +34,18 @@ from ..monetization import Subscription
 
 
 class SubscriptionCreate(Event, Subscription):
-    __event_name__ = "SUBSCRIPTION_CREATE"
+    """Called when a subscription is created for the application.
+
+    This event inherits from :class:`Subscription`.
+    """
+
+    __event_name__: str = "SUBSCRIPTION_CREATE"
 
     def __init__(self) -> None:
         pass
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self:
         self = cls()
         self.__dict__.update(Subscription(data=data, state=state).__dict__)
@@ -45,12 +53,20 @@ class SubscriptionCreate(Event, Subscription):
 
 
 class SubscriptionUpdate(Event, Subscription):
-    __event_name__ = "SUBSCRIPTION_UPDATE"
+    """Called when a subscription has been updated.
+
+    This could be a renewal, cancellation, or other payment related update.
+
+    This event inherits from :class:`Subscription`.
+    """
+
+    __event_name__: str = "SUBSCRIPTION_UPDATE"
 
     def __init__(self) -> None:
         pass
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self:
         self = cls()
         self.__dict__.update(Subscription(data=data, state=state).__dict__)
@@ -58,12 +74,18 @@ class SubscriptionUpdate(Event, Subscription):
 
 
 class SubscriptionDelete(Event, Subscription):
-    __event_name__ = "SUBSCRIPTION_DELETE"
+    """Called when a subscription has been deleted.
+
+    This event inherits from :class:`Subscription`.
+    """
+
+    __event_name__: str = "SUBSCRIPTION_DELETE"
 
     def __init__(self) -> None:
         pass
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self:
         self = cls()
         self.__dict__.update(Subscription(data=data, state=state).__dict__)

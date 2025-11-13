@@ -128,7 +128,7 @@ class WelcomeScreen:
     def __repr__(self):
         return f"<WelcomeScreen description={self.description} welcome_channels={self.welcome_channels}"
 
-    async def _update(self, data: WelcomeScreenPayload):
+    def _update(self, data: WelcomeScreenPayload):
         self.description: str = data.get("description")
         self.welcome_channels: list[WelcomeScreenChannel] = [
             WelcomeScreenChannel._from_dict(channel, self._guild) for channel in data.get("welcome_channels", [])

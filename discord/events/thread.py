@@ -23,14 +23,16 @@ DEALINGS IN THE SOFTWARE.
 """
 
 import logging
-from typing import Any, Self, cast
+from typing import Any, cast
+
+from typing_extensions import Self, override
 
 from discord import utils
 from discord.abc import Snowflake
 from discord.app.event_emitter import Event
 from discord.app.state import ConnectionState
+from discord.channel.thread import Thread, ThreadMember
 from discord.raw_models import RawThreadDeleteEvent, RawThreadMembersUpdateEvent, RawThreadUpdateEvent
-from discord.threads import Thread, ThreadMember
 from discord.types.raw_models import ThreadDeleteEvent, ThreadUpdateEvent
 from discord.types.threads import ThreadMember as ThreadMemberPayload
 
@@ -38,61 +40,125 @@ _log = logging.getLogger(__name__)
 
 
 class ThreadMemberJoin(Event, ThreadMember):
-    __event_name__ = "THREAD_MEMBER_JOIN"
+    """Called when a thread member joins a thread.
+
+    You can get the thread a member belongs in by accessing :attr:`ThreadMember.thread`.
+
+    This requires :attr:`Intents.members` to be enabled.
+
+    This event inherits from :class:`ThreadMember`.
+    """
+
+    __event_name__: str = "THREAD_MEMBER_JOIN"
 
     def __init__(self) -> None: ...
 
     @classmethod
-    async def __load__(cls, data: ThreadMember, _: ConnectionState) -> Self:
+    @override
+    async def __load__(cls, data: ThreadMember, state: ConnectionState) -> Self:
         self = cls()
         self.__dict__.update(data.__dict__)
         return self
 
 
 class ThreadJoin(Event, Thread):
-    __event_name__ = "THREAD_JOIN"
+    """Called whenever the bot joins a thread.
+
+    Note that you can get the guild from :attr:`Thread.guild`.
+
+    This requires :attr:`Intents.guilds` to be enabled.
+
+    This event inherits from :class:`Thread`.
+    """
+
+    __event_name__: str = "THREAD_JOIN"
 
     def __init__(self) -> None: ...
 
     @classmethod
-    async def __load__(cls, data: Thread, _: ConnectionState) -> Self:
+    @override
+    async def __load__(cls, data: Thread, state: ConnectionState) -> Self:
         self = cls()
         self.__dict__.update(data.__dict__)
         return self
 
 
 class ThreadMemberRemove(Event, ThreadMember):
-    __event_name__ = "THREAD_MEMBER_REMOVE"
+    """Called when a thread member leaves a thread.
+
+    You can get the thread a member belongs in by accessing :attr:`ThreadMember.thread`.
+
+    This requires :attr:`Intents.members` to be enabled.
+
+    This event inherits from :class:`ThreadMember`.
+    """
+
+    __event_name__: str = "THREAD_MEMBER_REMOVE"
 
     def __init__(self) -> None: ...
 
     @classmethod
-    async def __load__(cls, data: ThreadMember, _: ConnectionState) -> Self:
+    @override
+    async def __load__(cls, data: ThreadMember, state: ConnectionState) -> Self:
         self = cls()
         self.__dict__.update(data.__dict__)
         return self
 
 
 class ThreadRemove(Event, Thread):
-    __event_name__ = "THREAD_REMOVE"
+    """Called whenever a thread is removed.
+
+    This is different from a thread being deleted.
+
+    Note that you can get the guild from :attr:`Thread.guild`.
+
+    This requires :attr:`Intents.guilds` to be enabled.
+
+    .. warning::
+        Due to technical limitations, this event might not be called
+        as soon as one expects. Since the library tracks thread membership
+        locally, the API only sends updated thread membership status upon being
+        synced by joining a thread.
+
+    This event inherits from :class:`Thread`.
+    """
+
+    __event_name__: str = "THREAD_REMOVE"
 
     def __init__(self) -> None: ...
 
     @classmethod
-    async def __load__(cls, data: Thread, _: ConnectionState) -> Self:
+    @override
+    async def __load__(cls, data: Thread, state: ConnectionState) -> Self:
         self = cls()
         self.__dict__.update(data.__dict__)
         return self
 
 
 class ThreadCreate(Event, Thread):
-    __event_name__ = "THREAD_CREATE"
+    """Called whenever a thread is created.
+
+    Note that you can get the guild from :attr:`Thread.guild`.
+
+    This requires :attr:`Intents.guilds` to be enabled.
+
+    This event inherits from :class:`Thread`.
+
+    Attributes
+    ----------
+    just_joined: :class:`bool`
+        Whether the bot just joined the thread.
+    """
+
+    __event_name__: str = "THREAD_CREATE"
 
     def __init__(self) -> None: ...
 
     just_joined: bool
+    __slots__: tuple[str, ...] = ("just_joined",)
 
     @classmethod
+    @override
     async def __load__(cls, data: dict[str, Any], state: ConnectionState) -> Self | None:
         guild_id = int(data["guild_id"])
         guild = await state._get_guild(guild_id)
@@ -102,7 +168,7 @@ class ThreadCreate(Event, Thread):
         cached_thread = guild.get_thread(int(data["id"]))
         self = cls()
         if not cached_thread:
-            thread = Thread(guild=guild, state=guild._state, data=data)  # type: ignore
+            thread = await Thread._from_data(guild=guild, state=guild._state, data=data)  # type: ignore
             guild._add_thread(thread)
             if data.get("newly_created"):
                 thread._add_member(
@@ -117,9 +183,11 @@ class ThreadCreate(Event, Thread):
                     )
                 )
                 self.just_joined = False
-            self.__dict__.update(thread.__dict__)
+            else:
+                self.just_joined = True
+            self._populate_from_slots(thread)
         else:
-            self.__dict__.update(cached_thread.__dict__)
+            self._populate_from_slots(cached_thread)
             self.just_joined = True
 
         if self.just_joined:
@@ -129,13 +197,26 @@ class ThreadCreate(Event, Thread):
 
 
 class ThreadUpdate(Event, Thread):
-    __event_name__ = "THREAD_UPDATE"
+    """Called whenever a thread is updated.
+
+    This requires :attr:`Intents.guilds` to be enabled.
+
+    This event inherits from :class:`Thread`.
+
+    Attributes
+    ----------
+    old: :class:`Thread`
+        The thread's old info before the update.
+    """
+
+    __event_name__: str = "THREAD_UPDATE"
 
     def __init__(self) -> None: ...
 
     old: Thread
 
     @classmethod
+    @override
     async def __load__(cls, data: ThreadUpdateEvent, state: ConnectionState) -> Self | None:
         guild_id = int(data["guild_id"])
         guild = await state._get_guild(guild_id)
@@ -161,11 +242,21 @@ class ThreadUpdate(Event, Thread):
 
 
 class ThreadDelete(Event, Thread):
-    __event_name__ = "THREAD_DELETE"
+    """Called whenever a thread is deleted.
+
+    Note that you can get the guild from :attr:`Thread.guild`.
+
+    This requires :attr:`Intents.guilds` to be enabled.
+
+    This event inherits from :class:`Thread`.
+    """
+
+    __event_name__: str = "THREAD_DELETE"
 
     def __init__(self) -> None: ...
 
     @classmethod
+    @override
     async def __load__(cls, data: ThreadDeleteEvent, state: ConnectionState) -> Self | None:
         raw = RawThreadDeleteEvent(data)
         guild = await state._get_guild(raw.guild_id)
@@ -176,7 +267,7 @@ class ThreadDelete(Event, Thread):
 
         thread = guild.get_thread(raw.thread_id)
         if thread:
-            guild._remove_thread(cast(Snowflake, thread.id))
+            guild._remove_thread(thread)
             if (msg := await thread.get_starting_message()) is not None:
                 msg.thread = None  # type: ignore
 
@@ -184,9 +275,10 @@ class ThreadDelete(Event, Thread):
 
 
 class ThreadListSync(Event):
-    __event_name__ = "THREAD_LIST_SYNC"
+    __event_name__: str = "THREAD_LIST_SYNC"
 
     @classmethod
+    @override
     async def __load__(cls, data: dict[str, Any], state) -> Self | None:
         guild_id = int(data["guild_id"])
         guild = await state._get_guild(guild_id)
@@ -228,11 +320,12 @@ class ThreadListSync(Event):
 
 
 class ThreadMemberUpdate(Event, ThreadMember):
-    __event_name__ = "THREAD_MEMBER_UPDATE"
+    __event_name__: str = "THREAD_MEMBER_UPDATE"
 
     def __init__(self): ...
 
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         guild_id = int(data["guild_id"])
         guild = await state._get_guild(guild_id)
@@ -262,7 +355,10 @@ class ThreadMemberUpdate(Event, ThreadMember):
 
 
 class BulkThreadMemberUpdate(Event):
+    __event_name__: str = "BULK_THREAD_MEMBER_UPDATE"
+
     @classmethod
+    @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         guild_id = int(data["guild_id"])
         guild = await state._get_guild(guild_id)

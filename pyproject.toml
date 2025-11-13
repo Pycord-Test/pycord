@@ -120,12 +120,13 @@ exclude = [
 
 [tool.ruff.lint]
 select = ["ALL"]
-per-file-ignores = {}
+
 # When ignoring a rule globally, please consider if it can be ignored in a more specific way.
 # Also, leave a comment explaining why the rule is ignored.
 extend-ignore = [
     "A001", # Ignored when migrating from original codebase, idem for others if not mentioned otherwise
     "PLW1641", # Object does not implement `__hash__` method
+    "PLC0415", # Allow non top-level imports in some files
     "A002",
     "A005",
     "ANN001",
@@ -300,6 +301,9 @@ extend-ignore = [
     "D211",
     "D203" # conflicts with formatter
 ]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["PLC0415"] # Allow non top-level imports in tests
 
 [tool.mypy]
 namespace_packages = true
