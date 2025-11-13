@@ -606,16 +606,14 @@ class GuildBanRemove(Event, Member):
             )
             return
 
-        member = await guild.get_member(int(data["user"]["id"]))
-        if member is None:
-            fake_data: MemberWithUser = {
-                "user": data["user"],
-                "roles": [],
-                "joined_at": None,
-                "deaf": False,
-                "mute": False,
-            }
-            member = await Member._from_data(guild=guild, data=fake_data, state=state)
+        fake_data: MemberWithUser = {
+            "user": data["user"],
+            "roles": [],
+            "joined_at": None,
+            "deaf": False,
+            "mute": False,
+        }
+        member = await Member._from_data(guild=guild, data=fake_data, state=state)
 
         self = cls()
         self._populate_from_slots(member)
