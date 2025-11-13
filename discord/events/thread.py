@@ -229,7 +229,7 @@ class ThreadUpdate(Event, Thread):
 
         thread = guild.get_thread(raw.thread_id)
         if thread:
-            self.old = thread
+            self.old = copy(thread)
             await thread._update(thread)
             if thread.archived:
                 guild._remove_thread(cast(Snowflake, raw.thread_id))
