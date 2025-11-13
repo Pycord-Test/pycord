@@ -48,6 +48,11 @@ from .message import Attachment, Message
 from .monetization import Entitlement
 from .object import Object
 from .permissions import Permissions
+from .types.interactions import (
+    ApplicationCommandAutocompleteInteraction as ApplicationCommandAutocompleteInteractionPayload,
+)
+from .types.interactions import ApplicationCommandInteraction as ApplicationCommandInteractionPayload
+from .types.interactions import Interaction as InteractionPayload
 from .user import User
 from .utils import find
 from .utils.private import cached_slot_property, delay_task, deprecated, get_as_snowflake
@@ -87,11 +92,6 @@ if TYPE_CHECKING:
     from .embeds import Embed
     from .mentions import AllowedMentions
     from .poll import Poll
-    from .types.interactions import (
-        ApplicationCommandAutocompleteInteraction as ApplicationCommandAutocompleteInteractionPayload,
-    )
-    from .types.interactions import ApplicationCommandInteraction as ApplicationCommandInteractionPayload
-    from .types.interactions import Interaction as InteractionPayload
     from .types.interactions import InteractionCallback as InteractionCallbackPayload
     from .types.interactions import InteractionCallbackResponse, InteractionData
     from .types.interactions import InteractionData as InteractionDataPayload
@@ -771,7 +771,7 @@ class Interaction(Generic[T]):
 U = TypeVar("U", bound="ApplicationCommandInteractionPayload | ApplicationCommandAutocompleteInteractionPayload")
 
 
-class _CommandBoundInteraction(Generic[U], Interaction[U]):
+class _CommandBoundInteraction(Interaction[U], Generic[U]):
     def __init__(self, *, payload: U, state: ConnectionState):
         super().__init__(payload=payload, state=state)
         self._command: ApplicationCommand | None = None

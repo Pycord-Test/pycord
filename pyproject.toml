@@ -126,6 +126,7 @@ select = ["ALL"]
 extend-ignore = [
     "A001", # Ignored when migrating from original codebase, idem for others if not mentioned otherwise
     "PLW1641", # Object does not implement `__hash__` method
+    "PLC0415", # Allow non top-level imports in some files
     "A002",
     "A005",
     "ANN001",

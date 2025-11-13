@@ -91,7 +91,7 @@ class EventEmitter:
         self._events: dict[str, list[type[Event]]] = defaultdict(list)
         self._state: ConnectionState = state
 
-        from ..events import ALL_EVENTS  # noqa: PLC0415
+        from ..events import ALL_EVENTS
 
         for event_cls in ALL_EVENTS:
             self.add_event(event_cls)

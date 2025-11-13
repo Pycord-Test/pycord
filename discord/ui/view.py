@@ -78,39 +78,39 @@ def _walk_all_components_v2(components: list[Component]) -> Iterator[Component]:
 
 def _component_to_item(component: Component) -> Item[V]:
     if isinstance(component, ButtonComponent):
-        from .button import Button  # noqa: PLC0415
+        from .button import Button
 
         return Button.from_component(component)
     if isinstance(component, SelectComponent):
-        from .select import Select  # noqa: PLC0415
+        from .select import Select
 
         return Select.from_component(component)
     if isinstance(component, SectionComponent):
-        from .section import Section  # noqa: PLC0415
+        from .section import Section
 
         return Section.from_component(component)
     if isinstance(component, TextDisplayComponent):
-        from .text_display import TextDisplay  # noqa: PLC0415
+        from .text_display import TextDisplay
 
         return TextDisplay.from_component(component)
     if isinstance(component, ThumbnailComponent):
-        from .thumbnail import Thumbnail  # noqa: PLC0415
+        from .thumbnail import Thumbnail
 
         return Thumbnail.from_component(component)
     if isinstance(component, MediaGalleryComponent):
-        from .media_gallery import MediaGallery  # noqa: PLC0415
+        from .media_gallery import MediaGallery
 
         return MediaGallery.from_component(component)
     if isinstance(component, FileComponent):
-        from .file import File  # noqa: PLC0415
+        from .file import File
 
         return File.from_component(component)
     if isinstance(component, SeparatorComponent):
-        from .separator import Separator  # noqa: PLC0415
+        from .separator import Separator
 
         return Separator.from_component(component)
     if isinstance(component, ContainerComponent):
-        from .container import Container  # noqa: PLC0415
+        from .container import Container
 
         return Container.from_component(component)
     if isinstance(component, ActionRowComponent):

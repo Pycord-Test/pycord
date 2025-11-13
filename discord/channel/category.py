@@ -176,7 +176,7 @@ class CategoryChannel(GuildTopLevelChannel[CategoryChannelPayload]):
         await super().move(**kwargs)
 
     @property
-    def channels(self) -> list[GuildChannelType]:
+    def channels(self) -> list[GuildTopLevelChannel]:
         """Returns the channels that are under this category.
 
         These are sorted by the official Discord UI, which places voice channels below the text channels.

@@ -46,7 +46,7 @@ def _interaction_factory(payload: InteractionPayload) -> type[Interaction]:
 
 @lru_cache(maxsize=128)
 def _create_event_interaction_class(event_cls: type[Event], interaction_cls: type[Interaction]) -> type[Interaction]:
-    class EventInteraction(event_cls, channel_cls):  # type: ignore
+    class EventInteraction(event_cls, interaction_cls):  # type: ignore
         __slots__ = ()
 
     return EventInteraction  # type: ignore

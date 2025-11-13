@@ -33,14 +33,15 @@ from typing import TYPE_CHECKING, Any, Callable, Generic, cast, overload
 
 from typing_extensions import Self, TypeVar, override
 
-from ..abc import Messageable, Snowflake, User, _Overwrites
+from ..abc import Messageable, Snowflake, SnowflakeTime, User, _Overwrites, _purge_messages_helper
 from ..emoji import GuildEmoji, PartialEmoji
 from ..enums import ChannelType, InviteTarget, SortOrder, try_enum
+from ..errors import ClientException
 from ..flags import ChannelFlags, MessageFlags
 from ..iterators import ArchivedThreadIterator
 from ..mixins import Hashable
 from ..utils import MISSING, Undefined, find, snowflake_time
-from ..utils.private import copy_doc, get_as_snowflake
+from ..utils.private import SnowflakeList, bytes_to_base64_data, copy_doc, get_as_snowflake
 
 if TYPE_CHECKING:
     from ..embeds import Embed
@@ -50,7 +51,7 @@ if TYPE_CHECKING:
     from ..invite import Invite
     from ..member import Member
     from ..mentions import AllowedMentions
-    from ..message import EmojiInputType, Message
+    from ..message import EmojiInputType, Message, PartialMessage
     from ..object import Object
     from ..partial_emoji import _EmojiTag
     from ..permissions import PermissionOverwrite, Permissions
@@ -69,8 +70,10 @@ if TYPE_CHECKING:
     from ..types.channel import VoiceChannel as VoiceChannelPayload
     from ..types.guild import ChannelPositionUpdate as ChannelPositionUpdatePayload
     from ..ui.view import View
+    from ..webhook import Webhook
     from .category import CategoryChannel
     from .channel import ForumTag
+    from .text import TextChannel
     from .thread import Thread
 
 _log = logging.getLogger(__name__)
@@ -1172,7 +1175,7 @@ P_guild_threadable = TypeVar(
 )
 
 
-class GuildThreadableChannel(ABC):
+class GuildThreadableChannel:
     """An ABC for guild channels that support thread creation.
 
     This includes text, news, forum, and media channels.
@@ -1735,7 +1738,7 @@ class GuildMessageableChannel(Messageable, ABC):
         """
         return await self._state._get_message(self.last_message_id) if self.last_message_id else None
 
-    async def edit(self, **options) -> _TextChannel:
+    async def edit(self, **options) -> Self:
         """Edits the channel."""
         raise NotImplementedError
 
@@ -1807,7 +1810,7 @@ class GuildMessageableChannel(Messageable, ABC):
         self,
         *,
         limit: int | None = 100,
-        check: Callable[[Message], bool] | utils.Undefined = MISSING,
+        check: Callable[[Message], bool] | Undefined = MISSING,
         before: SnowflakeTime | None = None,
         after: SnowflakeTime | None = None,
         around: SnowflakeTime | None = None,
@@ -1873,7 +1876,7 @@ class GuildMessageableChannel(Messageable, ABC):
             deleted = await channel.purge(limit=100, check=is_me)
             await channel.send(f"Deleted {len(deleted)} message(s)")
         """
-        return await discord.abc._purge_messages_helper(
+        return await _purge_messages_helper(
             self,
             limit=limit,
             check=check,
@@ -1985,6 +1988,7 @@ class GuildMessageableChannel(Messageable, ABC):
         """
 
         from .news import NewsChannel
+        from .text import TextChannel
 
         if not isinstance(self, NewsChannel):
             raise ClientException("The channel must be a news channel.")

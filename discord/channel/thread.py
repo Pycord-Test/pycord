@@ -281,7 +281,7 @@ class Thread(BaseChannel[ThreadPayload], GuildMessageableChannel):
 
         This is only available for threads in forum or media channels.
         """
-        from .channel import ForumChannel  # noqa: PLC0415 # to prevent circular import
+        from .channel import ForumChannel  # to prevent circular import
 
         if isinstance(self.parent, ForumChannel):
             return [tag for tag_id in self._applied_tags if (tag := self.parent.get_tag(tag_id)) is not None]
@@ -816,7 +816,7 @@ class Thread(BaseChannel[ThreadPayload], GuildMessageableChannel):
             The partial message.
         """
 
-        from .message import PartialMessage  # noqa: PLC0415
+        from .message import PartialMessage
 
         return PartialMessage(channel=self, id=message_id)
 

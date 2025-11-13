@@ -41,6 +41,7 @@ if TYPE_CHECKING:
     from ..types.channel import NewsChannel as NewsChannelPayload
     from ..types.channel import TextChannel as TextChannelPayload
     from .category import CategoryChannel
+    from .text import TextChannel
     from .thread import Thread
 
 __all__ = ("NewsChannel",)

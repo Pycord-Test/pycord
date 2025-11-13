@@ -1047,23 +1047,13 @@ class SlashCommand(ApplicationCommand):
             await self.callback(ctx, **kwargs)
 
     async def invoke_autocomplete_callback(self, interaction: AutocompleteInteraction) -> None:
-        values = {i.name: i.default for i in self.options}
+        option = find(lambda o: o.name == interaction.name, self.options)
+        if not option.autocomplete:
+            raise ClientException(f"Option {interaction.name} is not an autocomplete option.")
+        result = await option.autocomplete(interaction)
 
-        for op in interaction.data.get("options", []):
-            if op.get("focused", False):
-                # op_name is used because loop variables leak in surrounding scope
-                option = find(lambda o, op_name=op["name"]: o.name == op_name, self.options)
-                values.update({i["name"]: i["value"] for i in ctx.interaction.data["options"]})
-                ctx.command = self
-                ctx.focused = option
-                ctx.value = op.get("value")
-                ctx.options = values
-
-                if inspect.isawaitable(result):
-                    result = await result
-
-                choices = [o if isinstance(o, OptionChoice) else OptionChoice(o) for o in result][:25]
-                return await ctx.interaction.response.send_autocomplete_result(choices=choices)
+        choices = [o if isinstance(o, OptionChoice) else OptionChoice(o) for o in result][:25]
+        return await interaction.response.send_autocomplete_result(choices=choices)
 
     def copy(self):
         """Creates a copy of this command.

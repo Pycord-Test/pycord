@@ -273,7 +273,7 @@ class VoiceChannel(
         HTTPException
             Invite creation failed.
         """
-        from ..enums import EmbeddedActivity  # noqa: PLC0415
+        from ..enums import EmbeddedActivity
 
         if isinstance(activity, EmbeddedActivity):
             activity = activity.value
