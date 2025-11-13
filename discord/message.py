@@ -1088,7 +1088,7 @@ class Message(Hashable):
         if data.get("member"):
             try:
                 # Update member reference
-                self.author._update_from_message(member)  # type: ignore # noqa: F821 # TODO: member is unbound
+                self.author._update_from_message(data["member"])  # type: ignore # noqa: F821 # TODO: member is unbound
             except AttributeError:
                 # It's a user here
                 # TODO: consider adding to cache here
