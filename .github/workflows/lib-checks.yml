@@ -118,7 +118,7 @@ jobs:
   tests-pass: # ref: https://github.com/orgs/community/discussions/4324#discussioncomment-3477871
     runs-on: ubuntu-latest
     needs: [tests]
-    if: ${{ github.event_name != 'schedule' }}
+    if: always() && github.event_name != 'schedule'
     steps:
       - name: Tests succeeded
         if: ${{ !(contains(needs.*.result, 'failure')) }}
