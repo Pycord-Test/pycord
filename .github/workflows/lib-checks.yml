@@ -115,3 +115,14 @@ jobs:
 
       - name: "Run tests"
         run: uv run tox
+  tests-pass: # ref: https://github.com/orgs/community/discussions/4324#discussioncomment-3477871
+    runs-on: ubuntu-20.04
+    needs: [tests]
+    if: ${{ github.event_name != 'schedule' }}
+    steps:
+      - name: Tests succeeded
+        if: ${{ !(contains(needs.*.result, 'failure')) }}
+        run: exit 0
+      - name: Tests failed
+        if: ${{ contains(needs.*.result, 'failure') }}
+        run: exit 1
