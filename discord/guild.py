@@ -26,6 +26,7 @@ DEALINGS IN THE SOFTWARE.
 from __future__ import annotations
 
 import copy
+import datetime
 import unicodedata
 from typing import (
     TYPE_CHECKING,
@@ -68,6 +69,7 @@ from .enums import (
 from .errors import ClientException, InvalidArgument, InvalidData
 from .file import File
 from .flags import SystemChannelFlags
+from .incidents import IncidentsData
 from .integrations import Integration, _integration_factory
 from .invite import Invite
 from .iterators import (
@@ -113,7 +115,11 @@ if TYPE_CHECKING:
     from .template import Template
     from .types.guild import Ban as BanPayload
     from .types.guild import Guild as GuildPayload
-    from .types.guild import GuildFeature, MFALevel
+    from .types.guild import (
+        GuildFeature,
+        MFALevel,
+    )
+    from .types.guild import ModifyIncidents as ModifyIncidentsPayload
     from .types.member import Member as MemberPayload
     from .types.threads import Thread as ThreadPayload
     from .types.voice import GuildVoiceState
@@ -243,6 +249,11 @@ class Guild(Hashable):
         with ``with_counts=True``.
 
         .. versionadded:: 2.0
+
+    incidents_data: Optional[:class:`IncidentsData`]
+        The incidents data for the guild.
+
+        .. versionadded:: 2.7
     """
 
     __slots__ = (
@@ -289,6 +300,7 @@ class Guild(Hashable):
         "approximate_member_count",
         "approximate_presence_count",
         "_sounds",
+        "incidents_data",
     )
 
     _PREMIUM_GUILD_LIMITS: ClassVar[dict[int | None, _GuildLimit]] = {
@@ -525,6 +537,11 @@ class Guild(Hashable):
         for sound in guild.get("soundboard_sounds", []):
             sound = SoundboardSound(state=state, http=state.http, data=sound)
             self._add_sound(sound)
+
+        incidents_payload = guild.get("incidents_data")
+        self.incidents_data: IncidentsData | None = (
+            IncidentsData(data=incidents_payload) if incidents_payload is not None else None
+        )
 
     def _add_sound(self, sound: SoundboardSound) -> None:
         self._sounds[sound.id] = sound
@@ -4231,6 +4248,46 @@ class Guild(Hashable):
 
         new = await self._state.http.edit_onboarding(self.id, fields, reason=reason)
         return Onboarding(data=new, guild=self)
+
+    async def modify_incident_actions(
+        self,
+        *,
+        invites_disabled_until: datetime.datetime | None = MISSING,
+        dms_disabled_until: datetime.datetime | None = MISSING,
+        reason: str | None = MISSING,
+    ) -> IncidentsData:
+        """|coro|
+
+        Modify the guild's incident actions, controlling when invites or DMs
+        are re-enabled after being temporarily disabled. Requires
+        the :attr:`~Permissions.manage_guild` permission.
+
+        Parameters
+        ----------
+        invites_disabled_until: Optional[:class:`datetime.datetime`]
+            The ISO8601 timestamp indicating when invites will be enabled again,
+            or ``None`` to enable invites immediately.
+        dms_disabled_until: Optional[:class:`datetime.datetime`]
+            The ISO8601 timestamp indicating when DMs will be enabled again,
+            or ``None`` to enable DMs immediately.
+        reason: Optional[:class:`str`]
+            The reason for this action, used for the audit log.
+
+        Returns
+        -------
+        :class:`IncidentsData`
+            The updated incidents data for the guild.
+        """
+
+        fields: ModifyIncidentsPayload = {}
+        if invites_disabled_until is not MISSING:
+            fields["invites_disabled_until"] = invites_disabled_until and invites_disabled_until.isoformat()
+
+        if dms_disabled_until is not MISSING:
+            fields["dms_disabled_until"] = dms_disabled_until and dms_disabled_until.isoformat()
+
+        new = await self._state.http.modify_guild_incident_actions(self.id, fields, reason=reason)
+        return IncidentsData(data=new)
 
     async def delete_auto_moderation_rule(
         self,

@@ -12,6 +12,18 @@ These changes are available on the `master` branch, but have not yet been releas
 
 ### Added
 
+### Changed
+
+### Fixed
+
+### Deprecated
+
+### Removed
+
+## [2.7.0rc2] - 2025-10-22
+
+### Added
+
 - Implemented `with_response` for interaction callbacks, adding
   `Interaction.callback.is_loading()` and `Interaction.callback.is_ephemeral()`.
   ([#2711](https://github.com/Pycord-Development/pycord/pull/2711))
@@ -28,6 +40,18 @@ These changes are available on the `master` branch, but have not yet been releas
   - Adds pre-typed and pre-constructed with select_type `ui.Select` aliases for the
     different select types: `ui.StringSelect`, `ui.UserSelect`, `ui.RoleSelect`,
     `ui.MentionableSelect`, and `ui.ChannelSelect`.
+- Added the ability to use functions with any number of optional arguments and functions
+  returning an awaitable as `Option.autocomplete`.
+  ([#2914](https://github.com/Pycord-Development/pycord/pull/2914))
+- Added `ui.FileUpload` for modals and the `FileUpload` component.
+  ([#2938](https://github.com/Pycord-Development/pycord/pull/2938))
+- Added `Permissions.bypass_slowmode`.
+  ([#2939](https://github.com/Pycord-Development/pycord/pull/2939))
+- Added support for Guild Incidents via `Guild.incidents_data` and
+  `Guild.modify_incident_actions()`.
+  ([#2955](https://github.com/Pycord-Development/pycord/pull/2955))
+- Added `mention` property to `BaseEmoji`.
+  ([#2972](https://github.com/Pycord-Development/pycord/pull/2972))
 
 ### Changed
 
@@ -45,6 +69,22 @@ These changes are available on the `master` branch, but have not yet been releas
   ([#2924](https://github.com/Pycord-Development/pycord/pull/2924))
 - Fixed OPUS Decode Error when recording audio.
   ([#2925](https://github.com/Pycord-Development/pycord/pull/2925))
+- Fixed a `TypeError` when typing `ui.Select` without providing optional type arguments.
+  ([#2943](https://github.com/Pycord-Development/pycord/pull/2943))
+- Fixed modal input values being misordered when using the `row` parameter and inserting
+  items out of row order.
+  ([#2938](https://github.com/Pycord-Development/pycord/pull/2938))
+- Fixed a KeyError when a text input is left blank in a modal.
+  ([#2938](https://github.com/Pycord-Development/pycord/pull/2938))
+- Fixed `TypeError` when using Python 3.12+ `type` syntax for typing slash command
+  parameters. ([#2952](https://github.com/Pycord-Development/pycord/pull/2952))
+- Fixed autocomplete crashing when using an async staticmethod.
+  ([#2966](https://github.com/Pycord-Development/pycord/pull/2966))
+- Fixed attributes like :attr:`Member.display_banner` being `None` when the member has
+  no guild specific banner, but does have a global one.
+  ([#2968](https://github.com/Pycord-Development/pycord/pull/2949))
+- Fixed `__repr__` formatting for `AppEmoji`.
+  ([#2972](https://github.com/Pycord-Development/pycord/pull/2972))
 
 ### Removed
 
@@ -54,6 +94,8 @@ These changes are available on the `master` branch, but have not yet been releas
 
 ### Added
 
+- Added `positional` argument to `commands.Flag`.
+  ([#2443](https://github.com/Pycord-Development/pycord/pull/2443))
 - Added `Guild.fetch_role` method.
   ([#2528](https://github.com/Pycord-Development/pycord/pull/2528))
 - Added the following `AppInfo` attributes: `approximate_guild_count`,
@@ -106,6 +148,9 @@ These changes are available on the `master` branch, but have not yet been releas
   ([#2714](https://github.com/Pycord-Development/pycord/pull/2714))
 - Added the ability to pass a `datetime.time` object to `format_dt`.
   ([#2747](https://github.com/Pycord-Development/pycord/pull/2747))
+- Added the ability to pass an `overlap` parameter to the `loop` decorator and `Loop`
+  class, allowing concurrent iterations if enabled.
+  ([#2765](https://github.com/Pycord-Development/pycord/pull/2765))
 - Added various missing channel parameters and allow `default_reaction_emoji` to be
   `None`. ([#2772](https://github.com/Pycord-Development/pycord/pull/2772))
 - Added support for type hinting slash command options with `typing.Annotated`.
@@ -1156,7 +1201,8 @@ These changes are available on the `master` branch, but have not yet been releas
 - Fix py3.10 UnionType checks issue.
   ([#1240](https://github.com/Pycord-Development/pycord/pull/1240))
 
-[unreleased]: https://github.com/Pycord-Development/pycord/compare/v2.7.0rc1...HEAD
+[unreleased]: https://github.com/Pycord-Development/pycord/compare/v2.7.0rc2...HEAD
+[2.7.0rc2]: https://github.com/Pycord-Development/pycord/compare/v2.7.0rc1...v2.7.0rc2
 [2.7.0rc1]: https://github.com/Pycord-Development/pycord/compare/v2.6.0...v2.7.0rc1
 [2.6.1]: https://github.com/Pycord-Development/pycord/compare/v2.6.0...v2.6.1
 [2.6.0]: https://github.com/Pycord-Development/pycord/compare/v2.5.0...v2.6.0

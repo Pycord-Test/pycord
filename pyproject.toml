@@ -55,7 +55,7 @@ speed = [
 [dependency-groups]
 docs = [
     "furo==2024.8.6",
-    "levenshtein==0.27.1",
+    "levenshtein==0.27.3",
     "myst-parser[linkify]==4.0.1",
     "sphinx==8.0.2",
     "sphinx-autodoc-typehints==2.5.0",
@@ -298,7 +298,8 @@ extend-ignore = [
     "SLF001",
     "W293",
     "D211",
-    "D203" # conflicts with formatter
+    "D203", # conflicts with formatter
+    "PLR0904", # not suitable for a library like pycord
 ]
 
 [tool.mypy]

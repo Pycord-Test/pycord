@@ -43,6 +43,7 @@ from .errors import InvalidArgument
 from .flags import MemberFlags
 from .object import Object
 from .permissions import Permissions
+from .primary_guild import PrimaryGuild
 from .user import BaseUser, User, _UserTag
 from .utils import MISSING
 from .utils.private import SnowflakeList, copy_doc, parse_time
@@ -308,6 +309,7 @@ class Member(discord.abc.Messageable, _UserTag):
         accent_color: Colour | None
         accent_colour: Colour | None
         communication_disabled_until: datetime.datetime | None
+        primary_guild: PrimaryGuild | None
 
     def __init__(self, *, data: MemberWithUserPayload, guild: Guild, state: ConnectionState):
         self._state: ConnectionState = state
