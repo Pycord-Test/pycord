@@ -23,6 +23,7 @@ DEALINGS IN THE SOFTWARE.
 """
 
 import logging
+from copy import copy
 from typing import Any, cast
 
 from typing_extensions import Self, override
@@ -35,7 +36,6 @@ from discord.channel.thread import Thread, ThreadMember
 from discord.raw_models import RawThreadDeleteEvent, RawThreadMembersUpdateEvent, RawThreadUpdateEvent
 from discord.types.raw_models import ThreadDeleteEvent, ThreadUpdateEvent
 from discord.types.threads import ThreadMember as ThreadMemberPayload
-from copy import copy
 
 _log = logging.getLogger(__name__)
 
@@ -238,7 +238,7 @@ class ThreadUpdate(Event, Thread):
             if not thread.archived:
                 guild._add_thread(thread)
 
-        self.__dict__.update(thread.__dict__)
+        self._populate_from_slots(thread)
         return self
 
 
@@ -271,7 +271,7 @@ class ThreadDelete(Event, Thread):
             guild._remove_thread(thread)
             if (msg := await thread.get_starting_message()) is not None:
                 msg.thread = None  # type: ignore
-            self.__dict__.update(thread.__dict__)
+            self._populate_from_slots(thread)
         else:
             return None
 
@@ -375,7 +375,7 @@ class BulkThreadMemberUpdate(Event):
 
         thread_id = int(data["id"])
         thread: Thread | None = guild.get_thread(thread_id)
-        # raw = RawThreadMembersUpdateEvent(data)  # TODO: Not used @VincentRPS # noqa: F841
+        # raw = RawThreadMembersUpdateEvent(data)  # TODO: Not used @VincentRPS
         if thread is None:
             _log.debug(
                 ("THREAD_MEMBERS_UPDATE referencing an unknown thread ID: %s. Discarding"),

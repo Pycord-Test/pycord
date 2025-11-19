@@ -47,9 +47,6 @@ from .gateway import (
     UserUpdate,
     _CacheAppEmojis,
 )
-from .gateway import GuildAvailable as GatewayGuildAvailable
-from .gateway import GuildCreate as GatewayGuildCreate
-from .gateway import GuildJoin as GatewayGuildJoin
 from .guild import (
     GuildAvailable,
     GuildBanAdd,
@@ -144,9 +141,6 @@ __all__ = (
     "EntitlementUpdate",
     # Gateway
     "ApplicationCommandPermissionsUpdate",
-    "GatewayGuildAvailable",
-    "GatewayGuildCreate",
-    "GatewayGuildJoin",
     "PresenceUpdate",
     "Ready",
     "Resumed",
@@ -254,9 +248,6 @@ ALL_EVENTS: list[type[Event]] = [
     EntitlementUpdate,
     # Gateway
     ApplicationCommandPermissionsUpdate,
-    GatewayGuildAvailable,
-    GatewayGuildCreate,
-    GatewayGuildJoin,
     PresenceUpdate,
     Ready,
     Resumed,
