@@ -61,8 +61,17 @@ def _create_event_channel_class(event_cls: type[Event], channel_cls: type[GuildC
         A new class that inherits from both the event and channel
     """
 
-    class EventChannel(event_cls, channel_cls):  # type: ignore
+    class EventChannel(channel_cls, event_cls):  # type: ignore
         __slots__ = ()
+
+        @override
+        def __init__(self) -> None:
+            pass
+
+        @override
+        @classmethod
+        def event_type(self) -> type[Event]:
+            return event_cls
 
     EventChannel.__name__ = f"{event_cls.__name__}_{channel_cls.__name__}"
     EventChannel.__qualname__ = f"{event_cls.__qualname__}_{channel_cls.__name__}"

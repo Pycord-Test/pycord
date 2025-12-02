@@ -32,7 +32,13 @@ from discord.types.interactions import Interaction as InteractionPayload
 
 from ..app.event_emitter import Event
 from ..app.state import ConnectionState
-from ..interactions import ApplicationCommandInteraction, AutocompleteInteraction, Interaction
+from ..interactions import (
+    ApplicationCommandInteraction,
+    AutocompleteInteraction,
+    ComponentInteraction,
+    Interaction,
+    ModalInteraction,
+)
 
 
 def _interaction_factory(payload: InteractionPayload) -> type[Interaction]:
@@ -41,13 +47,26 @@ def _interaction_factory(payload: InteractionPayload) -> type[Interaction]:
         return ApplicationCommandInteraction
     if type == InteractionType.auto_complete:
         return AutocompleteInteraction
+    if type == InteractionType.component:
+        return ComponentInteraction
+    if type == InteractionType.modal_submit:
+        return ModalInteraction
     return Interaction
 
 
 @lru_cache(maxsize=128)
 def _create_event_interaction_class(event_cls: type[Event], interaction_cls: type[Interaction]) -> type[Interaction]:
-    class EventInteraction(event_cls, interaction_cls):  # type: ignore
+    class EventInteraction(interaction_cls, event_cls):  # type: ignore
         __slots__ = ()
+
+        @override
+        def __init__(self) -> None:
+            pass
+
+        @override
+        @classmethod
+        def event_type(self) -> type[Event]:
+            return event_cls
 
     return EventInteraction  # type: ignore
 
@@ -75,7 +94,7 @@ class InteractionCreate(Event, Interaction):
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         factory = _interaction_factory(data)
         interaction = await factory._from_data(payload=data, state=state)
-        interaction_event_cls = _create_event_interaction_class(cls, factory)
+        interaction_event_cls = _create_event_interaction_class(Event, factory)
         self = interaction_event_cls()
         self._populate_from_slots(interaction)
         return self

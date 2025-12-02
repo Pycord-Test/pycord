@@ -39,6 +39,7 @@ from ..app.event_emitter import Event
 from ..utils import MISSING, Undefined
 from ..utils.annotations import get_annotations
 from ..utils.private import hybridmethod
+from .base import GearBase
 
 _T = TypeVar("_T", bound="Gear")
 E = TypeVar("E", bound="Event", covariant=True)
@@ -59,7 +60,7 @@ class StaticAttributedEventCallback(AttributedEventCallback, Protocol):
 EventCallback: TypeAlias = Callable[[E], Awaitable[None]]
 
 
-class Gear:
+class Gear(GearBase):
     """A gear is a modular component that can listen to and handle events.
 
     You can subclass this class to create your own gears and attach them to your bot or other gears.
@@ -111,7 +112,7 @@ class Gear:
     def _handle_event(self, event: Event) -> Collection[Awaitable[Any]]:
         tasks: list[Awaitable[None]] = []
 
-        for listener in self._listeners[type(event)]:
+        for listener in self._listeners[event.event_type()]:
             if listener in self._once_listeners:
                 self._once_listeners.remove(listener)
             tasks.append(listener(event))
@@ -198,7 +199,7 @@ class Gear:
             event = self._parse_listener_signature(callback, is_instance_function)
         if once:
             self._once_listeners.add(cast("EventCallback[Event]", callback))
-        self._listeners[event].add(cast("EventCallback[Event]", callback))
+        self._listeners[event.event_type()].add(cast("EventCallback[Event]", callback))
 
     def remove_listener(
         self, callback: EventCallback[E], event: type[E] | Undefined = MISSING, is_instance_function: bool = False
@@ -224,7 +225,7 @@ class Gear:
         """
         if event is MISSING:
             event = self._parse_listener_signature(callback)
-        self._listeners[event].remove(cast("EventCallback[Event]", callback))
+        self._listeners[event.event_type()].remove(cast("EventCallback[Event]", callback))
 
     if TYPE_CHECKING:
 

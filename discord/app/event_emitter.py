@@ -40,6 +40,13 @@ class Event(ABC):
     __event_name__: str
 
     @classmethod
+    def event_type(cls) -> type[Self]:
+        # this is used for cases such as the ChannelCreate event, where the actual event class will be a dinamically created
+        # subclass of Event and the relevant channel class, where this method will be overriden to return ChannelCreate
+        # instead of (RelevantChannel, Event)
+        return cls
+
+    @classmethod
     @abstractmethod
     async def __load__(cls, data: Any, state: "ConnectionState") -> Self | None: ...
 

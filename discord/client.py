@@ -132,7 +132,7 @@ def _cleanup_loop(loop: asyncio.AbstractEventLoop) -> None:
         loop.close()
 
 
-class Client:
+class Client(Gear):
     r"""Represents a client connection that connects to Discord.
     This class is used to interact with the Discord WebSocket and API.
 
@@ -241,6 +241,8 @@ class Client:
         discord_api_url: str = "https://discord.com/api/v10",
         **options: Any,
     ):
+        super().__init__()
+
         self._flavor = options.get("flavor", logging.INFO)
         self._debug = options.get("debug", False)
         self._banner_module = options.get("banner_module")
@@ -283,9 +285,7 @@ class Client:
         self._connection._get_client = lambda: self
         self._event_handlers: dict[str, list[Coro]] = {}
 
-        self._main_gear: Gear = Gear()
-
-        self._connection.emitter.add_receiver(self._handle_event)
+        self._connection.emitter.add_receiver(self._gather_events)
 
         if VoiceClient.warn_nacl:
             VoiceClient.warn_nacl = False
@@ -294,8 +294,8 @@ class Client:
         # Used to hard-reference tasks so they don't get garbage collected (discarded with done_callbacks)
         self._tasks = set()
 
-    async def _handle_event(self, event: Event) -> None:
-        await asyncio.gather(*self._main_gear._handle_event(event))
+    async def _gather_events(self, event: Event) -> None:
+        await asyncio.gather(*super()._handle_event(event))
 
     async def __aenter__(self) -> Client:
         loop = asyncio.get_running_loop()
@@ -315,42 +315,6 @@ class Client:
     ) -> None:
         if not self.is_closed():
             await self.close()
-
-    # Gear methods
-
-    @copy_doc(Gear.attach_gear)
-    def attach_gear(self, gear: Gear) -> None:
-        return self._main_gear.attach_gear(gear)
-
-    @copy_doc(Gear.detach_gear)
-    def detach_gear(self, gear: Gear) -> None:
-        return self._main_gear.detach_gear(gear)
-
-    @copy_doc(Gear.add_listener)
-    def add_listener(
-        self,
-        callback: Callable[[Event], Awaitable[None]],
-        *,
-        event: type[Event] | Undefined = MISSING,
-        is_instance_function: bool = False,
-        once: bool = False,
-    ) -> None:
-        return self._main_gear.add_listener(callback, event=event, is_instance_function=is_instance_function, once=once)
-
-    @copy_doc(Gear.remove_listener)
-    def remove_listener(
-        self,
-        callback: Callable[[Event], Awaitable[None]],
-        event: type[Event] | Undefined = MISSING,
-        is_instance_function: bool = False,
-    ) -> None:
-        return self._main_gear.remove_listener(callback, event=event, is_instance_function=is_instance_function)
-
-    @copy_doc(Gear.listen)
-    def listen(
-        self, event: type[Event] | Undefined = MISSING, once: bool = False
-    ) -> Callable[[Callable[[Event], Awaitable[None]]], Callable[[Event], Awaitable[None]]]:
-        return self._main_gear.listen(event=event, once=once)
 
     # internals
 
