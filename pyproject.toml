@@ -70,7 +70,7 @@ dev = [
     "codespell==2.4.1",
     "coverage~=7.8",
     "mypy~=1.18.1",
-    "pre-commit==4.3.0",
+    "pre-commit==4.5.0",
     "python-dotenv>=1.1.1",
     "ruff>=0.12.12",
     "tox>=4.27.0",
@@ -299,7 +299,8 @@ extend-ignore = [
     "SLF001",
     "W293",
     "D211",
-    "D203" # conflicts with formatter
+    "D203", # conflicts with formatter
+    "PLR0904", # not suitable for a library like pycord
 ]
 
 [tool.ruff.lint.per-file-ignores]
