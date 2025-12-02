@@ -7,9 +7,6 @@ Utility Functions
 
 .. autofunction:: discord.utils.find
 
-
-.. autofunction:: discord.utils.get_or_fetch
-
 .. autofunction:: discord.utils.oauth_url
 
 .. autofunction:: discord.utils.remove_markdown

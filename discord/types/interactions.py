@@ -25,12 +25,13 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Dict, Literal, Union
+from typing import TYPE_CHECKING, Dict, Generic, Literal, Union
 
 from ..permissions import Permissions
-from .channel import ChannelType
+from .channel import Channel, ChannelType
 from .components import Component, ComponentType
 from .embed import Embed
+from .guild import Guild
 from .member import Member
 from .message import Attachment
 from .monetization import Entitlement
@@ -39,10 +40,9 @@ from .snowflake import Snowflake
 from .user import User
 
 if TYPE_CHECKING:
-    from ..interactions import InteractionChannel
     from .message import AllowedMentions, Message
 
-from typing_extensions import NotRequired, TypedDict
+from typing_extensions import NotRequired, TypedDict, TypeVar
 
 ApplicationCommandType = Literal[1, 2, 3]
 
@@ -189,29 +189,73 @@ class ComponentInteractionData(TypedDict):
     component_type: ComponentType
 
 
-InteractionData = ApplicationCommandInteractionData | ComponentInteractionData
+class ModalInteractionData(TypedDict):
+    custom_id: str
+    components: list[Component]
+    resolved: NotRequired[ApplicationCommandInteractionDataResolved]
 
 
-class Interaction(TypedDict):
-    data: NotRequired[InteractionData]
-    guild_id: NotRequired[Snowflake]
-    channel_id: NotRequired[Snowflake]
-    channel: NotRequired[InteractionChannel]
-    member: NotRequired[Member]
-    user: NotRequired[User]
-    message: NotRequired[Message]
-    locale: NotRequired[str]
-    guild_locale: NotRequired[str]
-    app_permissions: NotRequired[Permissions]
-    attachment_size_limit: NotRequired[int]
+InteractionData = ApplicationCommandInteractionData | ComponentInteractionData | ModalInteractionData
+
+
+class BareInteraction(TypedDict):
     id: Snowflake
     application_id: Snowflake
     type: InteractionType
+
+
+class PingInteraction(BareInteraction):
+    type: Literal[1]
+
+
+T = TypeVar("T", bound="InteractionData")
+
+
+class BaseInteraction(BareInteraction, Generic[T]):
+    data: T
+    guild: NotRequired[Guild]
+    guild_id: NotRequired[Snowflake]
+    channel: NotRequired[Channel]
+    channel_id: NotRequired[Snowflake]
+    member: NotRequired[Member]
+    user: NotRequired[User]
     token: str
     version: int
+    locale: NotRequired[str]
+    guild_locale: NotRequired[str]
     entitlements: list[Entitlement]
     authorizing_integration_owners: AuthorizingIntegrationOwners
     context: InteractionContextType
+    attachment_size_limit: NotRequired[int]
+
+
+class ApplicationCommandInteraction(BaseInteraction[ApplicationCommandInteractionData]):
+    type: Literal[2]
+    data: ApplicationCommandInteractionData
+
+
+class ApplicationCommandAutocompleteInteraction(BaseInteraction[ApplicationCommandInteractionData]):
+    type: Literal[3]
+    data: ApplicationCommandInteractionData
+
+
+class ComponentInteraction(BaseInteraction[ComponentInteractionData]):
+    type: Literal[4]
+    data: ComponentInteractionData
+
+
+class ModalInteraction(BaseInteraction[ModalInteractionData]):
+    type: Literal[5]
+    data: ModalInteractionData
+
+
+Interaction = (
+    PingInteraction
+    | ApplicationCommandInteraction
+    | ApplicationCommandAutocompleteInteraction
+    | ComponentInteraction
+    | ModalInteraction
+)
 
 
 class InteractionMetadata(TypedDict):

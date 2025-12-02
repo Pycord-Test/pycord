@@ -37,7 +37,7 @@ from .utils.private import get_as_snowflake, resolve_invite
 if TYPE_CHECKING:
     import datetime
 
-    from .state import ConnectionState
+    from .app.state import ConnectionState
     from .types.widget import Widget as WidgetPayload
     from .types.widget import WidgetMember as WidgetMemberPayload
 
@@ -259,7 +259,7 @@ class Widget:
         self.id: int = int(data["id"])
 
         self.channels: list[WidgetChannel] = []
-        for channel in data.get("channels", []):
+        for channel in data.get("channel", []):
             _id = int(channel["id"])
             self.channels.append(WidgetChannel(id=_id, name=channel["name"], position=channel["position"]))
 
@@ -321,4 +321,4 @@ class Widget:
         """
         invite_id = resolve_invite(self._invite)
         data = await self._state.http.get_invite(invite_id, with_counts=with_counts)
-        return Invite.from_incomplete(state=self._state, data=data)
+        return await Invite.from_incomplete(state=self._state, data=data)

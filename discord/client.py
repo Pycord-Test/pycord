@@ -30,8 +30,9 @@ import logging
 import signal
 import sys
 import traceback
+from collections.abc import Awaitable
 from types import TracebackType
-from typing import TYPE_CHECKING, Any, Callable, Coroutine, Generator, Sequence, TypeVar
+from typing import TYPE_CHECKING, Any, AsyncGenerator, Callable, Coroutine, Generator, Sequence, TypeVar
 
 import aiohttp
 
@@ -39,15 +40,20 @@ from discord.banners import print_banner, start_logging
 
 from . import utils
 from .activity import ActivityTypes, BaseActivity, create_activity
+from .app.cache import Cache, MemoryCache
+from .app.event_emitter import Event
+from .app.state import ConnectionState
 from .appinfo import AppInfo, PartialAppInfo
 from .application_role_connection import ApplicationRoleConnectionMetadata
 from .backoff import ExponentialBackoff
 from .channel import PartialMessageable, _threaded_channel_factory
+from .channel.thread import Thread
 from .emoji import AppEmoji, GuildEmoji
 from .enums import ChannelType, Status
 from .errors import *
 from .flags import ApplicationFlags, Intents
 from .gateway import *
+from .gears import Gear
 from .guild import Guild
 from .http import HTTPClient
 from .invite import Invite
@@ -57,16 +63,15 @@ from .monetization import SKU, Entitlement
 from .object import Object
 from .soundboard import SoundboardSound
 from .stage_instance import StageInstance
-from .state import ConnectionState
 from .sticker import GuildSticker, StandardSticker, StickerPack, _sticker_factory
 from .template import Template
-from .threads import Thread
 from .ui.view import View
 from .user import ClientUser, User
 from .utils import MISSING
 from .utils.private import (
     SequenceProxy,
     bytes_to_base64_data,
+    copy_doc,
     resolve_invite,
     resolve_template,
 )
@@ -75,8 +80,8 @@ from .webhook import Webhook
 from .widget import Widget
 
 if TYPE_CHECKING:
-    from .abc import GuildChannel, PrivateChannel, Snowflake, SnowflakeTime
-    from .channel import DMChannel
+    from .abc import PrivateChannel, Snowflake, SnowflakeTime
+    from .channel import DMChannel, GuildChannel
     from .interactions import Interaction
     from .member import Member
     from .message import Message
@@ -242,7 +247,6 @@ class Client:
         # self.ws is set in the connect method
         self.ws: DiscordWebSocket = None  # type: ignore
         self.loop: asyncio.AbstractEventLoop = asyncio.get_event_loop() if loop is None else loop
-        self._listeners: dict[str, list[tuple[asyncio.Future, Callable[..., bool]]]] = {}
         self.shard_id: int | None = options.get("shard_id")
         self.shard_count: int | None = options.get("shard_count")
 
@@ -263,7 +267,14 @@ class Client:
         self._hooks: dict[str, Callable] = {"before_identify": self._call_before_identify_hook}
 
         self._enable_debug_events: bool = options.pop("enable_debug_events", False)
-        self._connection: ConnectionState = self._get_state(**options)
+        self._connection: ConnectionState = ConnectionState(
+            handlers=self._handlers,
+            hooks=self._hooks,
+            http=self.http,
+            loop=self.loop,
+            cache=MemoryCache(),
+            **options,
+        )
         self._connection.shard_count = self.shard_count
         self._closed: bool = False
         self._ready: asyncio.Event = asyncio.Event()
@@ -271,12 +282,19 @@ class Client:
         self._connection._get_client = lambda: self
         self._event_handlers: dict[str, list[Coro]] = {}
 
+        self._main_gear: Gear = Gear()
+
+        self._connection.emitter.add_receiver(self._handle_event)
+
         if VoiceClient.warn_nacl:
             VoiceClient.warn_nacl = False
             _log.warning("PyNaCl is not installed, voice will NOT be supported")
 
         # Used to hard-reference tasks so they don't get garbage collected (discarded with done_callbacks)
         self._tasks = set()
+
+    async def _handle_event(self, event: Event) -> None:
+        await asyncio.gather(*self._main_gear._handle_event(event))
 
     async def __aenter__(self) -> Client:
         loop = asyncio.get_running_loop()
@@ -297,20 +315,46 @@ class Client:
         if not self.is_closed():
             await self.close()
 
+    # Gear methods
+
+    @copy_doc(Gear.attach_gear)
+    def attach_gear(self, gear: Gear) -> None:
+        return self._main_gear.attach_gear(gear)
+
+    @copy_doc(Gear.detach_gear)
+    def detach_gear(self, gear: Gear) -> None:
+        return self._main_gear.detach_gear(gear)
+
+    @copy_doc(Gear.add_listener)
+    def add_listener(
+        self,
+        callback: Callable[[Event], Awaitable[None]],
+        *,
+        event: type[Event] | Undefined = MISSING,
+        is_instance_function: bool = False,
+        once: bool = False,
+    ) -> None:
+        return self._main_gear.add_listener(callback, event=event, is_instance_function=is_instance_function, once=once)
+
+    @copy_doc(Gear.remove_listener)
+    def remove_listener(
+        self,
+        callback: Callable[[Event], Awaitable[None]],
+        event: type[Event] | Undefined = MISSING,
+        is_instance_function: bool = False,
+    ) -> None:
+        return self._main_gear.remove_listener(callback, event=event, is_instance_function=is_instance_function)
+
+    @copy_doc(Gear.listen)
+    def listen(
+        self, event: type[Event] | Undefined = MISSING, once: bool = False
+    ) -> Callable[[Callable[[Event], Awaitable[None]]], Callable[[Event], Awaitable[None]]]:
+        return self._main_gear.listen(event=event, once=once)
+
     # internals
 
     def _get_websocket(self, guild_id: int | None = None, *, shard_id: int | None = None) -> DiscordWebSocket:
         return self.ws
-
-    def _get_state(self, **options: Any) -> ConnectionState:
-        return ConnectionState(
-            dispatch=self.dispatch,
-            handlers=self._handlers,
-            hooks=self._hooks,
-            http=self.http,
-            loop=self.loop,
-            **options,
-        )
 
     def _handle_ready(self) -> None:
         self._ready.set()
@@ -342,62 +386,54 @@ class Client:
         """Represents the connected client. ``None`` if not logged in."""
         return self._connection.user
 
-    @property
-    def guilds(self) -> list[Guild]:
+    async def get_guilds(self) -> list[Guild]:
         """The guilds that the connected client is a member of."""
-        return self._connection.guilds
+        return await self._connection.get_guilds()
 
-    @property
-    def emojis(self) -> list[GuildEmoji | AppEmoji]:
+    async def get_emojis(self) -> list[GuildEmoji | AppEmoji]:
         """The emojis that the connected client has.
 
         .. note::
 
             This only includes the application's emojis if `cache_app_emojis` is ``True``.
         """
-        return self._connection.emojis
+        return await self._connection.get_emojis()
 
-    @property
-    def guild_emojis(self) -> list[GuildEmoji]:
+    async def get_guild_emojis(self) -> list[GuildEmoji]:
         """The :class:`~discord.GuildEmoji` that the connected client has."""
-        return [e for e in self.emojis if isinstance(e, GuildEmoji)]
+        return [e for e in await self.get_emojis() if isinstance(e, GuildEmoji)]
 
-    @property
-    def app_emojis(self) -> list[AppEmoji]:
+    async def get_app_emojis(self) -> list[AppEmoji]:
         """The :class:`~discord.AppEmoji` that the connected client has.
 
         .. note::
 
             This is only available if `cache_app_emojis` is ``True``.
         """
-        return [e for e in self.emojis if isinstance(e, AppEmoji)]
+        return [e for e in await self.get_emojis() if isinstance(e, AppEmoji)]
 
-    @property
-    def stickers(self) -> list[GuildSticker]:
+    async def get_stickers(self) -> list[GuildSticker]:
         """The stickers that the connected client has.
 
         .. versionadded:: 2.0
         """
-        return self._connection.stickers
+        return await self._connection.get_stickers()
 
-    @property
-    def polls(self) -> list[Poll]:
+    async def get_polls(self) -> list[Poll]:
         """The polls that the connected client has.
 
         .. versionadded:: 2.6
         """
-        return self._connection.polls
+        return await self._connection.get_polls()
 
-    @property
-    def cached_messages(self) -> Sequence[Message]:
+    async def get_cached_messages(self) -> Sequence[Message]:
         """Read-only list of messages the connected client has cached.
 
         .. versionadded:: 1.1
         """
-        return SequenceProxy(self._connection._messages or [])
+        return SequenceProxy(await self._connection.cache.get_all_messages())
 
-    @property
-    def private_channels(self) -> list[PrivateChannel]:
+    async def get_private_channels(self) -> list[PrivateChannel]:
         """The private channels that the connected client is participating on.
 
         .. note::
@@ -405,7 +441,7 @@ class Client:
             This returns only up to 128 most recent private channels due to an internal working
             on how Discord deals with private channels.
         """
-        return self._connection.private_channels
+        return await self._connection.get_private_channels()
 
     @property
     def voice_clients(self) -> list[VoiceProtocol]:
@@ -470,71 +506,6 @@ class Client:
         self._tasks.add(task)
         task.add_done_callback(self._tasks.discard)
         return task
-
-    def dispatch(self, event: str, *args: Any, **kwargs: Any) -> None:
-        _log.debug("Dispatching event %s", event)
-        method = f"on_{event}"
-
-        listeners = self._listeners.get(event)
-        if listeners:
-            removed = []
-            for i, (future, condition) in enumerate(listeners):
-                if future.cancelled():
-                    removed.append(i)
-                    continue
-
-                try:
-                    result = condition(*args)
-                except Exception as exc:
-                    future.set_exception(exc)
-                    removed.append(i)
-                else:
-                    if result:
-                        if len(args) == 0:
-                            future.set_result(None)
-                        elif len(args) == 1:
-                            future.set_result(args[0])
-                        else:
-                            future.set_result(args)
-                        removed.append(i)
-
-            if len(removed) == len(listeners):
-                self._listeners.pop(event)
-            else:
-                for idx in reversed(removed):
-                    del listeners[idx]
-
-        # Schedule the main handler registered with @event
-        try:
-            coro = getattr(self, method)
-        except AttributeError:
-            pass
-        else:
-            self._schedule_event(coro, method, *args, **kwargs)
-
-        # collect the once listeners as removing them from the list
-        # while iterating over it causes issues
-        once_listeners = []
-
-        # Schedule additional handlers registered with @listen
-        for coro in self._event_handlers.get(method, []):
-            self._schedule_event(coro, method, *args, **kwargs)
-
-            try:
-                if coro._once:  # added using @listen()
-                    once_listeners.append(coro)
-
-            except AttributeError:  # added using @Cog.add_listener()
-                # https://github.com/Pycord-Development/pycord/pull/1989
-                # Although methods are similar to functions, attributes can't be added to them.
-                # This means that we can't add the `_once` attribute in the `add_listener` method
-                # and can only be added using the `@listen` decorator.
-
-                continue
-
-        # remove the once listeners
-        for coro in once_listeners:
-            self._event_handlers[method].remove(coro)
 
     async def on_error(self, event_method: str, *args: Any, **kwargs: Any) -> None:
         """|coro|
@@ -697,7 +668,7 @@ class Client:
                     await self.ws.poll_event()
             except ReconnectWebSocket as e:
                 _log.info("Got a request to %s the websocket.", e.op)
-                self.dispatch("disconnect")
+                # self.dispatch("disconnect") # TODO: dispatch event
                 ws_params.update(
                     sequence=self.ws.sequence,
                     resume=e.resume,
@@ -932,10 +903,9 @@ class Client:
 
     # helpers/getters
 
-    @property
-    def users(self) -> list[User]:
+    async def get_users(self) -> list[User]:
         """Returns a list of all the users the bot can see."""
-        return list(self._connection._users.values())
+        return await self._connection.cache.get_all_users()
 
     async def fetch_application(self, application_id: int, /) -> PartialAppInfo:
         """|coro|
@@ -961,7 +931,7 @@ class Client:
         data = await self.http.get_application(application_id)
         return PartialAppInfo(state=self._connection, data=data)
 
-    def get_channel(self, id: int, /) -> GuildChannel | Thread | PrivateChannel | None:
+    async def get_channel(self, id: int, /) -> GuildChannel | Thread | PrivateChannel | None:
         """Returns a channel or thread with the given ID.
 
         Parameters
@@ -974,9 +944,9 @@ class Client:
         Optional[Union[:class:`.abc.GuildChannel`, :class:`.Thread`, :class:`.abc.PrivateChannel`]]
             The returned channel or ``None`` if not found.
         """
-        return self._connection.get_channel(id)
+        return await self._connection.get_channel(id)
 
-    def get_message(self, id: int, /) -> Message | None:
+    async def get_message(self, id: int, /) -> Message | None:
         """Returns a message the given ID.
 
         This is useful if you have a message_id but don't want to do an API call
@@ -992,7 +962,7 @@ class Client:
         Optional[:class:`.Message`]
             The returned message or ``None`` if not found.
         """
-        return self._connection._get_message(id)
+        return await self._connection._get_message(id)
 
     def get_partial_messageable(self, id: int, *, type: ChannelType | None = None) -> PartialMessageable:
         """Returns a partial messageable with the given channel ID.
@@ -1016,7 +986,7 @@ class Client:
         """
         return PartialMessageable(state=self._connection, id=id, type=type)
 
-    def get_stage_instance(self, id: int, /) -> StageInstance | None:
+    async def get_stage_instance(self, id: int, /) -> StageInstance | None:
         """Returns a stage instance with the given stage channel ID.
 
         .. versionadded:: 2.0
@@ -1031,14 +1001,14 @@ class Client:
         Optional[:class:`.StageInstance`]
             The stage instance or ``None`` if not found.
         """
-        from .channel import StageChannel  # noqa: PLC0415
+        from .channel import StageChannel
 
-        channel = self._connection.get_channel(id)
+        channel = await self._connection.get_channel(id)
 
         if isinstance(channel, StageChannel):
             return channel.instance
 
-    def get_guild(self, id: int, /) -> Guild | None:
+    async def get_guild(self, id: int, /) -> Guild | None:
         """Returns a guild with the given ID.
 
         Parameters
@@ -1051,9 +1021,9 @@ class Client:
         Optional[:class:`.Guild`]
             The guild or ``None`` if not found.
         """
-        return self._connection._get_guild(id)
+        return await self._connection._get_guild(id)
 
-    def get_user(self, id: int, /) -> User | None:
+    async def get_user(self, id: int, /) -> User | None:
         """Returns a user with the given ID.
 
         Parameters
@@ -1066,9 +1036,9 @@ class Client:
         Optional[:class:`~discord.User`]
             The user or ``None`` if not found.
         """
-        return self._connection.get_user(id)
+        return await self._connection.get_user(id)
 
-    def get_emoji(self, id: int, /) -> GuildEmoji | AppEmoji | None:
+    async def get_emoji(self, id: int, /) -> GuildEmoji | AppEmoji | None:
         """Returns an emoji with the given ID.
 
         Parameters
@@ -1081,9 +1051,9 @@ class Client:
         Optional[:class:`.GuildEmoji` | :class:`.AppEmoji`]
             The custom emoji or ``None`` if not found.
         """
-        return self._connection.get_emoji(id)
+        return await self._connection.get_emoji(id)
 
-    def get_sticker(self, id: int, /) -> GuildSticker | None:
+    async def get_sticker(self, id: int, /) -> GuildSticker | None:
         """Returns a guild sticker with the given ID.
 
         .. versionadded:: 2.0
@@ -1098,9 +1068,9 @@ class Client:
         Optional[:class:`.GuildSticker`]
             The sticker or ``None`` if not found.
         """
-        return self._connection.get_sticker(id)
+        return await self._connection.get_sticker(id)
 
-    def get_poll(self, id: int, /) -> Poll | None:
+    async def get_poll(self, id: int, /) -> Poll | None:
         """Returns a poll attached to the given message ID.
 
         Parameters
@@ -1113,14 +1083,14 @@ class Client:
         Optional[:class:`.Poll`]
             The poll or ``None`` if not found.
         """
-        return self._connection.get_poll(id)
+        return await self._connection.get_poll(id)
 
-    def get_all_channels(self) -> Generator[GuildChannel]:
+    async def get_all_channels(self) -> AsyncGenerator[GuildChannel]:
         """A generator that retrieves every :class:`.abc.GuildChannel` the client can 'access'.
 
         This is equivalent to: ::
 
-            for guild in client.guilds:
+            for guild in await client.get_guilds():
                 for channel in guild.channels:
                     yield channel
 
@@ -1136,15 +1106,16 @@ class Client:
             A channel the client can 'access'.
         """
 
-        for guild in self.guilds:
-            yield from guild.channels
+        for guild in await self.get_guilds():
+            for channel in guild.channels:
+                yield channel
 
-    def get_all_members(self) -> Generator[Member]:
+    async def get_all_members(self) -> AsyncGenerator[Member]:
         """Returns a generator with every :class:`.Member` the client can see.
 
         This is equivalent to: ::
 
-            for guild in client.guilds:
+            for guild in await client.get_guilds():
                 for member in guild.members:
                     yield member
 
@@ -1153,10 +1124,9 @@ class Client:
         :class:`.Member`
             A member the client can see.
         """
-        for guild in self.guilds:
-            yield from guild.members
-
-    # listeners/waiters
+        for guild in await self.get_guilds():
+            for member in guild.members:
+                yield member
 
     async def wait_until_ready(self) -> None:
         """|coro|
@@ -1164,275 +1134,6 @@ class Client:
         Waits until the client's internal cache is all ready.
         """
         await self._ready.wait()
-
-    def wait_for(
-        self,
-        event: str,
-        *,
-        check: Callable[..., bool] | None = None,
-        timeout: float | None = None,
-    ) -> Any:
-        """|coro|
-
-        Waits for a WebSocket event to be dispatched.
-
-        This could be used to wait for a user to reply to a message,
-        or to react to a message, or to edit a message in a self-contained
-        way.
-
-        The ``timeout`` parameter is passed onto :func:`asyncio.wait_for`. By default,
-        it does not timeout. Note that this does propagate the
-        :exc:`asyncio.TimeoutError` for you in case of timeout and is provided for
-        ease of use.
-
-        In case the event returns multiple arguments, a :class:`tuple` containing those
-        arguments is returned instead. Please check the
-        :ref:`documentation <discord-api-events>` for a list of events and their
-        parameters.
-
-        This function returns the **first event that meets the requirements**.
-
-        Parameters
-        ----------
-        event: :class:`str`
-            The event name, similar to the :ref:`event reference <discord-api-events>`,
-            but without the ``on_`` prefix, to wait for.
-        check: Optional[Callable[..., :class:`bool`]]
-            A predicate to check what to wait for. The arguments must meet the
-            parameters of the event being waited for.
-        timeout: Optional[:class:`float`]
-            The number of seconds to wait before timing out and raising
-            :exc:`asyncio.TimeoutError`.
-
-        Returns
-        -------
-        Any
-            Returns no arguments, a single argument, or a :class:`tuple` of multiple
-            arguments that mirrors the parameters passed in the
-            :ref:`event reference <discord-api-events>`.
-
-        Raises
-        ------
-        asyncio.TimeoutError
-            Raised if a timeout is provided and reached.
-
-        Examples
-        --------
-
-        Waiting for a user reply: ::
-
-            @client.event
-            async def on_message(message):
-                if message.content.startswith("$greet"):
-                    channel = message.channel
-                    await channel.send("Say hello!")
-
-                    def check(m):
-                        return m.content == "hello" and m.channel == channel
-
-                    msg = await client.wait_for("message", check=check)
-                    await channel.send(f"Hello {msg.author}!")
-
-        Waiting for a thumbs up reaction from the message author: ::
-
-            @client.event
-            async def on_message(message):
-                if message.content.startswith("$thumb"):
-                    channel = message.channel
-                    await channel.send("Send me that \N{THUMBS UP SIGN} reaction, mate")
-
-                    def check(reaction, user):
-                        return user == message.author and str(reaction.emoji) == "\N{THUMBS UP SIGN}"
-
-                    try:
-                        reaction, user = await client.wait_for("reaction_add", timeout=60.0, check=check)
-                    except asyncio.TimeoutError:
-                        await channel.send("\N{THUMBS DOWN SIGN}")
-                    else:
-                        await channel.send("\N{THUMBS UP SIGN}")
-        """
-
-        future = self.loop.create_future()
-        if check is None:
-
-            def _check(*args):
-                return True
-
-            check = _check
-
-        ev = event.lower()
-        try:
-            listeners = self._listeners[ev]
-        except KeyError:
-            listeners = []
-            self._listeners[ev] = listeners
-
-        listeners.append((future, check))
-        return asyncio.wait_for(future, timeout)
-
-    # event registration
-    def add_listener(self, func: Coro, name: str | utils.Undefined = MISSING) -> None:
-        """The non decorator alternative to :meth:`.listen`.
-
-        Parameters
-        ----------
-        func: :ref:`coroutine <coroutine>`
-            The function to call.
-        name: :class:`str`
-            The name of the event to listen for. Defaults to ``func.__name__``.
-
-        Raises
-        ------
-        TypeError
-            The ``func`` parameter is not a coroutine function.
-        ValueError
-            The ``name`` (event name) does not start with ``on_``.
-
-        Example
-        -------
-
-        .. code-block:: python3
-
-            async def on_ready():
-                pass
-
-
-            async def my_message(message):
-                pass
-
-
-            client.add_listener(on_ready)
-            client.add_listener(my_message, "on_message")
-        """
-        name = func.__name__ if name is MISSING else name
-
-        if not name.startswith("on_"):
-            raise ValueError("The 'name' parameter must start with 'on_'")
-
-        if not asyncio.iscoroutinefunction(func):
-            raise TypeError("Listeners must be coroutines")
-
-        if name in self._event_handlers:
-            self._event_handlers[name].append(func)
-        else:
-            self._event_handlers[name] = [func]
-
-        _log.debug(
-            "%s has successfully been registered as a handler for event %s",
-            func.__name__,
-            name,
-        )
-
-    def remove_listener(self, func: Coro, name: str | utils.Undefined = MISSING) -> None:
-        """Removes a listener from the pool of listeners.
-
-        Parameters
-        ----------
-        func
-            The function that was used as a listener to remove.
-        name: :class:`str`
-            The name of the event we want to remove. Defaults to
-            ``func.__name__``.
-        """
-
-        name = func.__name__ if name is MISSING else name
-
-        if name in self._event_handlers:
-            try:
-                self._event_handlers[name].remove(func)
-            except ValueError:
-                pass
-
-    def listen(self, name: str | utils.Undefined = MISSING, once: bool = False) -> Callable[[Coro], Coro]:
-        """A decorator that registers another function as an external
-        event listener. Basically this allows you to listen to multiple
-        events from different places e.g. such as :func:`.on_ready`
-
-        The functions being listened to must be a :ref:`coroutine <coroutine>`.
-
-        Raises
-        ------
-        TypeError
-            The function being listened to is not a coroutine.
-        ValueError
-            The ``name`` (event name) does not start with ``on_``.
-
-        Example
-        -------
-
-        .. code-block:: python3
-
-            @client.listen()
-            async def on_message(message):
-                print("one")
-
-
-            # in some other file...
-
-
-            @client.listen("on_message")
-            async def my_message(message):
-                print("two")
-
-
-            # listen to the first event only
-            @client.listen("on_ready", once=True)
-            async def on_ready():
-                print("ready!")
-
-        Would print one and two in an unspecified order.
-        """
-
-        def decorator(func: Coro) -> Coro:
-            # Special case, where default should be overwritten
-            if name == "on_application_command_error":
-                return self.event(func)
-
-            func._once = once
-            self.add_listener(func, name)
-            return func
-
-        if asyncio.iscoroutinefunction(name):
-            coro = name
-            name = coro.__name__
-            return decorator(coro)
-
-        return decorator
-
-    def event(self, coro: Coro) -> Coro:
-        """A decorator that registers an event to listen to.
-
-        You can find more info about the events on the :ref:`documentation below <discord-api-events>`.
-
-        The events must be a :ref:`coroutine <coroutine>`, if not, :exc:`TypeError` is raised.
-
-        .. note::
-
-            This replaces any default handlers.
-            Developers are encouraged to use :py:meth:`~discord.Client.listen` for adding additional handlers
-            instead of :py:meth:`~discord.Client.event` unless default method replacement is intended.
-
-        Raises
-        ------
-        TypeError
-            The coroutine passed is not actually a coroutine.
-
-        Example
-        -------
-
-        .. code-block:: python3
-
-            @client.event
-            async def on_ready():
-                print("Ready!")
-        """
-
-        if not asyncio.iscoroutinefunction(coro):
-            raise TypeError("event registered must be a coroutine function")
-
-        setattr(self, coro.__name__, coro)
-        _log.debug("%s has successfully been registered as an event", coro.__name__)
-        return coro
 
     async def change_presence(
         self,
@@ -1480,7 +1181,7 @@ class Client:
 
         await self.ws.change_presence(activity=activity, status=status_str)
 
-        for guild in self._connection.guilds:
+        for guild in await self._connection.get_guilds():
             me = guild.me
             if me is None:
                 continue
@@ -1581,7 +1282,7 @@ class Client:
         """
         code = resolve_template(code)
         data = await self.http.get_template(code)
-        return Template(data=data, state=self._connection)  # type: ignore
+        return await Template.from_data(data=data, state=self._connection)  # type: ignore
 
     async def fetch_guild(self, guild_id: int, /, *, with_counts=True) -> Guild:
         """|coro|
@@ -1622,7 +1323,7 @@ class Client:
             Getting the guild failed.
         """
         data = await self.http.get_guild(guild_id, with_counts=with_counts)
-        return Guild(data=data, state=self._connection)
+        return await Guild._from_data(data=data, state=self._connection)
 
     async def create_guild(
         self,
@@ -1671,7 +1372,7 @@ class Client:
             data = await self.http.create_from_template(code, name, icon_base64)
         else:
             data = await self.http.create_guild(name, icon_base64)
-        return Guild(data=data, state=self._connection)
+        return await Guild._from_data(data=data, state=self._connection)
 
     async def fetch_stage_instance(self, channel_id: int, /) -> StageInstance:
         """|coro|
@@ -1762,7 +1463,7 @@ class Client:
             with_expiration=with_expiration,
             guild_scheduled_event_id=event_id,
         )
-        return Invite.from_incomplete(state=self._connection, data=data)
+        return await Invite.from_incomplete(state=self._connection, data=data)
 
     async def delete_invite(self, invite: Invite | str) -> None:
         """|coro|
@@ -2002,14 +1703,14 @@ class Client:
             The channel that was created.
         """
         state = self._connection
-        found = state._get_private_channel_by_user(user.id)
+        found = await state._get_private_channel_by_user(user.id)
         if found:
             return found
 
         data = await state.http.start_private_message(user.id)
-        return state.add_dm_channel(data)
+        return await state.add_dm_channel(data)
 
-    def add_view(self, view: View, *, message_id: int | None = None) -> None:
+    async def add_view(self, view: View, *, message_id: int | None = None) -> None:
         """Registers a :class:`~discord.ui.View` for persistent listening.
 
         This method should be used for when a view is comprised of components
@@ -2041,15 +1742,14 @@ class Client:
         if not view.is_persistent():
             raise ValueError("View is not persistent. Items need to have a custom_id set and View must have no timeout")
 
-        self._connection.store_view(view, message_id)
+        await self._connection.store_view(view, message_id)
 
-    @property
-    def persistent_views(self) -> Sequence[View]:
+    async def get_persistent_views(self) -> Sequence[View]:
         """A sequence of persistent views added to the client.
 
         .. versionadded:: 2.0
         """
-        return self._connection.persistent_views
+        return await self._connection.get_persistent_views()
 
     async def fetch_role_connection_metadata_records(
         self,
@@ -2205,7 +1905,7 @@ class Client:
             The retrieved emojis.
         """
         data = await self._connection.http.get_all_application_emojis(self.application_id)
-        return [self._connection.maybe_store_app_emoji(self.application_id, d) for d in data["items"]]
+        return [await self._connection.maybe_store_app_emoji(self.application_id, d) for d in data["items"]]
 
     async def fetch_emoji(self, emoji_id: int, /) -> AppEmoji:
         """|coro|
@@ -2230,7 +1930,7 @@ class Client:
             An error occurred fetching the emoji.
         """
         data = await self._connection.http.get_application_emoji(self.application_id, emoji_id)
-        return self._connection.maybe_store_app_emoji(self.application_id, data)
+        return await self._connection.maybe_store_app_emoji(self.application_id, data)
 
     async def create_emoji(
         self,
@@ -2265,7 +1965,7 @@ class Client:
 
         img = bytes_to_base64_data(image)
         data = await self._connection.http.create_application_emoji(self.application_id, name, img)
-        return self._connection.maybe_store_app_emoji(self.application_id, data)
+        return await self._connection.maybe_store_app_emoji(self.application_id, data)
 
     async def delete_emoji(self, emoji: Snowflake) -> None:
         """|coro|
@@ -2284,8 +1984,8 @@ class Client:
         """
 
         await self._connection.http.delete_application_emoji(self.application_id, emoji.id)
-        if self._connection.cache_app_emojis and self._connection.get_emoji(emoji.id):
-            self._connection.remove_emoji(emoji)
+        if self._connection.cache_app_emojis and await self._connection.get_emoji(emoji.id):
+            await self._connection._remove_emoji(emoji)
 
     def get_sound(self, sound_id: int) -> SoundboardSound | None:
         """Gets a :class:`.Sound` from the bot's sound cache.

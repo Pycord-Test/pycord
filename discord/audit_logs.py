@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import datetime
 from functools import cached_property
+from inspect import isawaitable
 from typing import TYPE_CHECKING, Any, Callable, ClassVar, Generator, TypeVar
 
 from . import enums, utils
@@ -47,16 +48,16 @@ __all__ = (
 
 
 if TYPE_CHECKING:
-    from . import abc
+    from .app.state import ConnectionState
+    from .channel.base import GuildChannel
+    from .channel.thread import Thread
     from .emoji import GuildEmoji
     from .guild import Guild
     from .member import Member
     from .role import Role
     from .scheduled_events import ScheduledEvent
     from .stage_instance import StageInstance
-    from .state import ConnectionState
     from .sticker import GuildSticker
-    from .threads import Thread
     from .types.audit_log import AuditLogChange as AuditLogChangePayload
     from .types.audit_log import AuditLogEntry as AuditLogEntryPayload
     from .types.automod import AutoModAction as AutoModActionPayload
@@ -79,13 +80,13 @@ def _transform_snowflake(entry: AuditLogEntry, data: Snowflake) -> int:
     return int(data)
 
 
-def _transform_channel(entry: AuditLogEntry, data: Snowflake | None) -> abc.GuildChannel | Object | None:
+def _transform_channel(entry: AuditLogEntry, data: Snowflake | None) -> GuildChannel | Object | None:
     if data is None:
         return None
     return entry.guild.get_channel(int(data)) or Object(id=data)
 
 
-def _transform_channels(entry: AuditLogEntry, data: list[Snowflake] | None) -> list[abc.GuildChannel | Object] | None:
+def _transform_channels(entry: AuditLogEntry, data: list[Snowflake] | None) -> list[GuildChannel | Object] | None:
     if data is None:
         return None
     return [_transform_channel(entry, channel) for channel in data]
@@ -103,10 +104,10 @@ def _transform_member_id(entry: AuditLogEntry, data: Snowflake | None) -> Member
     return entry._get_member(int(data))
 
 
-def _transform_guild_id(entry: AuditLogEntry, data: Snowflake | None) -> Guild | None:
+async def _transform_guild_id(entry: AuditLogEntry, data: Snowflake | None) -> Guild | None:
     if data is None:
         return None
-    return entry._state._get_guild(data)
+    return await entry._state._get_guild(data)
 
 
 def _transform_overwrites(
@@ -277,7 +278,14 @@ class AuditLogChanges:
         "communication_disabled_until": (None, _transform_communication_disabled_until),
     }
 
-    def __init__(
+    @staticmethod
+    async def _maybe_await(func: Any) -> Any:
+        if isawaitable(func):
+            return await func
+        else:
+            return func
+
+    async def _from_data(
         self,
         entry: AuditLogEntry,
         data: list[AuditLogChangePayload],
@@ -340,10 +348,10 @@ class AuditLogChanges:
                 before = None
             else:
                 if transformer:
-                    before = transformer(entry, before)
+                    before = await self._maybe_await(transformer(entry, before))
 
             if attr == "location" and hasattr(self.before, "location_type"):
-                from .scheduled_events import ScheduledEventLocation  # noqa: PLC0415
+                from .scheduled_events import ScheduledEventLocation
 
                 if self.before.location_type is enums.ScheduledEventLocationType.external:
                     before = ScheduledEventLocation(state=state, value=before)
@@ -358,10 +366,10 @@ class AuditLogChanges:
                 after = None
             else:
                 if transformer:
-                    after = transformer(entry, after)
+                    after = await self._maybe_await(transformer(entry, after))
 
             if attr == "location" and hasattr(self.after, "location_type"):
-                from .scheduled_events import ScheduledEventLocation  # noqa: PLC0415
+                from .scheduled_events import ScheduledEventLocation
 
                 if self.after.location_type is enums.ScheduledEventLocationType.external:
                     after = ScheduledEventLocation(state=state, value=after)
@@ -430,7 +438,7 @@ class _AuditLogProxyMemberPrune:
 
 
 class _AuditLogProxyMemberMoveOrMessageDelete:
-    channel: abc.GuildChannel
+    channel: GuildChannel
     count: int
 
 
@@ -439,12 +447,12 @@ class _AuditLogProxyMemberDisconnect:
 
 
 class _AuditLogProxyPinAction:
-    channel: abc.GuildChannel
+    channel: GuildChannel
     message_id: int
 
 
 class _AuditLogProxyStageInstanceAction:
-    channel: abc.GuildChannel
+    channel: GuildChannel
 
 
 class AuditLogEntry(Hashable):
@@ -570,8 +578,8 @@ class AuditLogEntry(Hashable):
         self.user = self._get_member(get_as_snowflake(data, "user_id"))  # type: ignore
         self._target_id = get_as_snowflake(data, "target_id")
 
-    def _get_member(self, user_id: int) -> Member | User | None:
-        return self.guild.get_member(user_id) or self._users.get(user_id)
+    async def _get_member(self, user_id: int) -> Member | User | None:
+        return await self.guild.get_member(user_id) or self._users.get(user_id)
 
     def __repr__(self) -> str:
         return f"<AuditLogEntry id={self.id} action={self.action} user={self.user!r}>"
@@ -581,12 +589,11 @@ class AuditLogEntry(Hashable):
         """Returns the entry's creation time in UTC."""
         return utils.snowflake_time(self.id)
 
-    @cached_property
-    def target(
+    async def get_target(
         self,
     ) -> (
         Guild
-        | abc.GuildChannel
+        | GuildChannel
         | Member
         | User
         | Role
@@ -603,17 +610,19 @@ class AuditLogEntry(Hashable):
         except AttributeError:
             return Object(id=self._target_id)
         else:
-            return converter(self._target_id)
+            r = converter(self._target_id)
+            if isawaitable(r):
+                r = await r
+            return r
 
     @property
     def category(self) -> enums.AuditLogActionCategory:
         """The category of the action, if applicable."""
         return self.action.category
 
-    @cached_property
-    def changes(self) -> AuditLogChanges:
+    async def changes(self) -> AuditLogChanges:
         """The list of changes this entry has."""
-        obj = AuditLogChanges(self, self._changes, state=self._state)
+        obj = AuditLogChanges().from_data(self, self._changes, state=self._state)
         del self._changes
         return obj
 
@@ -630,11 +639,11 @@ class AuditLogEntry(Hashable):
     def _convert_target_guild(self, target_id: int) -> Guild:
         return self.guild
 
-    def _convert_target_channel(self, target_id: int) -> abc.GuildChannel | Object:
+    def _convert_target_channel(self, target_id: int) -> GuildChannel | Object:
         return self.guild.get_channel(target_id) or Object(id=target_id)
 
-    def _convert_target_user(self, target_id: int) -> Member | User | None:
-        return self._get_member(target_id)
+    async def _convert_target_user(self, target_id: int) -> Member | User | None:
+        return await self._get_member(target_id)
 
     def _convert_target_role(self, target_id: int) -> Role | Object:
         return self.guild.get_role(target_id) or Object(id=target_id)
@@ -659,17 +668,17 @@ class AuditLogEntry(Hashable):
             pass
         return obj
 
-    def _convert_target_emoji(self, target_id: int) -> GuildEmoji | Object:
-        return self._state.get_emoji(target_id) or Object(id=target_id)
+    async def _convert_target_emoji(self, target_id: int) -> GuildEmoji | Object:
+        return (await self._state.get_emoji(target_id)) or Object(id=target_id)
 
-    def _convert_target_message(self, target_id: int) -> Member | User | None:
-        return self._get_member(target_id)
+    async def _convert_target_message(self, target_id: int) -> Member | User | None:
+        return await self._get_member(target_id)
 
     def _convert_target_stage_instance(self, target_id: int) -> StageInstance | Object:
         return self.guild.get_stage_instance(target_id) or Object(id=target_id)
 
-    def _convert_target_sticker(self, target_id: int) -> GuildSticker | Object:
-        return self._state.get_sticker(target_id) or Object(id=target_id)
+    async def _convert_target_sticker(self, target_id: int) -> GuildSticker | Object:
+        return (await self._state.get_sticker(target_id)) or Object(id=target_id)
 
     def _convert_target_thread(self, target_id: int) -> Thread | Object:
         return self.guild.get_thread(target_id) or Object(id=target_id)

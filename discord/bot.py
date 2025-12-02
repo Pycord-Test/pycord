@@ -46,7 +46,6 @@ from typing import (
 )
 
 from .client import Client
-from .cog import CogMixin
 from .commands import (
     ApplicationCommand,
     ApplicationContext,
@@ -59,6 +58,7 @@ from .commands import (
 )
 from .enums import IntegrationType, InteractionContextType, InteractionType
 from .errors import CheckFailure, DiscordException
+from .events import InteractionCreate
 from .interactions import Interaction
 from .shard import AutoShardedClient
 from .types import interactions
@@ -1082,7 +1082,7 @@ class ApplicationCommandMixin(ABC):
         ctx: :class:`.ApplicationCommand`
             The invocation context to invoke.
         """
-        self._bot.dispatch("application_command", ctx)
+        # self._bot.dispatch("application_command", ctx) # TODO: Remove when moving away from ApplicationContext
         try:
             if await self._bot.can_run(ctx, call_once=True):
                 await ctx.command.invoke(ctx)
@@ -1091,14 +1091,15 @@ class ApplicationCommandMixin(ABC):
         except DiscordException as exc:
             await ctx.command.dispatch_error(ctx, exc)
         else:
-            self._bot.dispatch("application_command_completion", ctx)
+            # self._bot.dispatch("application_command_completion", ctx) # TODO: Remove when moving away from ApplicationContext
+            pass
 
     @property
     @abstractmethod
     def _bot(self) -> Bot | AutoShardedBot: ...
 
 
-class BotBase(ApplicationCommandMixin, CogMixin, ABC):
+class BotBase(ApplicationCommandMixin, ABC):
     _supports_prefixed_commands = False
 
     def __init__(self, description=None, *args, **options):
@@ -1152,11 +1153,13 @@ class BotBase(ApplicationCommandMixin, CogMixin, ABC):
         self._before_invoke = None
         self._after_invoke = None
 
+        self._bot.add_listener(self.on_interaction, event=InteractionCreate)
+
     async def on_connect(self):
         if self.auto_sync_commands:
             await self.sync_commands()
 
-    async def on_interaction(self, interaction):
+    async def on_interaction(self, interaction: InteractionCreate):
         await self.process_application_commands(interaction)
 
     async def on_application_command_error(self, context: ApplicationContext, exception: DiscordException) -> None:

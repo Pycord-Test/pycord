@@ -35,7 +35,7 @@ class Nickname(TypedDict):
 
 class PartialMember(TypedDict):
     roles: SnowflakeList
-    joined_at: str
+    joined_at: str | None
     deaf: bool
     mute: bool
 

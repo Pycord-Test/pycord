@@ -23,7 +23,7 @@ Bot
 .. autoclass:: discord.ext.commands.Bot
     :members:
     :inherited-members:
-    :exclude-members: after_invoke, before_invoke, check, check_once, command, event, group, listen
+    :exclude-members: after_invoke, before_invoke, check, check_once, command, group, listen
 
     .. automethod:: Bot.after_invoke()
         :decorator:
@@ -40,13 +40,10 @@ Bot
     .. automethod:: Bot.command(*args, **kwargs)
         :decorator:
 
-    .. automethod:: Bot.event()
-        :decorator:
-
     .. automethod:: Bot.group(*args, **kwargs)
         :decorator:
 
-    .. automethod:: Bot.listen(name=None, once=False)
+    .. automethod:: Bot.listen(event, once=False)
         :decorator:
 
 AutoShardedBot

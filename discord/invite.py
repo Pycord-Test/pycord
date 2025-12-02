@@ -42,10 +42,10 @@ __all__ = (
 )
 
 if TYPE_CHECKING:
-    from .abc import GuildChannel
+    from .app.state import ConnectionState
+    from .channel.base import GuildChannel
     from .guild import Guild
     from .scheduled_events import ScheduledEvent
-    from .state import ConnectionState
     from .types.channel import PartialChannel as InviteChannelPayload
     from .types.invite import GatewayInvite as GatewayInvitePayload
     from .types.invite import Invite as InvitePayload
@@ -376,7 +376,7 @@ class Invite(Hashable):
 
         self.target_type: InviteTarget = try_enum(InviteTarget, data.get("target_type", 0))
 
-        from .scheduled_events import ScheduledEvent  # noqa: PLC0415
+        from .scheduled_events import ScheduledEvent
 
         scheduled_event: ScheduledEventPayload = data.get("guild_scheduled_event")
         self.scheduled_event: ScheduledEvent | None = (
@@ -389,7 +389,7 @@ class Invite(Hashable):
         )
 
     @classmethod
-    def from_incomplete(cls: type[I], *, state: ConnectionState, data: InvitePayload) -> I:
+    async def from_incomplete(cls: type[I], *, state: ConnectionState, data: InvitePayload) -> I:
         guild: Guild | PartialInviteGuild | None
         try:
             guild_data = data["guild"]
@@ -398,7 +398,7 @@ class Invite(Hashable):
             guild = None
         else:
             guild_id = int(guild_data["id"])
-            guild = state._get_guild(guild_id)
+            guild = await state._get_guild(guild_id)
             if guild is None:
                 # If it's not cached, then it has to be a partial guild
                 guild = PartialInviteGuild(state, guild_data, guild_id)
@@ -413,9 +413,9 @@ class Invite(Hashable):
         return cls(state=state, data=data, guild=guild, channel=channel)
 
     @classmethod
-    def from_gateway(cls: type[I], *, state: ConnectionState, data: GatewayInvitePayload) -> I:
+    async def from_gateway(cls: type[I], *, state: ConnectionState, data: GatewayInvitePayload) -> I:
         guild_id: int | None = get_as_snowflake(data, "guild_id")
-        guild: Guild | Object | None = state._get_guild(guild_id)
+        guild: Guild | Object | None = await state._get_guild(guild_id)
         channel_id = int(data["channel_id"])
         if guild is not None:
             channel = guild.get_channel(channel_id) or Object(id=channel_id)  # type: ignore

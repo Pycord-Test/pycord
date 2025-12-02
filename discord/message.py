@@ -28,6 +28,7 @@ from __future__ import annotations
 import datetime
 import io
 import re
+from inspect import isawaitable
 from os import PathLike
 from typing import (
     TYPE_CHECKING,
@@ -41,8 +42,11 @@ from typing import (
 )
 from urllib.parse import parse_qs, urlparse
 
+from typing_extensions import Self
+
 from . import utils
 from .channel import PartialMessageable
+from .channel.thread import Thread
 from .components import _component_factory
 from .embeds import Embed
 from .emoji import AppEmoji, GuildEmoji
@@ -58,23 +62,22 @@ from .partial_emoji import PartialEmoji
 from .poll import Poll
 from .reaction import Reaction
 from .sticker import StickerItem
-from .threads import Thread
 from .utils import MISSING, escape_mentions
 from .utils.private import cached_slot_property, delay_task, get_as_snowflake, parse_time, warn_deprecated
 
 if TYPE_CHECKING:
     from .abc import (
-        GuildChannel,
         MessageableChannel,
         PartialMessageableChannel,
         Snowflake,
     )
+    from .app.state import ConnectionState
     from .channel import TextChannel
+    from .channel.base import GuildChannel
     from .components import Component
     from .interactions import MessageInteraction
     from .mentions import AllowedMentions
     from .role import Role
-    from .state import ConnectionState
     from .types.components import Component as ComponentPayload
     from .types.embed import Embed as EmbedPayload
     from .types.member import Member as MemberPayload
@@ -591,10 +594,9 @@ class MessageReference:
         self._state = message._state
         return self
 
-    @property
-    def cached_message(self) -> Message | None:
+    async def get_cached_message(self) -> Message | None:
         """The cached message, if found in the internal message cache."""
-        return self._state and self._state._get_message(self.message_id)
+        return self._state and await self._state._get_message(self.message_id)
 
     @property
     def jump_url(self) -> str:
@@ -636,14 +638,13 @@ class MessageCall:
         self._participants: SnowflakeList = data.get("participants", [])
         self._ended_timestamp: datetime.datetime | None = parse_time(data["ended_timestamp"])
 
-    @property
-    def participants(self) -> list[User | Object]:
+    async def get_participants(self) -> list[User | Object]:
         """A list of :class:`User` that participated in this call.
 
         If a user is not found in the client's cache,
         then it will be returned as an :class:`Object`.
         """
-        return [self._state.get_user(int(i)) or Object(i) for i in self._participants]
+        return [await self._state.get_user(int(i)) or Object(i) for i in self._participants]
 
     @property
     def ended_at(self) -> datetime.datetime | None:
@@ -755,21 +756,6 @@ class MessageSnapshot:
         return f"<MessageSnapshot message={self.message!r}>"
 
 
-def flatten_handlers(cls):
-    prefix = len("_handle_")
-    handlers = [
-        (key[prefix:], value)
-        for key, value in cls.__dict__.items()
-        if key.startswith("_handle_") and key != "_handle_member"
-    ]
-
-    # store _handle_member last
-    handlers.append(("member", cls._handle_member))
-    cls._HANDLERS = handlers
-    cls._CACHED_SLOTS = [attr for attr in cls.__slots__ if attr.startswith("_cs_")]
-    return cls
-
-
 class MessagePin:
     """Represents information about a pinned message.
 
@@ -800,7 +786,6 @@ class MessagePin:
         return f"<MessagePin pinned_at={self.pinned_at!r} message={self.message!r}>"
 
 
-@flatten_handlers
 class Message(Hashable):
     r"""Represents a message from Discord.
 
@@ -992,39 +977,41 @@ class Message(Hashable):
         author: User | Member
         role_mentions: list[Role]
 
-    def __init__(
-        self,
+    @classmethod
+    async def _from_data(
+        cls,
         *,
         state: ConnectionState,
         channel: MessageableChannel,
         data: MessagePayload,
-    ):
-        self._state: ConnectionState = state
-        self._raw_data: MessagePayload = data
-        self.id: int = int(data["id"])
-        self.webhook_id: int | None = get_as_snowflake(data, "webhook_id")
-        self.reactions: list[Reaction] = [Reaction(message=self, data=d) for d in data.get("reactions", [])]
-        self.attachments: list[Attachment] = [Attachment(data=a, state=self._state) for a in data["attachments"]]
-        self.embeds: list[Embed] = [Embed.from_dict(a) for a in data["embeds"]]
-        self.application: MessageApplicationPayload | None = data.get("application")
-        self.activity: MessageActivityPayload | None = data.get("activity")
-        self.channel: MessageableChannel = channel
-        self._edited_timestamp: datetime.datetime | None = parse_time(data["edited_timestamp"])
-        self.type: MessageType = try_enum(MessageType, data["type"])
-        self.pinned: bool = data["pinned"]
-        self.flags: MessageFlags = MessageFlags._from_value(data.get("flags", 0))
-        self.mention_everyone: bool = data["mention_everyone"]
-        self.tts: bool = data["tts"]
-        self.content: str = data["content"]
-        self.nonce: int | str | None = data.get("nonce")
-        self.stickers: list[StickerItem] = [StickerItem(data=d, state=state) for d in data.get("sticker_items", [])]
-        self.components: list[Component] = [_component_factory(d, state=state) for d in data.get("components", [])]
+    ) -> Self:
+        self = cls()
+        self._state = state
+        self._raw_data = data
+        self.id = int(data["id"])
+        self.webhook_id = get_as_snowflake(data, "webhook_id")
+        self.reactions = [Reaction(message=self, data=d) for d in data.get("reactions", [])]
+        self.attachments = [Attachment(data=a, state=self._state) for a in data["attachments"]]
+        self.embeds = [Embed.from_dict(a) for a in data["embeds"]]
+        self.application = data.get("application")
+        self.activity = data.get("activity")
+        self.channel = channel
+        self._edited_timestamp = parse_time(data["edited_timestamp"])
+        self.type = try_enum(MessageType, data["type"])
+        self.pinned = data["pinned"]
+        self.flags = MessageFlags._from_value(data.get("flags", 0))
+        self.mention_everyone = data["mention_everyone"]
+        self.tts = data["tts"]
+        self.content = data["content"]
+        self.nonce = data.get("nonce")
+        self.stickers = [StickerItem(data=d, state=state) for d in data.get("sticker_items", [])]
+        self.components = [_component_factory(d, state=state) for d in data.get("components", [])]
 
         try:
             # if the channel doesn't have a guild attribute, we handle that
             self.guild = channel.guild  # type: ignore
         except AttributeError:
-            self.guild = state._get_guild(get_as_snowflake(data, "guild_id"))
+            self.guild = await state._get_guild(get_as_snowflake(data, "guild_id"))
 
         try:
             ref = data["message_reference"]
@@ -1044,7 +1031,7 @@ class Message(Hashable):
                     if ref.channel_id == channel.id:
                         chan = channel
                     else:
-                        chan, _ = state._get_guild_channel(resolved, guild_id=self.guild.id)
+                        chan, _ = await state._get_guild_channel(resolved, guild_id=self.guild.id)
 
                     # the channel will be the correct type here
                     ref.resolved = self.__class__(channel=chan, data=resolved, state=state)  # type: ignore
@@ -1062,7 +1049,7 @@ class Message(Hashable):
         except KeyError:
             self.snapshots = []
 
-        from .interactions import InteractionMetadata, MessageInteraction  # noqa: PLC0415
+        from .interactions import InteractionMetadata, MessageInteraction  # circular import
 
         self._interaction: MessageInteraction | None
         try:
@@ -1077,7 +1064,7 @@ class Message(Hashable):
         self._poll: Poll | None
         try:
             self._poll = Poll.from_dict(data["poll"], self)
-            self._state.store_poll(self._poll, self.id)
+            await self._state.store_poll(self._poll, self.id)
         except KeyError:
             self._poll = None
 
@@ -1093,11 +1080,40 @@ class Message(Hashable):
         except KeyError:
             self.call = None
 
-        for handler in ("author", "member", "mentions", "mention_roles"):
+        self.author = await self._state.store_user(data["author"])
+        if isinstance(self.guild, Guild):
+            found = await self.guild.get_member(self.author.id)
+            if found is not None:
+                self.author = found
+        if data.get("member"):
             try:
-                getattr(self, f"_handle_{handler}")(data[handler])
-            except KeyError:
-                continue
+                # Update member reference
+                self.author._update_from_message(data["member"])
+            except AttributeError:
+                # It's a user here
+                # TODO: consider adding to cache here
+                self.author = Member._from_message(message=self, data=data["member"])
+
+        self.mentions = r = []
+        if not isinstance(self.guild, Guild):
+            self.mentions = [await state.store_user(m) for m in data["mentions"]]
+        else:
+            for mention in filter(None, data["mentions"]):
+                id_search = int(mention["id"])
+                member = await self.guild.get_member(id_search)
+                if member is not None:
+                    r.append(member)
+                else:
+                    r.append(Member._try_upgrade(data=mention, guild=self.guild, state=state))
+
+        self.role_mentions = []
+        if isinstance(self.guild, Guild):
+            for role_id in map(int, data["mention_roles"]):
+                role = self.guild.get_role(role_id)
+                if role is not None:
+                    self.role_mentions.append(role)
+
+        return self
 
     def __repr__(self) -> str:
         name = self.__class__.__name__
@@ -1161,116 +1177,6 @@ class Message(Hashable):
 
         del self.reactions[index]
         return reaction
-
-    def _update(self, data):
-        # In an update scheme, 'author' key has to be handled before 'member'
-        # otherwise they overwrite each other which is undesirable.
-        # Since there's no good way to do this we have to iterate over every
-        # handler rather than iterating over the keys which is a little slower
-        for key, handler in self._HANDLERS:
-            try:
-                value = data[key]
-            except KeyError:
-                continue
-            else:
-                handler(self, value)
-
-        # clear the cached properties
-        for attr in self._CACHED_SLOTS:
-            try:
-                delattr(self, attr)
-            except AttributeError:
-                pass
-
-    def _handle_edited_timestamp(self, value: str) -> None:
-        self._edited_timestamp = parse_time(value)
-
-    def _handle_pinned(self, value: bool) -> None:
-        self.pinned = value
-
-    def _handle_flags(self, value: int) -> None:
-        self.flags = MessageFlags._from_value(value)
-
-    def _handle_application(self, value: MessageApplicationPayload) -> None:
-        self.application = value
-
-    def _handle_activity(self, value: MessageActivityPayload) -> None:
-        self.activity = value
-
-    def _handle_mention_everyone(self, value: bool) -> None:
-        self.mention_everyone = value
-
-    def _handle_tts(self, value: bool) -> None:
-        self.tts = value
-
-    def _handle_type(self, value: int) -> None:
-        self.type = try_enum(MessageType, value)
-
-    def _handle_content(self, value: str) -> None:
-        self.content = value
-
-    def _handle_attachments(self, value: list[AttachmentPayload]) -> None:
-        self.attachments = [Attachment(data=a, state=self._state) for a in value]
-
-    def _handle_embeds(self, value: list[EmbedPayload]) -> None:
-        self.embeds = [Embed.from_dict(data) for data in value]
-
-    def _handle_nonce(self, value: str | int) -> None:
-        self.nonce = value
-
-    def _handle_poll(self, value: PollPayload) -> None:
-        self._poll = Poll.from_dict(value, self)
-        self._state.store_poll(self._poll, self.id)
-
-    def _handle_author(self, author: UserPayload) -> None:
-        self.author = self._state.store_user(author)
-        if isinstance(self.guild, Guild):
-            found = self.guild.get_member(self.author.id)
-            if found is not None:
-                self.author = found
-
-    def _handle_member(self, member: MemberPayload) -> None:
-        # The gateway now gives us full Member objects sometimes with the following keys
-        # deaf, mute, joined_at, roles
-        # For the sake of performance I'm going to assume that the only
-        # field that needs *updating* would be the joined_at field.
-        # If there is no Member object (for some strange reason), then we can upgrade
-        # ourselves to a more "partial" member object.
-        author = self.author
-        try:
-            # Update member reference
-            author._update_from_message(member)  # type: ignore
-        except AttributeError:
-            # It's a user here
-            # TODO: consider adding to cache here
-            self.author = Member._from_message(message=self, data=member)
-
-    def _handle_mentions(self, mentions: list[UserWithMemberPayload]) -> None:
-        self.mentions = r = []
-        guild = self.guild
-        state = self._state
-        if not isinstance(guild, Guild):
-            self.mentions = [state.store_user(m) for m in mentions]
-            return
-
-        for mention in filter(None, mentions):
-            id_search = int(mention["id"])
-            member = guild.get_member(id_search)
-            if member is not None:
-                r.append(member)
-            else:
-                r.append(Member._try_upgrade(data=mention, guild=guild, state=state))
-
-    def _handle_mention_roles(self, role_mentions: list[int]) -> None:
-        self.role_mentions = []
-        if isinstance(self.guild, Guild):
-            for role_id in map(int, role_mentions):
-                role = self.guild.get_role(role_id)
-                if role is not None:
-                    self.role_mentions.append(role)
-
-    def _handle_components(self, components: list[ComponentPayload]):
-        self.components = [_component_factory(d, state=self._state) for d in components]
 
     def _rebind_cached_references(self, new_guild: Guild, new_channel: TextChannel | Thread) -> None:
         self.guild = new_guild
@@ -1700,7 +1606,7 @@ class Message(Hashable):
             payload["attachments"] = [a.to_dict() for a in attachments]
 
         if view is not MISSING:
-            self._state.prevent_view_updates_for(self.id)
+            await self._state.prevent_view_updates_for(self.id)
             payload["components"] = view.to_components() if view else []
             if view and view.is_components_v2():
                 flags.is_components_v2 = True
@@ -1736,13 +1642,13 @@ class Message(Hashable):
                     f.close()
         else:
             data = await self._state.http.edit_message(self.channel.id, self.id, **payload)
-        message = Message(state=self._state, channel=self.channel, data=data)
+        message = await Message._from_data(state=self._state, channel=self.channel, data=data)
 
         if view and not view.is_finished():
             view.message = message
             view.refresh(message.components)
             if view.is_dispatchable():
-                self._state.store_view(view, self.id)
+                await self._state.store_view(view, self.id)
 
         if delete_after is not None:
             await self.delete(delay=delete_after)
@@ -2085,7 +1991,7 @@ class Message(Hashable):
             self.channel.id,
             self.id,
         )
-        message = Message(state=self._state, channel=self.channel, data=data)
+        message = await Message._from_data(state=self._state, channel=self.channel, data=data)
 
         return message
 
@@ -2204,7 +2110,7 @@ class PartialMessage(Hashable):
         self._state: ConnectionState = channel._state
         self.id: int = id
 
-    def _update(self, data) -> None:
+    async def _update(self, data) -> None:
         # This is used for duck typing purposes.
         # Just do nothing with the data.
         pass
@@ -2348,7 +2254,7 @@ class PartialMessage(Hashable):
 
         view = fields.pop("view", MISSING)
         if view is not MISSING:
-            self._state.prevent_view_updates_for(self.id)
+            await self._state.prevent_view_updates_for(self.id)
             fields["components"] = view.to_components() if view else []
 
         if fields:
@@ -2364,7 +2270,7 @@ class PartialMessage(Hashable):
                 view.message = msg
                 view.refresh(msg.components)
                 if view.is_dispatchable():
-                    self._state.store_view(view, self.id)
+                    await self._state.store_view(view, self.id)
             return msg
 
     async def end_poll(self) -> Message:

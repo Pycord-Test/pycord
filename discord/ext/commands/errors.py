@@ -32,10 +32,10 @@ from discord.errors import ClientException, DiscordException
 if TYPE_CHECKING:
     from inspect import Parameter
 
-    from discord.abc import GuildChannel
-    from discord.threads import Thread
+    from discord.channel.thread import Thread
     from discord.types.snowflake import Snowflake, SnowflakeList
 
+    from ...channel.base import GuildChannel
     from .context import Context
     from .converter import Converter
     from .cooldowns import BucketType, Cooldown
