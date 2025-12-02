@@ -25,6 +25,7 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
+import asyncio
 from typing import TYPE_CHECKING, Any, TypeVar
 
 import discord.abc
@@ -43,10 +44,10 @@ if TYPE_CHECKING:
     from datetime import datetime
 
     from .abc import Snowflake, SnowflakeTime
+    from .app.state import ConnectionState
     from .channel import DMChannel
     from .guild import Guild
     from .message import Message
-    from .state import ConnectionState
     from .types.channel import DMChannel as DMChannelPayload
     from .types.user import PartialUser as PartialUserPayload
     from .types.user import User as UserPayload
@@ -566,7 +567,7 @@ class User(BaseUser, discord.abc.Messageable):
     def __del__(self) -> None:
         try:
             if self._stored:
-                self._state.deref_user(self.id)
+                asyncio.create_task(self._state.deref_user(self.id))
         except Exception:
             pass
 
@@ -580,17 +581,15 @@ class User(BaseUser, discord.abc.Messageable):
         ch = await self.create_dm()
         return ch
 
-    @property
-    def dm_channel(self) -> DMChannel | None:
+    async def get_dm_channel(self) -> DMChannel | None:
         """Returns the channel associated with this user if it exists.
 
         If this returns ``None``, you can create a DM channel by calling the
         :meth:`create_dm` coroutine function.
         """
-        return self._state._get_private_channel_by_user(self.id)
+        return await self._state._get_private_channel_by_user(self.id)
 
-    @property
-    def mutual_guilds(self) -> list[Guild]:
+    async def get_mutual_guilds(self) -> list[Guild]:
         """The guilds that the user shares with the client.
 
         .. note::
@@ -599,7 +598,7 @@ class User(BaseUser, discord.abc.Messageable):
 
         .. versionadded:: 1.7
         """
-        return [guild for guild in self._state._guilds.values() if guild.get_member(self.id)]
+        return [guild for guild in await self._state.cache.get_all_guilds() if await guild.get_member(self.id)]
 
     async def create_dm(self) -> DMChannel:
         """|coro|
@@ -620,7 +619,7 @@ class User(BaseUser, discord.abc.Messageable):
 
         state = self._state
         data: DMChannelPayload = await state.http.start_private_message(self.id)
-        return state.add_dm_channel(data)
+        return await state.add_dm_channel(data)
 
     async def create_test_entitlement(self, sku: discord.abc.Snowflake) -> Entitlement:
         """|coro|

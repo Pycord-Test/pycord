@@ -92,12 +92,12 @@ class PollMedia:
         return dict_
 
     @classmethod
-    def from_dict(cls, data: PollMediaPayload, message: Message | PartialMessage | None = None) -> PollMedia:
+    async def from_dict(cls, data: PollMediaPayload, message: Message | PartialMessage | None = None) -> PollMedia:
         _emoji: dict[str, Any] = data.get("emoji") or {}
         if isinstance(_emoji, dict) and _emoji.get("name"):
             emoji = PartialEmoji.from_dict(_emoji)
             if emoji.id and message:
-                emoji = message._state.get_emoji(emoji.id) or emoji
+                emoji = (await message._state.get_emoji(emoji.id)) or emoji
         else:
             emoji = _emoji or None
         return cls(

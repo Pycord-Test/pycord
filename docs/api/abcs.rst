@@ -25,11 +25,6 @@ This library has a module related to abstract base classes, in which all the ABC
 .. autoclass:: discord.abc.PrivateChannel()
     :members:
 
-.. attributetable:: discord.abc.GuildChannel
-
-.. autoclass:: discord.abc.GuildChannel()
-    :members:
-
 .. attributetable:: discord.abc.Messageable
 
 .. autoclass:: discord.abc.Messageable()

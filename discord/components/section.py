@@ -100,7 +100,7 @@ class Section(
     @classmethod
     @override
     def from_payload(cls, payload: SectionComponentPayload, state: ConnectionState | None = None) -> Self:
-        from ._component_factory import _component_factory  # noqa: PLC0415  # pyright: ignore[reportPrivateUsage]
+        from ._component_factory import _component_factory  # pyright: ignore[reportPrivateUsage]
 
         # self.id: int = data.get("id")
         components: list[AllowedSectionComponents] = cast(

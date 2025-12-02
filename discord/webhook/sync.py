@@ -42,6 +42,7 @@ from urllib.parse import quote as urlquote
 
 from .. import utils
 from ..channel import PartialMessageable
+from ..channel.thread import Thread
 from ..errors import (
     DiscordServerError,
     Forbidden,
@@ -52,7 +53,6 @@ from ..errors import (
 from ..http import Route
 from ..message import Message
 from ..object import Object
-from ..threads import Thread
 from ..utils.private import bytes_to_base64_data, parse_ratelimit_header, to_json
 from .async_ import BaseWebhook, _WebhookState, handle_message_parameters
 
@@ -666,7 +666,7 @@ class SyncWebhook(BaseWebhook):
             "type": 1,
             "token": token,
         }
-        import requests  # noqa: PLC0415
+        import requests
 
         if session is MISSING:
             session = requests  # type: ignore
@@ -713,7 +713,7 @@ class SyncWebhook(BaseWebhook):
 
         data: dict[str, Any] = m.groupdict()
         data["type"] = 1
-        import requests  # noqa: PLC0415
+        import requests
 
         if session is MISSING:
             session = requests  # type: ignore

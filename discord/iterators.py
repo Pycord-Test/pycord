@@ -59,12 +59,12 @@ __all__ = (
 if TYPE_CHECKING:
     from .abc import Snowflake
     from .channel import MessageableChannel
+    from .channel.thread import Thread
     from .guild import BanEntry, Guild
     from .member import Member
     from .message import Message, MessagePin
     from .monetization import Entitlement, Subscription
     from .scheduled_events import ScheduledEvent
-    from .threads import Thread
     from .types.audit_log import AuditLog as AuditLogPayload
     from .types.guild import Guild as GuildPayload
     from .types.message import Message as MessagePayload
@@ -201,7 +201,7 @@ class ReactionIterator(_AsyncIterator[Union["User", "Member"]]):
 
     async def fill_users(self):
         # this is a hack because >circular imports<
-        from .user import User  # noqa: PLC0415
+        from .user import User
 
         if self.limit > 0:
             retrieve = min(self.limit, 100)
@@ -225,7 +225,7 @@ class ReactionIterator(_AsyncIterator[Union["User", "Member"]]):
                     await self.users.put(User(state=self.state, data=element))
                 else:
                     member_id = int(element["id"])
-                    member = self.guild.get_member(member_id)
+                    member = await self.guild.get_member(member_id)
                     if member is not None:
                         await self.users.put(member)
                     else:
@@ -256,7 +256,7 @@ class VoteIterator(_AsyncIterator[Union["User", "Member"]]):
 
     async def fill_users(self):
         # import here to prevent circular imports
-        from .user import User  # noqa: PLC0415
+        from .user import User
 
         if self.limit > 0:
             retrieve = min(self.limit, 100)
@@ -280,7 +280,7 @@ class VoteIterator(_AsyncIterator[Union["User", "Member"]]):
                     await self.users.put(User(state=self.state, data=element))
                 else:
                     member_id = int(element["id"])
-                    member = self.guild.get_member(member_id)
+                    member = await self.guild.get_member(member_id)
                     if member is not None:
                         await self.users.put(member)
                     else:
@@ -517,7 +517,7 @@ class AuditLogIterator(_AsyncIterator["AuditLogEntry"]):
         return r > 0
 
     async def _fill(self):
-        from .user import User  # noqa: PLC0415
+        from .user import User
 
         if self._get_retrieve():
             users, data = await self._retrieve_entries(self.retrieve)
@@ -610,10 +610,10 @@ class GuildIterator(_AsyncIterator["Guild"]):
         self.retrieve = r
         return r > 0
 
-    def create_guild(self, data):
-        from .guild import Guild  # noqa: PLC0415
+    async def create_guild(self, data):
+        from .guild import Guild
 
-        return Guild(state=self.state, data=data)
+        return await Guild._from_data(state=self.state, data=data)
 
     async def fill_guilds(self):
         if self._get_retrieve():
@@ -625,7 +625,7 @@ class GuildIterator(_AsyncIterator["Guild"]):
                 data = filter(self._filter, data)
 
             for element in data:
-                await self.guilds.put(self.create_guild(element))
+                await self.guilds.put(await self.create_guild(element))
 
     async def _retrieve_guilds(self, retrieve) -> list[Guild]:
         """Retrieve guilds and update next parameters."""
@@ -698,12 +698,12 @@ class MemberIterator(_AsyncIterator["Member"]):
         self.after = Object(id=int(data[-1]["user"]["id"]))
 
         for element in reversed(data):
-            await self.members.put(self.create_member(element))
+            await self.members.put(await self.create_member(element))
 
-    def create_member(self, data):
-        from .member import Member  # noqa: PLC0415
+    async def create_member(self, data):
+        from .member import Member
 
-        return Member(data=data, guild=self.guild, state=self.state)
+        return await Member._from_data(data=data, guild=self.guild, state=self.state)
 
 
 class BanIterator(_AsyncIterator["BanEntry"]):
@@ -756,8 +756,8 @@ class BanIterator(_AsyncIterator["BanEntry"]):
             await self.bans.put(self.create_ban(element))
 
     def create_ban(self, data):
-        from .guild import BanEntry  # noqa: PLC0415
-        from .user import User  # noqa: PLC0415
+        from .guild import BanEntry
+        from .user import User
 
         return BanEntry(reason=data["reason"], user=User(state=self.state, data=data["user"]))
 
@@ -848,7 +848,7 @@ class ArchivedThreadIterator(_AsyncIterator["Thread"]):
             self.before = self.update_before(threads[-1])
 
     def create_thread(self, data: ThreadPayload) -> Thread:
-        from .threads import Thread  # noqa: PLC0415
+        from .channel.thread import Thread
 
         return Thread(guild=self.guild, state=self.guild._state, data=data)
 
@@ -894,18 +894,18 @@ class ScheduledEventSubscribersIterator(_AsyncIterator[Union["User", "Member"]])
         self.retrieve = r
         return r > 0
 
-    def member_from_payload(self, data):
-        from .member import Member  # noqa: PLC0415
+    async def member_from_payload(self, data):
+        from .member import Member
 
         user = data.pop("user")
 
         member = data.pop("member")
         member["user"] = user
 
-        return Member(data=member, guild=self.event.guild, state=self.event._state)
+        return await Member._from_data(data=member, guild=self.event.guild, state=self.event._state)
 
     def user_from_payload(self, data):
-        from .user import User  # noqa: PLC0415
+        from .user import User
 
         user = data.pop("user")
 
@@ -936,7 +936,7 @@ class ScheduledEventSubscribersIterator(_AsyncIterator[Union["User", "Member"]])
 
         for element in reversed(data):
             if "member" in element:
-                await self.subscribers.put(self.member_from_payload(element))
+                await self.subscribers.put(await self.member_from_payload(element))
             else:
                 await self.subscribers.put(self.user_from_payload(element))
 
@@ -1000,7 +1000,7 @@ class EntitlementIterator(_AsyncIterator["Entitlement"]):
         return r > 0
 
     def create_entitlement(self, data) -> Entitlement:
-        from .monetization import Entitlement  # noqa: PLC0415
+        from .monetization import Entitlement
 
         return Entitlement(data=data, state=self.state)
 
@@ -1114,7 +1114,7 @@ class SubscriptionIterator(_AsyncIterator["Subscription"]):
         return r > 0
 
     def create_subscription(self, data) -> Subscription:
-        from .monetization import Subscription  # noqa: PLC0415
+        from .monetization import Subscription
 
         return Subscription(state=self.state, data=data)
 
@@ -1226,7 +1226,7 @@ class MessagePinIterator(_AsyncIterator["MessagePin"]):
             self.before = self.update_before(pins[-1])
 
     def create_pin(self, data: MessagePinPayload) -> MessagePin:
-        from .message import MessagePin  # noqa: PLC0415
+        from .message import MessagePin
 
         return MessagePin(state=self.channel._state, channel=self.channel, data=data)
 

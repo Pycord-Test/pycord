@@ -44,9 +44,9 @@ __all__ = ("RoleTags", "Role", "RoleColours")
 if TYPE_CHECKING:
     import datetime
 
+    from .app.state import ConnectionState
     from .guild import Guild
     from .member import Member
-    from .state import ConnectionState
     from .types.guild import RolePositionUpdate
     from .types.role import Role as RolePayload
     from .types.role import RoleColours as RoleColoursPayload

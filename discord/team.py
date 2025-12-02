@@ -34,7 +34,7 @@ from .user import BaseUser
 from .utils.private import get_as_snowflake
 
 if TYPE_CHECKING:
-    from .state import ConnectionState
+    from .app.state import ConnectionState
     from .types.team import Team as TeamPayload
     from .types.team import TeamMember as TeamMemberPayload
 

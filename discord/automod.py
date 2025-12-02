@@ -48,11 +48,11 @@ __all__ = (
 
 if TYPE_CHECKING:
     from .abc import Snowflake
+    from .app.state import ConnectionState
     from .channel import ForumChannel, TextChannel, VoiceChannel
     from .guild import Guild
     from .member import Member
     from .role import Role
-    from .state import ConnectionState
     from .types.automod import AutoModAction as AutoModActionPayload
     from .types.automod import AutoModActionMetadata as AutoModActionMetadataPayload
     from .types.automod import AutoModRule as AutoModRulePayload
@@ -406,17 +406,15 @@ class AutoModRule(Hashable):
     def __str__(self) -> str:
         return self.name
 
-    @property
-    def guild(self) -> Guild | None:
+    async def get_guild(self) -> Guild | None:
         """The guild this rule belongs to."""
-        return self._state._get_guild(self.guild_id)
+        return await self._state._get_guild(self.guild_id)
 
-    @property
-    def creator(self) -> Member | None:
+    async def get_creator(self) -> Member | None:
         """The member who created this rule."""
         if self.guild is None:
             return None
-        return self.guild.get_member(self.creator_id)
+        return await self.guild.get_member(self.creator_id)
 
     @cached_property
     def exempt_roles(self) -> list[Role | Object]:

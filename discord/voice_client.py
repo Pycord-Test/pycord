@@ -60,10 +60,10 @@ from .utils.private import sane_wait_for
 
 if TYPE_CHECKING:
     from . import abc
+    from .app.state import ConnectionState
     from .client import Client
     from .guild import Guild
     from .opus import Encoder
-    from .state import ConnectionState
     from .types.voice import GuildVoiceState as GuildVoiceStatePayload
     from .types.voice import SupportedModes
     from .types.voice import VoiceServerUpdate as VoiceServerUpdatePayload

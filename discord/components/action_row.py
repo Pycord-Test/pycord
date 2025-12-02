@@ -98,7 +98,7 @@ class ActionRow(Component["ActionRowPayload"], WalkableComponentMixin["AllowedAc
     @classmethod
     @override
     def from_payload(cls, payload: ActionRowPayload) -> Self:
-        from ._component_factory import _component_factory  # noqa: PLC0415  # pyright: ignore[reportPrivateUsage]
+        from ._component_factory import _component_factory  # pyright: ignore[reportPrivateUsage]
 
         components: list[AllowedActionRowComponents] = cast(
             "list[AllowedActionRowComponents]", [_component_factory(d) for d in payload.get("components", [])]

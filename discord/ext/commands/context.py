@@ -38,9 +38,9 @@ if TYPE_CHECKING:
     from typing_extensions import ParamSpec
 
     from discord.abc import MessageableChannel
+    from discord.app.state import ConnectionState
     from discord.guild import Guild
     from discord.member import Member
-    from discord.state import ConnectionState
     from discord.user import ClientUser, User
     from discord.voice_client import VoiceProtocol
 
@@ -346,8 +346,8 @@ class Context(discord.abc.Messageable, Generic[BotT]):
         Any
             The result of the help command, if any.
         """
-        from .core import Command, Group, wrap_callback  # noqa: PLC0415
-        from .errors import CommandError  # noqa: PLC0415
+        from .core import Command, Group, wrap_callback
+        from .errors import CommandError
 
         bot = self.bot
         cmd = bot.help_command

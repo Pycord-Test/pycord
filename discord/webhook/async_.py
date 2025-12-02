@@ -40,6 +40,7 @@ import aiohttp
 from .. import utils
 from ..asset import Asset
 from ..channel import ForumChannel, PartialMessageable
+from ..channel.thread import Thread
 from ..components import AnyComponent
 from ..enums import WebhookType, try_enum
 from ..errors import (
@@ -55,7 +56,6 @@ from ..http import Route
 from ..message import Attachment, Message
 from ..mixins import Hashable
 from ..object import Object
-from ..threads import Thread
 from ..user import BaseUser, User
 from ..utils.private import bytes_to_base64_data, get_as_snowflake, parse_ratelimit_header, to_json
 
@@ -72,6 +72,7 @@ if TYPE_CHECKING:
     import datetime
 
     from ..abc import Snowflake
+    from ..app.state import ConnectionState
     from ..channel import TextChannel
     from ..embeds import Embed
     from ..file import File
@@ -79,7 +80,6 @@ if TYPE_CHECKING:
     from ..http import Response
     from ..mentions import AllowedMentions
     from ..poll import Poll
-    from ..state import ConnectionState
     from ..types.message import Message as MessagePayload
     from ..types.webhook import FollowerWebhook as FollowerWebhookPayload
     from ..types.webhook import Webhook as WebhookPayload
@@ -827,9 +827,9 @@ class _WebhookState:
         # state parameter is artificial
         return BaseUser(state=self, data=data)  # type: ignore
 
-    def store_poll(self, poll: Poll, message_id: int):
+    async def store_poll(self, poll: Poll, message_id: int):
         if self._parent is not None:
-            return self._parent.store_poll(poll, message_id)
+            return await self._parent.store_poll(poll, message_id)
         # state parameter is artificial
         return None
 
@@ -1072,13 +1072,12 @@ class BaseWebhook(Hashable):
         """
         return self.auth_token is not None
 
-    @property
-    def guild(self) -> Guild | None:
+    async def get_guild(self) -> Guild | None:
         """The guild this webhook belongs to.
 
         If this is a partial webhook, then this will always return ``None``.
         """
-        return self._state and self._state._get_guild(self.guild_id)
+        return self._state and await self._state._get_guild(self.guild_id)
 
     @property
     def channel(self) -> TextChannel | None:
@@ -1977,6 +1976,7 @@ class Webhook(BaseWebhook):
             ):
                 raise InvalidArgument("Dispatchable Webhook components require an associated state with the webhook")
 
+            self._state.prevent_view_updates_for(message_id)
             if self.type is not WebhookType.application:
                 with_components = True
 

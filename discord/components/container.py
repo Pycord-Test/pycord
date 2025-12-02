@@ -134,7 +134,7 @@ class Container(Component["ContainerComponentPayload"], WalkableComponentMixin["
     @classmethod
     @override
     def from_payload(cls, payload: ContainerComponentPayload, state: ConnectionState | None = None) -> Self:
-        from ._component_factory import _component_factory  # noqa: PLC0415  # pyright: ignore[reportPrivateUsage]
+        from ._component_factory import _component_factory  # pyright: ignore[reportPrivateUsage]
 
         components: list[AllowedContainerComponents] = cast(
             "list[AllowedContainerComponents]",

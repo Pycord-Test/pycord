@@ -33,6 +33,7 @@ from typing import (
 )
 
 from ..errors import HTTPException, InvalidArgument
+from .hybridmethod import hybridmethod
 
 if TYPE_CHECKING:
     from ..invite import Invite
@@ -59,7 +60,7 @@ def resolve_invite(invite: Invite | str) -> str:
     :class:`str`
         The invite code.
     """
-    from ..invite import Invite  # noqa: PLC0415 # circular import
+    from ..invite import Invite  # circular import
 
     if isinstance(invite, Invite):
         return invite.code
@@ -138,7 +139,7 @@ def resolve_template(code: Template | str) -> str:
     :class:`str`
         The template code.
     """
-    from ..template import Template  # noqa: PLC0415
+    from ..template import Template
 
     if isinstance(code, Template):
         return code.code
@@ -554,3 +555,31 @@ except ModuleNotFoundError:
         return json.dumps(obj, separators=(",", ":"), ensure_ascii=True)
 
     from_json = json.loads
+__all__ = (
+    "deprecated",
+    "flatten_literal_params",
+    "normalise_optional_params",
+    "evaluate_annotation",
+    "resolve_annotation",
+    "delay_task",
+    "async_all",
+    "maybe_awaitable",
+    "sane_wait_for",
+    "SnowflakeList",
+    "copy_doc",
+    "SequenceProxy",
+    "CachedSlotProperty",
+    "get_slots",
+    "cached_slot_property",
+    "to_json",
+    "from_json",
+    "get_as_snowflake",
+    "get_mime_type_for_file",
+    "bytes_to_base64_data",
+    "parse_ratelimit_header",
+    "string_width",
+    "resolve_template",
+    "warn_deprecated",
+    "hybridmethod",
+    "resolve_invite",
+)
