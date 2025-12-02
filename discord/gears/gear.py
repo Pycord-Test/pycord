@@ -40,6 +40,7 @@ from ..utils import MISSING, Undefined
 from ..utils.annotations import get_annotations
 from ..utils.private import hybridmethod
 from .base import GearBase
+from .components import ComponentGearMixin, ModalGearMixin
 
 _T = TypeVar("_T", bound="Gear")
 E = TypeVar("E", bound="Event", covariant=True)
@@ -60,7 +61,7 @@ class StaticAttributedEventCallback(AttributedEventCallback, Protocol):
 EventCallback: TypeAlias = Callable[[E], Awaitable[None]]
 
 
-class Gear(GearBase):
+class Gear(ModalGearMixin, GearBase):
     """A gear is a modular component that can listen to and handle events.
 
     You can subclass this class to create your own gears and attach them to your bot or other gears.
@@ -108,6 +109,8 @@ class Gear(GearBase):
                 continue
             self.add_listener(cast("EventCallback[Event]", callback), event=event, once=once)
             setattr(self, name, callback)
+
+        super().__init__()
 
     def _handle_event(self, event: Event) -> Collection[Awaitable[Any]]:
         tasks: list[Awaitable[None]] = []

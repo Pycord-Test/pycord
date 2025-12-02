@@ -43,20 +43,20 @@ from ..interactions import (
 
 def _interaction_factory(payload: InteractionPayload) -> type[Interaction]:
     type: int = payload["type"]
-    if type == InteractionType.application_command:
+    if type == InteractionType.application_command.value:
         return ApplicationCommandInteraction
-    if type == InteractionType.auto_complete:
+    if type == InteractionType.auto_complete.value:
         return AutocompleteInteraction
-    if type == InteractionType.component:
+    if type == InteractionType.component.value:
         return ComponentInteraction
-    if type == InteractionType.modal_submit:
+    if type == InteractionType.modal_submit.value:
         return ModalInteraction
     return Interaction
 
 
 @lru_cache(maxsize=128)
-def _create_event_interaction_class(event_cls: type[Event], interaction_cls: type[Interaction]) -> type[Interaction]:
-    class EventInteraction(interaction_cls, event_cls):  # type: ignore
+def _create_event_interaction_class(interaction_cls: type[Interaction]) -> type[Interaction]:
+    class EventInteraction(interaction_cls, Event):  # type: ignore
         __slots__ = ()
 
         @override
@@ -66,7 +66,12 @@ def _create_event_interaction_class(event_cls: type[Event], interaction_cls: typ
         @override
         @classmethod
         def event_type(self) -> type[Event]:
-            return event_cls
+            return InteractionCreate
+
+        @classmethod
+        @override
+        async def __load__(cls, data: InteractionPayload, state: ConnectionState) -> None:
+            return None
 
     return EventInteraction  # type: ignore
 
@@ -94,7 +99,7 @@ class InteractionCreate(Event, Interaction):
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         factory = _interaction_factory(data)
         interaction = await factory._from_data(payload=data, state=state)
-        interaction_event_cls = _create_event_interaction_class(Event, factory)
+        interaction_event_cls = _create_event_interaction_class(factory)
         self = interaction_event_cls()
         self._populate_from_slots(interaction)
         return self

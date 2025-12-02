@@ -648,7 +648,7 @@ class Client(Gear):
                 aiohttp.ClientError,
                 asyncio.TimeoutError,
             ) as exc:
-                self.dispatch("disconnect")
+                # self.dispatch("disconnect") # TODO: dispatch event
                 if not reconnect:
                     await self.close()
                     if isinstance(exc, ConnectionClosed) and exc.code == 1000:

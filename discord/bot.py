@@ -820,7 +820,7 @@ class ApplicationCommandMixin(ABC):
                         await self.sync_commands()
                     else:
                         await self.sync_commands(check_guilds=[guild_id])
-                return self._bot.dispatch("unknown_application_command", interaction)
+        #                return self._bot.dispatch("unknown_application_command", interaction)
 
         if interaction.type is InteractionType.auto_complete:
             return self._bot.dispatch("application_command_auto_complete", interaction, command)
@@ -1160,7 +1160,7 @@ class BotBase(ApplicationCommandMixin, ABC):
         self._before_invoke = None
         self._after_invoke = None
 
-        self._bot.add_listener(self.on_interaction, event=InteractionCreate)
+        # self._bot.add_listener(self.on_interaction, event=InteractionCreate)
 
     async def on_connect(self):
         if self.auto_sync_commands:

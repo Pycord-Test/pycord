@@ -220,6 +220,7 @@ class Interaction(Generic[T]):
         "_cs_response",
         "_cs_followup",
         "_cs_channel",
+        "_payload",
     )
 
     def __init__(self, *, payload: InteractionPayload, state: ConnectionState):
@@ -260,7 +261,6 @@ class Interaction(Generic[T]):
             try_enum(InteractionContextType, self._payload["context"]) if "context" in self._payload else None
         )
 
-        self.command: ApplicationCommand | None = None
         self.attachment_size_limit: int = self._payload.get("attachment_size_limit")
 
         self.message: Message | None = None
@@ -302,8 +302,8 @@ class Interaction(Generic[T]):
             if ch_type in (ChannelType.group, ChannelType.private):
                 self.channel = await factory._from_data(data=channel, state=self._state)
 
-        if self.channel is None and self.guild:
-            self.channel = self.guild._resolve_channel(self.channel_id)
+        if self.channel is None and self._guild:
+            self.channel = self._guild._resolve_channel(self.channel_id)
         if self.channel is None and self.channel_id is not None:
             ch_type = ChannelType.text if self.guild_id is not None else ChannelType.private
             self.channel = PartialMessageable(state=self._state, id=self.channel_id, type=ch_type)
@@ -314,6 +314,8 @@ class Interaction(Generic[T]):
             self.message = await Message._from_data(state=self._state, channel=self.channel, data=message_data)
 
         self._message_data = message_data
+
+        return self
 
     @property
     def client(self) -> Client:
@@ -699,6 +701,7 @@ class _CommandBoundInteraction(Interaction[U], Generic[U]):
     def command(self) -> ApplicationCommand:
         """The command that this interaction belongs to."""
         if self._command is None:
+            return None  # TODO: this is incorrect @Paillat-dev
             raise RuntimeError("This interaction has no command associated with it.")
         return self._command
 
@@ -724,9 +727,9 @@ Components_t = TypeVarTuple("Components_t", default="Unpack[tuple[AnyTopLevelMod
 class ModalInteraction(Interaction, Generic[Unpack[Components_t]]):
     __slots__ = ("_components", "users", "attachments", "roles")
 
-    def __init__(self, *, data: ModalInteractionPayload, state: ConnectionState):
-        super().__init__(data=data, state=state)
-        resolved = data.get("data", {}).get("resolved", {})
+    def __init__(self, *, payload: ModalInteractionPayload, state: ConnectionState):
+        super().__init__(payload=payload, state=state)
+        resolved = payload.get("data", {}).get("resolved", {})
         self.users: dict[int, User] = {
             int(user_id): User(state=state, data=user_data) for user_id, user_data in resolved.get("users", {}).items()
         }

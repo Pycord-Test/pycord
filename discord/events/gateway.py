@@ -54,7 +54,7 @@ class Resumed(Event):
     __event_name__: str = "RESUMED"
 
     @classmethod
-    async def __load__(cls, _data: Any, _state: ConnectionState) -> Self | None:
+    async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         return cls()
 
 
