@@ -24,7 +24,9 @@ DEALINGS IN THE SOFTWARE.
 
 from abc import ABC
 from functools import wraps
-from typing import TYPE_CHECKING, Any, Awaitable, Callable, Coroutine, ParamSpec, Protocol, TypeAlias, TypeVar, Unpack
+from typing import TYPE_CHECKING, Any, Awaitable, Callable, Coroutine, ParamSpec, Protocol, TypeAlias, TypeVar
+
+from typing_extensions import Unpack
 
 from ..events import InteractionCreate
 from ..interactions import ComponentInteraction, ModalInteraction
