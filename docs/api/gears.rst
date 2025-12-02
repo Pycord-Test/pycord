@@ -16,9 +16,13 @@ Gear
 
 .. autoclass:: discord.gears.Gear
     :members:
-    :exclude-members: listen
+    :inherited-members:
+    :exclude-members: listen,listen_modal
 
     .. automethod:: discord.gears.Gear.listen(event, once=False)
+        :decorator:
+
+    .. automethod:: discord.gears.Gear.listen_modal(predicate=lambda i: i.startswith("..."))
         :decorator:
 
 Basic Usage
