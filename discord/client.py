@@ -295,7 +295,7 @@ class Client(Gear):
         self._tasks = set()
 
     async def _gather_events(self, event: Event) -> None:
-        await asyncio.gather(*super()._handle_event(event))
+        await asyncio.gather(*self._handle_event(event))
 
     async def __aenter__(self) -> Client:
         loop = asyncio.get_running_loop()

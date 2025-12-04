@@ -332,7 +332,7 @@ class Guild(Hashable):
         # flag should always be MemberCacheFlag.interaction) is set to True
         if user_id in members:
             member = cast(Member, await self.get_member(user_id))
-            await member._update(payload) if cache_flag else None
+            await member._update(payload) if cache_flag else None  # TODO: This is being cached incorrectly @VincentRPS
         else:
             # NOTE:
             # This is a fallback in case the member is not found in the guild's members.
@@ -387,7 +387,6 @@ class Guild(Hashable):
             ("id", self.id),
             ("name", self.name),
             ("shard_id", self.shard_id),
-            ("chunked", self.chunked),
             ("member_count", self._member_count),
         )
         inner = " ".join("%s=%r" % t for t in attrs)

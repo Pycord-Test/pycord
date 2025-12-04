@@ -28,14 +28,21 @@ from __future__ import annotations
 import asyncio
 import datetime
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any, Coroutine, Generic, cast
+from typing import TYPE_CHECKING, Any, Coroutine, Generic, Protocol, cast
 
 from typing_extensions import Self, TypeVar, TypeVarTuple, Unpack, override, reveal_type
 
 from . import utils
 from .channel import PartialMessageable, _threaded_channel_factory
 from .components import ComponentsHolder, _partial_component_factory
-from .enums import ChannelType, InteractionContextType, InteractionResponseType, InteractionType, try_enum
+from .enums import (
+    ApplicationCommandType,
+    ChannelType,
+    InteractionContextType,
+    InteractionResponseType,
+    InteractionType,
+    try_enum,
+)
 from .errors import ClientException, InteractionResponded, InvalidArgument
 from .file import File, VoiceMessage
 from .flags import MessageFlags
@@ -50,6 +57,9 @@ from .types.interactions import (
     ApplicationCommandAutocompleteInteraction as ApplicationCommandAutocompleteInteractionPayload,
 )
 from .types.interactions import ApplicationCommandInteraction as ApplicationCommandInteractionPayload
+from .types.interactions import (
+    ApplicationCommandInteractionDataOption,
+)
 from .types.interactions import Interaction as InteractionPayload
 from .user import User
 from .utils import find
@@ -99,6 +109,7 @@ if TYPE_CHECKING:
     from .embeds import Embed
     from .mentions import AllowedMentions
     from .poll import Poll
+    from .types.interactions import ComponentInteraction as ComponentInteractionPayload
     from .types.interactions import InteractionCallback as InteractionCallbackPayload
     from .types.interactions import InteractionCallbackResponse, InteractionData
     from .types.interactions import InteractionData as InteractionDataPayload
@@ -231,6 +242,7 @@ class Interaction(Generic[T]):
         self._original_response: InteractionMessage | None = None
         self.data = payload.get("data")
         self.callback: InteractionCallback | None = None
+        super().__init__()
 
     @classmethod
     async def _from_data(cls, payload: InteractionPayload, state: ConnectionState) -> Self:
@@ -248,7 +260,6 @@ class Interaction(Generic[T]):
         self.application_id: int = int(self._payload["application_id"])
         self.locale: str | None = self._payload.get("locale")
         self.guild_locale: str | None = self._payload.get("guild_locale")
-        self.custom_id: str | None = self.data.get("custom_id") if self.data is not None else None
         self._app_permissions: int = int(self._payload.get("app_permissions", 0))
         self.entitlements: list[Entitlement] = [
             Entitlement(data=e, state=self._state) for e in self._payload.get("entitlements", [])
@@ -693,9 +704,9 @@ class Interaction(Generic[T]):
 U = TypeVar("U", bound="ApplicationCommandInteractionPayload | ApplicationCommandAutocompleteInteractionPayload")
 
 
-class _CommandBoundInteraction(Interaction[U], Generic[U]):
-    def __init__(self, *, payload: U, state: ConnectionState):
-        super().__init__(payload=payload, state=state)
+class _CommandBoundInteractionMixin:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
         self._command: ApplicationCommand | None = None
 
     @property
@@ -707,10 +718,102 @@ class _CommandBoundInteraction(Interaction[U], Generic[U]):
         return self._command
 
 
-class ApplicationCommandInteraction(_CommandBoundInteraction[ApplicationCommandInteractionPayload]): ...
+class _ResolvedDataInteraction(Interaction[T], Generic[T]):
+    """A mixin that loads and parses the resolved data from an interaction payload."""
+
+    __slots__: tuple[str, ...] = (
+        "users",
+        "members",
+        "roles",
+        "channels",
+        "messages",
+        "attachments",
+    )
+
+    @override
+    @classmethod
+    async def _from_data(cls, payload: InteractionPayload, state: ConnectionState) -> Self:
+        self = await super()._from_data(payload=payload, state=state)
+        resolved = self._payload.get("data", {}).get("resolved", {})
+        if users := resolved.get("users"):
+            self.users: dict[int, User] = {
+                int(user_id): User(state=state, data=user_data) for user_id, user_data in users.items()
+            }
+        if (members := resolved.get("members")) and (guild := await self.get_guild()):
+            self.members: dict[int, Member] = {}
+            for member_id, member_data in members.items():
+                member_data["id"] = int(member_id)
+                member_data["user"] = resolved["users"][member_id]
+                self.members[member_data["id"]] = await guild._get_and_update_member(
+                    member_data, member_data["id"], self._state.member_cache_flags.interaction
+                )
+        if roles := resolved.get("roles"):
+            self.roles: dict[int, Role] = {
+                int(role_id): Role(state=state, data=role_data, guild=self.guild)
+                for role_id, role_data in roles.items()
+            }
+        if channels := resolved.get("channels"):  # noqa: F841 see below
+            # TODO: Partial channels @Paillat-dev
+            self.channels: dict[int, InteractionChannel] = {}
+        if messages := resolved.get("messages"):
+            self.messages: dict[int, Message] = {}
+            for message_id, message_data in messages.items():
+                channel = self.channel
+                if channel.id != int(message_data["channel_id"]):
+                    # we got weird stuff going on, make up a channel
+                    channel = PartialMessageable(state=self._state, id=int(message_data["channel_id"]))
+
+                self.messages[int(message_id)] = await Message._from_data(
+                    state=self._state, channel=channel, data=message_data
+                )
+        if attachments := resolved.get("attachments"):
+            self.attachments: dict[int, Attachment] = {
+                int(att_id): Attachment(state=state, data=att_data) for att_id, att_data in attachments.items()
+            }
+        return self
 
 
-class AutocompleteInteraction(_CommandBoundInteraction[ApplicationCommandAutocompleteInteractionPayload]):
+class ApplicationCommandInteraction(
+    _ResolvedDataInteraction[ApplicationCommandInteractionPayload], _CommandBoundInteractionMixin
+):
+    __slots__: tuple[str, ...] = ("_command",)
+
+    def __init__(self, *, payload: ApplicationCommandInteractionPayload, state: ConnectionState):
+        super().__init__(payload=payload, state=state)
+        if self.data is None:  # TODO: make it so that this can never be None @Paillat-dev
+            raise RuntimeError("This interaction has no data associated with it.")
+        self.command_name = self._parse_command_name(self.data["name"], self.data.get("options", []))
+        self.command_type: ApplicationCommandType = self.data["type"]
+        self.guild_id: int | None = self.data.get("guild_id")
+        # self.options: list[ApplicationCommandInteractionDataOption] = self.data.get("options", [])
+        self.target: User | Member | Message | None = None
+        self._target_id: int | None = None
+        self._command_type: ApplicationCommandType = self.data["type"]
+
+    def _parse_command_name(self, current_name: str, options: list[ApplicationCommandInteractionDataOption]) -> str:
+        if options and (child_options := options[0].get("options")):
+            current_name += " " + options[0]["name"]
+            return self._parse_command_name(current_name, child_options)
+        return current_name
+
+    @override
+    @classmethod
+    async def _from_data(cls, payload: ApplicationCommandInteractionPayload, state: ConnectionState) -> Self:  # ty:ignore[invalid-method-override]
+        self: ApplicationCommandInteraction = await super()._from_data(payload=payload, state=state)
+        if self._command_type == ApplicationCommandType.CHAT_INPUT:
+            ...
+        else:
+            self._target_id = int(self.data["target_id"])
+            if self._command_type == ApplicationCommandType.USER:
+                self.target = self.users[self._target_id]
+            elif self._command_type == ApplicationCommandType.MESSAGE:
+                self.target = self.messages[self._target_id]
+        return self
+
+
+class AutocompleteInteraction(
+    Interaction[ApplicationCommandAutocompleteInteractionPayload], _CommandBoundInteractionMixin
+):
     def __init__(self, *, payload: ApplicationCommandAutocompleteInteractionPayload, state: ConnectionState):
         super().__init__(payload=payload, state=state)
         options = self.data.get("options", [])
@@ -725,50 +828,30 @@ class AutocompleteInteraction(_CommandBoundInteraction[ApplicationCommandAutocom
 Components_t = TypeVarTuple("Components_t", default="Unpack[tuple[AnyTopLevelModalPartialComponent, ...]]")
 
 
-class ModalInteraction(Interaction, Generic[Unpack[Components_t]]):
-    __slots__ = ("_components", "users", "attachments", "roles")
+class ModalInteraction(_ResolvedDataInteraction["ModalInteractionPayload"], Generic[Unpack[Components_t]]):
+    __slots__ = ("components", "custom_id")
 
+    @override
     def __init__(self, *, payload: ModalInteractionPayload, state: ConnectionState):
         super().__init__(payload=payload, state=state)
-        resolved = payload.get("data", {}).get("resolved", {})
-        self.users: dict[int, User] = {
-            int(user_id): User(state=state, data=user_data) for user_id, user_data in resolved.get("users", {}).items()
-        }
-        self.attachments: dict[int, Attachment] = {
-            int(att_id): Attachment(state=state, data=att_data)
-            for att_id, att_data in resolved.get("attachments", {}).items()
-        }
-        self.roles: dict[int, Role] = {
-            int(role_id): Role(state=state, data=role_data, guild=self.guild)
-            for role_id, role_data in resolved.get("roles", {}).items()
-        }
-
-        # TODO: When we have better partial objects, add self.channels and self.members
-
-    @cached_slot_property("_components")
-    def components(self) -> ComponentsHolder[Unpack[Components_t]]:
-        if not self.type == InteractionType.modal_submit:
-            raise TypeError("Only modal submit interactions have components")
-        if not self.data:
-            raise TypeError("This interaction has no data. This should never happen, please open an issue on GitHub")
+        self.custom_id: str = self.data["custom_id"]
         components_payload = cast("list[PartialComponent]", self.data.get("components", []))
-
-        return ComponentsHolder(*(_partial_component_factory(component) for component in components_payload))  # pyright: ignore[reportReturnType]
+        self.components: ComponentsHolder[Unpack[Components_t]] = ComponentsHolder(
+            *(_partial_component_factory(component) for component in components_payload)
+        )
 
 
 Component_t = TypeVar("Component_t", bound="AnyMessagePartialComponent", default="AnyMessagePartialComponent")
 
 
-class ComponentInteraction(Interaction, Generic[Component_t]):
-    __slots__ = ("_component",)
+class ComponentInteraction(_ResolvedDataInteraction["ComponentInteractionPayload"], Generic[Component_t]):
+    __slots__ = ("component", "custom_id")
 
-    @cached_slot_property("_component")
-    def component(self) -> Component_t:
-        if not self.type == InteractionType.component:
-            raise TypeError("Only component interactions have a component")
-        if not self.data:
-            raise TypeError("This interaction has no data. This should never happen, please open an issue on GitHub")
-        return _partial_component_factory(self.data, key="component_type")  # pyright: ignore[reportArgumentType, reportReturnType]
+    @override
+    def __init__(self, *, payload: ComponentInteractionPayload, state: ConnectionState):
+        super().__init__(payload=payload, state=state)
+        self.custom_id: str = self.data["custom_id"]
+        self.component: Component_t = _partial_component_factory(self.data, key="component_type")
 
 
 class InteractionResponse:

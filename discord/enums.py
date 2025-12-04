@@ -987,6 +987,12 @@ class ApplicationCommandPermissionType(Enum):
     channel = 3
 
 
+class ApplicationCommandType(IntEnum):
+    CHAT_INPUT = 1
+    USER = 2
+    MESSAGE = 3
+
+
 def try_enum(cls: type[E], val: Any) -> E:
     """A function that tries to turn the value into enum ``cls``.
 
