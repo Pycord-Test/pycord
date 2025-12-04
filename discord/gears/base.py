@@ -61,3 +61,6 @@ class GearBase(ABC):
     def remove_listener(
         self, callback: EventCallback[E], event: type[E] | Undefined = MISSING, is_instance_function: bool = False
     ) -> None: ...
+
+    @abstractmethod
+    def listen(self, *args: Any, **kwargs: Any) -> Callable[[Callable[[E], Awaitable[None]]], EventCallback[E]]: ...
