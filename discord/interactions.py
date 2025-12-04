@@ -65,6 +65,7 @@ __all__ = (
     "Interaction",
     "ModalInteraction",
     "ComponentInteraction",
+    "ApplicationCommandInteraction",
     "InteractionMessage",
     "InteractionResponse",
     "InteractionMetadata",

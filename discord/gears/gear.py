@@ -61,7 +61,7 @@ class StaticAttributedEventCallback(AttributedEventCallback, Protocol):
 EventCallback: TypeAlias = Callable[[E], Awaitable[None]]
 
 
-class Gear(ModalGearMixin, GearBase):
+class Gear(ModalGearMixin, ComponentGearMixin, GearBase):
     """A gear is a modular component that can listen to and handle events.
 
     You can subclass this class to create your own gears and attach them to your bot or other gears.
