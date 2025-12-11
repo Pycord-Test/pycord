@@ -23,23 +23,19 @@ DEALINGS IN THE SOFTWARE.
 """
 
 from abc import ABC, abstractmethod
-from collections import defaultdict
-from collections.abc import Awaitable, Callable, Collection, Sequence
-from functools import partial
+from collections.abc import Awaitable, Callable
 from typing import (
     TYPE_CHECKING,
     Any,
-    Protocol,
     TypeAlias,
     TypeVar,
-    cast,
-    runtime_checkable,
 )
 
 from ..app.event_emitter import Event
 from ..utils import MISSING, Undefined
-from ..utils.annotations import get_annotations
-from ..utils.private import hybridmethod
+
+if TYPE_CHECKING:
+    from .gear import EventListener
 
 E = TypeVar("E", bound="Event", covariant=True)
 
@@ -55,12 +51,15 @@ class GearBase(ABC):
         event: type[E] | Undefined = MISSING,
         is_instance_function: bool = False,
         once: bool = False,
-    ) -> None: ...
+    ) -> "EventListener[E]": ...
 
     @abstractmethod
     def remove_listener(
-        self, callback: EventCallback[E], event: type[E] | Undefined = MISSING, is_instance_function: bool = False
+        self,
+        listener: "EventListener[E]",
+        event: type[E] | Undefined = MISSING,
+        is_instance_function: bool = False,
     ) -> None: ...
 
     @abstractmethod
-    def listen(self, *args: Any, **kwargs: Any) -> Callable[[Callable[[E], Awaitable[None]]], EventCallback[E]]: ...
+    def listen(self, *args: Any, **kwargs: Any) -> Any: ...

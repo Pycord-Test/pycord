@@ -22,63 +22,55 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
 
+import asyncio
 from abc import ABC
-from functools import wraps
-from typing import TYPE_CHECKING, Any, Awaitable, Callable, Coroutine, ParamSpec, Protocol, TypeAlias, TypeVar
+from collections.abc import Awaitable
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any, Callable, Generic, TypeAlias, TypeVar, cast
 
 from typing_extensions import Unpack
 
 from ..events import InteractionCreate
 from ..interactions import ComponentInteraction, ModalInteraction
-from ..utils import MISSING, Undefined
 from ..utils.private import hybridmethod, maybe_awaitable
 from .base import GearBase
 
-ComponentPredicate: TypeAlias = Callable[[str], bool | Awaitable[bool]]
+ComponentListenerCallback: TypeAlias = (
+    Callable[[ComponentInteraction[Any]], Awaitable[Any]] | Callable[[Any, ComponentInteraction[Any]], Awaitable[Any]]
+)
 
+ModalListenerCallback: TypeAlias = (
+    Callable[[ModalInteraction[Unpack[tuple[Any, ...]]]], Awaitable[Any]]
+    | Callable[[Any, ModalInteraction[Unpack[tuple[Any, ...]]]], Awaitable[Any]]
+)
 
-class ComponentListener(Protocol):
-    async def __call__(self, interaction: ComponentInteraction[Any]) -> Any: ...
-
-
-CL_t = TypeVar("CL_t", bound=ComponentListener)
-
-
-class ModalListener(Protocol):
-    async def __call__(self, interaction: ModalInteraction[Unpack[tuple[Any, ...]]]) -> Any: ...
-
-
-ML_t = TypeVar("ML_t", bound=ModalListener)
-
-T = TypeVar("T", bound="ComponentListener | ModalListener")
-MG_t = TypeVar("MG_t", bound="ModalGearMixin")
+T = TypeVar("T", bound="ComponentListenerCallback | ModalListenerCallback")
 
 
 def _unwrap_predicate(
     maybe_predicate: Callable[[str], bool | Awaitable[bool]] | str,
 ) -> Callable[[str], bool | Awaitable[bool]]:
-    return lambda x: x == maybe_predicate if isinstance(maybe_predicate, str) else maybe_predicate
+    return (lambda x: x == maybe_predicate) if isinstance(maybe_predicate, str) else maybe_predicate
 
 
-P = ParamSpec("P")
-R = TypeVar("R")
+UiPredicate: TypeAlias = Callable[[str], bool | Awaitable[bool]]
 
 
-def _listener_factory(
-    listener: Callable[P, Awaitable[R]],
-    interaction_type: type[ModalInteraction | ComponentInteraction],
-    predicate: ComponentPredicate,
-) -> Callable[P, Coroutine[Any, Any, R | None]]:
-    @wraps(listener)
-    async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R | None:
-        # Assume last positional arg is the interaction
-        if args:
-            interaction: Any = args[-1]
-            if isinstance(interaction, interaction_type) and await maybe_awaitable(predicate, interaction.custom_id):
-                return await listener(*args, **kwargs)
-        return None
+@dataclass(frozen=True)
+class UiListener(ABC, Generic[T]):
+    callback: T
+    predicate: UiPredicate
+    _pass_self: bool = False
+    once: bool = False
 
-    return wrapper
+
+@dataclass(frozen=True)
+class ComponentListener(UiListener[ComponentListenerCallback]):
+    """A registered component interaction listener.
+
+    This class represents a listener that has been registered to handle
+    component interactions based on a predicate.
+    """
 
 
 CG_t = TypeVar("CG_t", bound="ComponentGearMixin")
@@ -90,15 +82,51 @@ class ComponentGearMixin(GearBase, ABC):
     This mixin is used to handle components such as buttons, select menus, and other interactive elements.
     """
 
+    def __init__(self) -> None:
+        super().__init__()
+        self._component_listeners: set[ComponentListener] = set()
+        for name in dir(type(self)):
+            attr = getattr(type(self), name, None)
+            if isinstance(attr, ComponentListener):
+                self._component_listeners.add(attr)
+
+        self.add_listener(self._handle_component_interaction, event=InteractionCreate)
+
+    async def _handle_component_interaction(self, event: InteractionCreate) -> None:
+        if not isinstance(event, ComponentInteraction):
+            return
+
+        listeners_to_remove: list[ComponentListener] = []
+        tasks: list[Awaitable[None]] = []
+        for listener in self._component_listeners:
+            if not await maybe_awaitable(listener.predicate, event.custom_id):
+                continue
+
+            if listener.once:
+                listeners_to_remove.append(listener)
+
+            if listener._pass_self:
+                callback = cast(Callable[[Any, ComponentInteraction[Any]], Awaitable[Any]], listener.callback)
+                tasks.append(callback(self, event))
+            else:
+                callback = cast(Callable[[ComponentInteraction[Any]], Awaitable[Any]], listener.callback)
+                tasks.append(callback(event))
+
+        for listener in listeners_to_remove:
+            self._component_listeners.remove(listener)
+
+        await asyncio.gather(*tasks)
+
     def add_component_listener(
-        self, predicate: Callable[[str], bool | Awaitable[bool]] | str, listener: ComponentListener
-    ) -> Callable[[InteractionCreate], Awaitable[None]]:
+        self,
+        predicate: Callable[[str], bool | Awaitable[bool]] | str,
+        listener: ComponentListenerCallback,
+        once: bool = False,
+    ) -> ComponentListener:
         """Registers a component interaction listener.
 
         This method can be used to register a function that will be called
         when a component interaction occurs that matches the provided predicate.
-
-        .. versionadded:: 3.0
 
         Parameters
         ----------
@@ -110,32 +138,52 @@ class ComponentGearMixin(GearBase, ABC):
         listener:
             The interaction callback to call when a component interaction occurs that matches the predicate.
 
+        once:
+            Whether to unregister the listener after it has been called once.
+
         Returns
         -------
-        Callable[[InteractionCreate], Awaitable[None]]
+        ComponentListener
             The registered listener. Use this to unregister the listener.
         """
         actual_predicate: Callable[[str], bool | Awaitable[bool]] = _unwrap_predicate(predicate)
-        actual_listener = _listener_factory(listener, ComponentInteraction, actual_predicate)
-        self.add_listener(actual_listener, event=InteractionCreate)
-        return actual_listener
+        component_listener = ComponentListener(callback=listener, predicate=actual_predicate, once=once)
+        self._component_listeners.add(component_listener)
+        return component_listener
+
+    def remove_component_listener(self, listener: ComponentListener) -> None:
+        """Unregisters a component interaction listener.
+
+        This method can be used to unregister a previously registered
+        component interaction listener.
+
+        Parameters
+        ----------
+        listener:
+            The listener to unregister.
+
+        Raises
+        ------
+        KeyError
+            If the listener is not registered.
+        """
+        self._component_listeners.remove(listener)
 
     if TYPE_CHECKING:
 
         @classmethod
         def listen_component(
             cls: type[CG_t],
-            predicate: Callable[[str], bool | Awaitable[bool]] | str,
+            predicate: Callable[[str], bool | Awaitable[bool]] | str,  # pyright: ignore[reportUnusedParameter]
+            once: bool = False,  # pyright: ignore[reportUnusedParameter]
         ) -> Callable[
-            [Callable[[ComponentListener], Awaitable[None]] | Callable[[Any, ComponentListener], Awaitable[None]]],
-            Callable[[InteractionCreate], Awaitable[None]],
+            [ComponentListenerCallback],
+            ComponentListener,
         ]:
             """A shortcut decorator that registers a component interaction listener.
 
             This decorator can be used to register a function that will be called
             when a component interaction occurs that matches the provided predicate.
-
-            .. versionadded:: 3.0
 
             Parameters
             ----------
@@ -143,6 +191,8 @@ class ComponentGearMixin(GearBase, ABC):
                 A (potentially async) function that takes a string (the component's custom ID) and returns a boolean indicating whether the
                 function should be called for that component. Alternatively, a string can be provided, which will match
                 the component's custom ID exactly.
+            once:
+                Whether to unregister the listener after it has been called once.
             """
             ...
     else:
@@ -151,19 +201,23 @@ class ComponentGearMixin(GearBase, ABC):
         def listen_component(
             cls: type[CG_t],  # noqa: N805
             predicate: Callable[[str], bool | Awaitable[bool]] | str,
+            once: bool = False,
         ) -> Callable[
             [Callable[[Any, ComponentInteraction[Any]], Awaitable[None]]],
-            Callable[[Any, ComponentInteraction[Any]], Awaitable[None]],
+            ComponentListener,
         ]:
             def decorator(
                 func: Callable[[Any, ComponentInteraction[Any]], Awaitable[None]],
-            ) -> Callable[[Any, ComponentInteraction[Any]], Awaitable[None]]:
+            ) -> ComponentListener:
                 actual_predicate: Callable[[str], bool | Awaitable[bool]] = _unwrap_predicate(predicate)
 
-                actual_listener = _listener_factory(func, ComponentInteraction, actual_predicate)
-
-                # Use parent's listen to register for InteractionCreate
-                return cls.listen(InteractionCreate)(actual_listener)
+                component_listener = ComponentListener(
+                    callback=func,
+                    predicate=actual_predicate,
+                    _pass_self=True,
+                    once=once,
+                )
+                return component_listener
 
             return decorator
 
@@ -172,13 +226,23 @@ class ComponentGearMixin(GearBase, ABC):
         def listen_component(
             self,
             predicate: Callable[[str], bool | Awaitable[bool]] | str,
-        ) -> Callable[[ComponentListener], Callable[[InteractionCreate], Awaitable[None]]]:
+            once: bool = False,
+        ) -> Callable[[ComponentListenerCallback], ComponentListener]:
             def decorator(
-                func: ComponentListener,
-            ) -> Callable[[InteractionCreate], Awaitable[None]]:
-                return self.add_component_listener(predicate, func)
+                func: ComponentListenerCallback,
+            ) -> ComponentListener:
+                return self.add_component_listener(predicate=predicate, listener=func, once=once)
 
             return decorator
+
+
+@dataclass(frozen=True)
+class ModalListener(UiListener[ModalListenerCallback]):
+    """A registered modal interaction listener.
+
+    This class represents a listener that has been registered to handle
+    modal interactions based on a predicate.
+    """
 
 
 MG_t = TypeVar("MG_t", bound="ModalGearMixin")
@@ -190,15 +254,55 @@ class ModalGearMixin(GearBase, ABC):
     This mixin is used to handle modals interactions.
     """
 
+    def __init__(self) -> None:
+        super().__init__()
+        self._modal_listeners: set[ModalListener] = set()
+        for name in dir(type(self)):
+            attr = getattr(type(self), name, None)
+            if isinstance(attr, ModalListener):
+                self._modal_listeners.add(attr)
+
+        self.add_listener(self._handle_modal_interaction, event=InteractionCreate)
+
+    async def _handle_modal_interaction(self, event: InteractionCreate) -> None:
+        if not isinstance(event, ModalInteraction):
+            return
+
+        listeners_to_remove: list[ModalListener] = []
+        tasks: list[Awaitable[None]] = []
+        for listener in self._modal_listeners:
+            if not await maybe_awaitable(listener.predicate, event.custom_id):
+                continue
+
+            if listener.once:
+                listeners_to_remove.append(listener)
+
+            if listener._pass_self:
+                callback = cast(
+                    Callable[[Any, ModalInteraction[Unpack[tuple[Any, ...]]]], Awaitable[Any]], listener.callback
+                )
+                tasks.append(callback(self, event))
+            else:
+                callback = cast(
+                    Callable[[ModalInteraction[Unpack[tuple[Any, ...]]]], Awaitable[Any]], listener.callback
+                )
+                tasks.append(callback(event))
+
+        for listener in listeners_to_remove:
+            self._modal_listeners.remove(listener)
+
+        await asyncio.gather(*tasks)
+
     def add_modal_listener(
-        self, predicate: Callable[[str], bool | Awaitable[bool]] | str, listener: ModalListener
-    ) -> Callable[[InteractionCreate], Awaitable[None]]:
+        self,
+        predicate: Callable[[str], bool | Awaitable[bool]] | str,
+        listener: ModalListenerCallback,
+        once: bool = False,
+    ) -> ModalListener:
         """Registers a modal interaction listener.
 
         This method can be used to register a function that will be called
         when a modal interaction occurs that matches the provided predicate.
-
-        .. versionadded:: 3.0
 
         Parameters
         ----------
@@ -209,33 +313,52 @@ class ModalGearMixin(GearBase, ABC):
 
         listener:
             The interaction callback to call when a modal interaction occurs that matches the predicate.
+        once:
+            Whether to unregister the listener after it has been called once.
 
         Returns
         -------
-        Callable[[InteractionCreate], Awaitable[None]]
+        ModalListener
             The registered listener. Use this to unregister the listener.
         """
         actual_predicate: Callable[[str], bool | Awaitable[bool]] = _unwrap_predicate(predicate)
-        actual_listener = _listener_factory(listener, ModalInteraction, actual_predicate)
-        self.add_listener(actual_listener, event=InteractionCreate)
-        return actual_listener
+        modal_listener = ModalListener(callback=listener, predicate=actual_predicate, once=once)
+        self._modal_listeners.add(modal_listener)
+        return modal_listener
+
+    def remove_modal_listener(self, listener: ModalListener) -> None:
+        """Unregisters a modal interaction listener.
+
+        This method can be used to unregister a previously registered
+        modal interaction listener.
+
+        Parameters
+        ----------
+        listener:
+            The listener to unregister.
+
+        Raises
+        ------
+        KeyError
+            If the listener is not registered.
+        """
+        self._modal_listeners.remove(listener)
 
     if TYPE_CHECKING:
 
         @classmethod
         def listen_modal(
             cls: type[MG_t],
-            predicate: Callable[[str], bool | Awaitable[bool]] | str,
+            predicate: Callable[[str], bool | Awaitable[bool]] | str,  # pyright: ignore[reportUnusedParameter]
+            once: bool = False,  # pyright: ignore[reportUnusedParameter]
         ) -> Callable[
-            [Callable[[ModalListener], Awaitable[None]] | Callable[[Any, ModalListener], Awaitable[None]]],
-            Callable[[InteractionCreate], Awaitable[None]],
+            [ModalListenerCallback],
+            ModalListener,
         ]:
             """A shortcut decorator that registers a modal interaction listener.
 
             This decorator can be used to register a function that will be called
             when a modal interaction occurs that matches the provided predicate.
-
-            .. versionadded:: 3.0
 
             Parameters
             ----------
@@ -253,17 +376,19 @@ class ModalGearMixin(GearBase, ABC):
             predicate: Callable[[str], bool | Awaitable[bool]] | str,
         ) -> Callable[
             [Callable[[Any, ModalInteraction[Unpack[tuple[Any, ...]]]], Awaitable[None]]],
-            Callable[[Any, ModalInteraction[Unpack[tuple[Any, ...]]]], Awaitable[None]],
+            ModalListener,
         ]:
             def decorator(
                 func: Callable[[Any, ModalInteraction[Unpack[tuple[Any, ...]]]], Awaitable[None]],
-            ) -> Callable[[Any, ModalInteraction[Unpack[tuple[Any, ...]]]], Awaitable[None]]:
+            ) -> ModalListener:
                 actual_predicate: Callable[[str], bool | Awaitable[bool]] = _unwrap_predicate(predicate)
 
-                actual_listener = _listener_factory(func, ModalInteraction, actual_predicate)
-
-                # Use parent's listen to register for InteractionCreate
-                return cls.listen(InteractionCreate)(actual_listener)
+                modal_listener = ModalListener(
+                    callback=func,
+                    predicate=actual_predicate,
+                    _pass_self=True,
+                )
+                return modal_listener
 
             return decorator
 
@@ -272,10 +397,11 @@ class ModalGearMixin(GearBase, ABC):
         def listen_modal(
             self,
             predicate: Callable[[str], bool | Awaitable[bool]] | str,
-        ) -> Callable[[ModalListener], Callable[[InteractionCreate], Awaitable[None]]]:
+            once: bool = False,
+        ) -> Callable[[ModalListenerCallback], ModalListener]:
             def decorator(
-                func: ModalListener,
-            ) -> Callable[[InteractionCreate], Awaitable[None]]:
-                return self.add_modal_listener(predicate, func)
+                func: ModalListenerCallback,
+            ) -> ModalListener:
+                return self.add_modal_listener(predicate=predicate, listener=func, once=once)
 
             return decorator

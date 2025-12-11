@@ -23,17 +23,18 @@ DEALINGS IN THE SOFTWARE.
 """
 
 from collections import defaultdict
-from collections.abc import Awaitable, Callable, Collection, Sequence
-from functools import partial
+from collections.abc import Awaitable, Callable, Collection
+from dataclasses import dataclass
 from typing import (
     TYPE_CHECKING,
     Any,
-    Protocol,
+    Generic,
     TypeAlias,
     TypeVar,
     cast,
-    runtime_checkable,
 )
+
+from typing_extensions import override
 
 from ..app.event_emitter import Event
 from ..utils import MISSING, Undefined
@@ -44,24 +45,29 @@ from .components import ComponentGearMixin, ModalGearMixin
 
 _T = TypeVar("_T", bound="Gear")
 E = TypeVar("E", bound="Event", covariant=True)
-E_contra = TypeVar("E_contra", bound="Event", contravariant=True)
+
+EventCallback: TypeAlias = Callable[[E], Awaitable[None]] | Callable[[Any, E], Awaitable[None]]
 
 
-@runtime_checkable
-class AttributedEventCallback(Protocol):
-    __event__: type[Event]
-    __once__: bool
+@dataclass
+class EventListener(Generic[E]):
+    """A registered event listener.
+
+    This class represents a listener that has been registered to handle
+    events of a specific type.
+    """
+
+    callback: Callable[..., Awaitable[None]]
+    event: type[E]
+    once: bool = False
+    _pass_self: bool = False
+
+    @override
+    def __hash__(self) -> int:
+        return hash((self.callback, self.event))
 
 
-@runtime_checkable
-class StaticAttributedEventCallback(AttributedEventCallback, Protocol):
-    __staticmethod__: bool
-
-
-EventCallback: TypeAlias = Callable[[E], Awaitable[None]]
-
-
-class Gear(ModalGearMixin, ComponentGearMixin, GearBase):
+class Gear(ModalGearMixin, ComponentGearMixin, GearBase):  # pyright: ignore[reportUnsafeMultipleInheritance]
     """A gear is a modular component that can listen to and handle events.
 
     You can subclass this class to create your own gears and attach them to your bot or other gears.
@@ -87,38 +93,33 @@ class Gear(ModalGearMixin, ComponentGearMixin, GearBase):
     """
 
     def __init__(self) -> None:
-        self._listeners: dict[type[Event], set[EventCallback[Event]]] = defaultdict(set)
-        self._once_listeners: set[EventCallback[Event]] = set()
+        self._listeners: dict[type[Event], set[EventListener[Event]]] = defaultdict(set)
         self._init_called: bool = True
 
         self._gears: set[Gear] = set()
 
         for name in dir(type(self)):
             attr = getattr(type(self), name, None)
-            if not callable(attr):
-                continue
-            if isinstance(attr, StaticAttributedEventCallback):
-                callback = attr
-                event = attr.__event__
-                once = attr.__once__
-            elif isinstance(attr, AttributedEventCallback):
-                callback = partial(attr, self)
-                event = attr.__event__
-                once = attr.__once__
-            else:
-                continue
-            self.add_listener(cast("EventCallback[Event]", callback), event=event, once=once)
-            setattr(self, name, callback)
+            if isinstance(attr, EventListener):
+                self._listeners[attr.event.event_type()].add(attr)
 
         super().__init__()
 
     def _handle_event(self, event: Event) -> Collection[Awaitable[Any]]:
         tasks: list[Awaitable[None]] = []
 
+        listeners_to_remove: list[EventListener[Event]] = []
         for listener in self._listeners[event.event_type()]:
-            if listener in self._once_listeners:
-                self._once_listeners.remove(listener)
-            tasks.append(listener(event))
+            if listener.once:
+                listeners_to_remove.append(listener)
+
+            if listener._pass_self:
+                tasks.append(listener.callback(self, event))
+            else:
+                tasks.append(listener.callback(event))
+
+        for listener in listeners_to_remove:
+            self._listeners[event.event_type()].remove(listener)
 
         for gear in self._gears:
             tasks.extend(gear._handle_event(event))
@@ -171,6 +172,7 @@ class Gear(ModalGearMixin, ComponentGearMixin, GearBase):
             event = next(iter(params.values()))
         return cast(type[E], event)
 
+    @override
     def add_listener(
         self,
         callback: Callable[[E], Awaitable[None]],
@@ -178,7 +180,7 @@ class Gear(ModalGearMixin, ComponentGearMixin, GearBase):
         event: type[E] | Undefined = MISSING,
         is_instance_function: bool = False,
         once: bool = False,
-    ) -> None:
+    ) -> EventListener[E]:
         """
         Adds an event listener to the gear.
 
@@ -193,6 +195,11 @@ class Gear(ModalGearMixin, ComponentGearMixin, GearBase):
         is_instance_function:
             Whether the callback is an instance method (i.e., it takes the gear instance as the first argument).
 
+        Returns
+        -------
+        EventListener
+            The registered listener. Use this to unregister the listener.
+
         Raises
         ------
         TypeError
@@ -200,22 +207,28 @@ class Gear(ModalGearMixin, ComponentGearMixin, GearBase):
         """
         if event is MISSING:
             event = self._parse_listener_signature(callback, is_instance_function)
-        if once:
-            self._once_listeners.add(cast("EventCallback[Event]", callback))
-        self._listeners[event.event_type()].add(cast("EventCallback[Event]", callback))
 
+        listener = EventListener(callback=callback, event=event, once=once)
+        self._listeners[event.event_type()].add(cast(EventListener[Event], listener))
+        return listener
+
+    @override
     def remove_listener(
-        self, callback: EventCallback[E], event: type[E] | Undefined = MISSING, is_instance_function: bool = False
+        self,
+        listener: EventListener[E],
+        event: type[E] | Undefined = MISSING,
+        is_instance_function: bool = False,
     ) -> None:
         """
         Removes an event listener from the gear.
 
         Parameters
         ----------
-        callback:
-            The callback function to be removed.
+        listener:
+            The EventListener instance to be removed.
         event:
             The type of event the listener was registered for. If not provided, it will be inferred from the callback signature.
+            Only required if passing a callback instead of an EventListener.
         is_instance_function:
             Whether the callback is an instance method (i.e., it takes the gear instance as the first argument).
 
@@ -226,20 +239,20 @@ class Gear(ModalGearMixin, ComponentGearMixin, GearBase):
         KeyError
             If the listener is not found.
         """
-        if event is MISSING:
-            event = self._parse_listener_signature(callback)
-        self._listeners[event.event_type()].remove(cast("EventCallback[Event]", callback))
+        if isinstance(listener, EventListener):
+            self._listeners[listener.event.event_type()].remove(cast(EventListener[Event], listener))
 
     if TYPE_CHECKING:
 
         @classmethod
+        @override
         def listen(
             cls: type[_T],
-            event: type[E] | Undefined = MISSING,  # pyright: ignore[reportUnusedParameter]
+            event: type[E] | Undefined = MISSING,
             once: bool = False,
         ) -> Callable[
             [Callable[[E], Awaitable[None]] | Callable[[Any, E], Awaitable[None]]],
-            EventCallback[E],
+            EventListener[E],
         ]:
             """
             A decorator that registers an event listener.
@@ -266,18 +279,24 @@ class Gear(ModalGearMixin, ComponentGearMixin, GearBase):
         @hybridmethod
         def listen(
             cls: type[_T],  # noqa: N805 # Ruff complains of our shenanigans here
-            event: type[E] | Undefined = MISSING,
+            event: type[E] | None = None,
             once: bool = False,
-        ) -> Callable[[Callable[[Any, E], Awaitable[None]]], Callable[[Any, E], Awaitable[None]]]:
-            def decorator(func: Callable[[Any, E], Awaitable[None]]) -> Callable[[Any, E], Awaitable[None]]:
-                if isinstance(func, staticmethod):
-                    func.__func__.__event__ = event
-                    func.__func__.__once__ = once
-                    func.__func__.__staticmethod__ = True
+        ) -> Callable[[Callable[[Any, E], Awaitable[None]]], EventListener[E]]:
+            def decorator(func: Callable[[Any, E], Awaitable[None]]) -> EventListener[E]:
+                is_static = isinstance(func, staticmethod)
+
+                if event is None:
+                    inferred_event: type[E] = cls._parse_listener_signature(func, is_instance_function=not is_static)
                 else:
-                    func.__event__ = event
-                    func.__once__ = once
-                return func
+                    inferred_event = event
+
+                event_listener = EventListener(
+                    callback=func,
+                    event=inferred_event,
+                    once=once,
+                    _pass_self=not is_static,
+                )
+                return event_listener
 
             return decorator
 
@@ -285,9 +304,9 @@ class Gear(ModalGearMixin, ComponentGearMixin, GearBase):
         @listen.instancemethod
         def listen(
             self, event: type[E] | Undefined = MISSING, once: bool = False
-        ) -> Callable[[Callable[[E], Awaitable[None]]], EventCallback[E]]:
-            def decorator(func: Callable[[E], Awaitable[None]]) -> EventCallback[E]:
-                self.add_listener(func, event=event, is_instance_function=False, once=once)
-                return cast(EventCallback[E], func)
+        ) -> Callable[[Callable[[E], Awaitable[None]]], EventListener[E]]:
+            def decorator(func: Callable[[E], Awaitable[None]]) -> EventListener[E]:
+                listener = self.add_listener(func, event=event, is_instance_function=False, once=once)
+                return listener
 
             return decorator
