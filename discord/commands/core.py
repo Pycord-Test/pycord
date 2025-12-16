@@ -45,7 +45,7 @@ from typing import (
     Union,
 )
 
-from discord.interactions import AutocompleteInteraction, Interaction
+from discord.interactions import AutocompleteInteraction, BaseInteraction
 
 from ..channel import PartialMessageable, _threaded_guild_channel_factory
 from ..channel.thread import Thread

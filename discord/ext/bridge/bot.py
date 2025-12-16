@@ -30,7 +30,7 @@ from collections.abc import Iterator
 
 from discord.commands import ApplicationContext
 from discord.errors import CheckFailure, DiscordException
-from discord.interactions import Interaction
+from discord.interactions import BaseInteraction
 from discord.message import Message
 
 from ..commands import AutoShardedBot as ExtAutoShardedBot
@@ -77,7 +77,7 @@ class BotBase(ABC):
             if isinstance(cmd, BridgeCommandGroup):
                 yield from cmd.walk_commands()
 
-    async def get_application_context(self, interaction: Interaction, cls=None) -> BridgeApplicationContext:
+    async def get_application_context(self, interaction: BaseInteraction, cls=None) -> BridgeApplicationContext:
         cls = cls if cls is not None else BridgeApplicationContext
         # Ignore the type hinting error here. BridgeApplicationContext is a subclass of ApplicationContext, and since
         # we gave it cls, it will be used instead.

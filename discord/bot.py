@@ -63,7 +63,7 @@ from .commands import (
 from .enums import IntegrationType, InteractionContextType, InteractionType
 from .errors import CheckFailure, DiscordException
 from .events import InteractionCreate
-from .interactions import Interaction
+from .interactions import BaseInteraction
 from .shard import AutoShardedClient
 from .types import interactions
 from .user import User
@@ -763,7 +763,7 @@ class ApplicationCommandMixin(ABC):
                     cmd.id = i["id"]
                     self._application_commands[cmd.id] = cmd
 
-    async def process_application_commands(self, interaction: Interaction, auto_sync: bool | None = None) -> None:
+    async def process_application_commands(self, interaction: BaseInteraction, auto_sync: bool | None = None) -> None:
         """|coro|
 
         This function processes the commands that have been registered
@@ -782,7 +782,7 @@ class ApplicationCommandMixin(ABC):
 
         Parameters
         ----------
-        interaction: :class:`discord.Interaction`
+        interaction: :class:`discord.BaseInteraction`
             The interaction to process
         auto_sync: Optional[:class:`bool`]
             Whether to automatically sync and unregister the command if it is not found in the internal cache. This will
@@ -830,7 +830,9 @@ class ApplicationCommandMixin(ABC):
             interaction.command = command
         await self.invoke_application_command(ctx)
 
-    async def on_application_command_auto_complete(self, interaction: Interaction, command: ApplicationCommand) -> None:
+    async def on_application_command_auto_complete(
+        self, interaction: BaseInteraction, command: ApplicationCommand
+    ) -> None:
         async def callback() -> None:
             ctx = await self.get_autocomplete_context(interaction)
             interaction.command = command
@@ -1023,7 +1025,7 @@ class ApplicationCommandMixin(ABC):
             yield command
 
     async def get_application_context(
-        self, interaction: Interaction, cls: Any = ApplicationContext
+        self, interaction: BaseInteraction, cls: Any = ApplicationContext
     ) -> ApplicationContext:
         r"""|coro|
 
@@ -1034,7 +1036,7 @@ class ApplicationCommandMixin(ABC):
 
         Parameters
         -----------
-        interaction: :class:`discord.Interaction`
+        interaction: :class:`discord.BaseInteraction`
             The interaction to get the invocation context from.
         cls
             The factory class that will be used to create the context.
@@ -1051,7 +1053,7 @@ class ApplicationCommandMixin(ABC):
         return cls(self, interaction)
 
     async def get_autocomplete_context(
-        self, interaction: Interaction, cls: Any = AutocompleteContext
+        self, interaction: BaseInteraction, cls: Any = AutocompleteContext
     ) -> AutocompleteContext:
         r"""|coro|
 
@@ -1062,7 +1064,7 @@ class ApplicationCommandMixin(ABC):
 
         Parameters
         -----------
-        interaction: :class:`discord.Interaction`
+        interaction: :class:`discord.BaseInteraction`
             The interaction to get the invocation context from.
         cls
             The factory class that will be used to create the context.

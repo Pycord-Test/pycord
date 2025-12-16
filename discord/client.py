@@ -81,7 +81,7 @@ from .widget import Widget
 if TYPE_CHECKING:
     from .abc import PrivateChannel, Snowflake, SnowflakeTime
     from .channel import DMChannel, GuildChannel
-    from .interactions import Interaction
+    from .interactions import BaseInteraction
     from .member import Member
     from .message import Message
     from .poll import Poll
@@ -484,7 +484,7 @@ class Client(Gear):
         print(f"Ignoring exception in {event_method}", file=sys.stderr)
         traceback.print_exc()
 
-    async def on_view_error(self, error: Exception, item: Item, interaction: Interaction) -> None:
+    async def on_view_error(self, error: Exception, item: Item, interaction: BaseInteraction) -> None:
         """|coro|
 
         The default view error handler provided by the client.
@@ -497,7 +497,7 @@ class Client(Gear):
             The exception that was raised.
         item: :class:`Item`
             The item that the user interacted with.
-        interaction: :class:`Interaction`
+        interaction: :class:`BaseInteraction`
             The interaction that was received.
         """
 
@@ -507,7 +507,7 @@ class Client(Gear):
         )
         traceback.print_exception(error.__class__, error, error.__traceback__, file=sys.stderr)
 
-    async def on_modal_error(self, error: Exception, interaction: Interaction) -> None:
+    async def on_modal_error(self, error: Exception, interaction: BaseInteraction) -> None:
         """|coro|
 
         The default modal error handler provided by the client.
@@ -519,7 +519,7 @@ class Client(Gear):
         ----------
         error: :class:`Exception`
             The exception that was raised.
-        interaction: :class:`Interaction`
+        interaction: :class:`BaseInteraction`
             The interaction that was received.
         """
 

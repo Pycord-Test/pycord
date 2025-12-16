@@ -28,7 +28,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, TypeVar
 
 import discord.abc
-from discord.interactions import Interaction, InteractionMessage, InteractionResponse
+from discord.interactions import BaseInteraction, InteractionMessage, InteractionResponse
 from discord.webhook.async_ import Webhook
 
 if TYPE_CHECKING:
@@ -81,7 +81,7 @@ class ApplicationContext(discord.abc.Messageable):
         The interaction object that invoked the command.
     """
 
-    def __init__(self, bot: Bot, interaction: Interaction):
+    def __init__(self, bot: Bot, interaction: BaseInteraction):
         self.bot = bot
         self.interaction = interaction
 
@@ -271,17 +271,17 @@ class ApplicationContext(discord.abc.Messageable):
 
     @property
     @copy_doc(InteractionResponse.send_modal)
-    def send_modal(self) -> Callable[..., Awaitable[Interaction]]:
+    def send_modal(self) -> Callable[..., Awaitable[BaseInteraction]]:
         return self.interaction.response.send_modal
 
     @property
-    @copy_doc(Interaction.respond)
-    def respond(self, *args, **kwargs) -> Callable[..., Awaitable[Interaction | WebhookMessage]]:
+    @copy_doc(BaseInteraction.respond)
+    def respond(self, *args, **kwargs) -> Callable[..., Awaitable[BaseInteraction | WebhookMessage]]:
         return self.interaction.respond
 
     @property
     @copy_doc(InteractionResponse.send_message)
-    def send_response(self) -> Callable[..., Awaitable[Interaction]]:
+    def send_response(self) -> Callable[..., Awaitable[BaseInteraction]]:
         if not self.interaction.response.is_done():
             return self.interaction.response.send_message
         else:
@@ -334,7 +334,7 @@ class ApplicationContext(discord.abc.Messageable):
         return await self.interaction.delete_original_response(delay=delay)
 
     @property
-    @copy_doc(Interaction.edit_original_response)
+    @copy_doc(BaseInteraction.edit_original_response)
     def edit(self) -> Callable[..., Awaitable[InteractionMessage]]:
         return self.interaction.edit_original_response
 
@@ -406,7 +406,7 @@ class AutocompleteContext:
 
     __slots__ = ("bot", "interaction", "focused", "value", "options")
 
-    def __init__(self, bot: Bot, interaction: Interaction):
+    def __init__(self, bot: Bot, interaction: BaseInteraction):
         self.bot = bot
         self.interaction = interaction
 

@@ -72,7 +72,7 @@ from .webhook.async_ import (
 )
 
 __all__ = (
-    "Interaction",
+    "BaseInteraction",
     "ModalInteraction",
     "ComponentInteraction",
     "ApplicationCommandInteraction",
@@ -134,7 +134,7 @@ MISSING: Any = utils.MISSING
 T = TypeVar("T", bound="InteractionPayload")
 
 
-class Interaction(Generic[T]):
+class BaseInteraction(Generic[T]):
     """Represents a Discord interaction.
 
     An interaction happens when a user does an action that needs to
@@ -619,7 +619,7 @@ class Interaction(Generic[T]):
         else:
             await func
 
-    async def respond(self, *args, **kwargs) -> Interaction | WebhookMessage:
+    async def respond(self, *args, **kwargs) -> BaseInteraction | WebhookMessage:
         """|coro|
 
         Sends either a response or a message using the followup webhook determined by whether the interaction
@@ -718,7 +718,7 @@ class _CommandBoundInteractionMixin:
         return self._command
 
 
-class _ResolvedDataInteraction(Interaction[T], Generic[T]):
+class _ResolvedDataInteraction(BaseInteraction[T], Generic[T]):
     """A mixin that loads and parses the resolved data from an interaction payload."""
 
     __slots__: tuple[str, ...] = (
@@ -798,7 +798,9 @@ class ApplicationCommandInteraction(
 
     @override
     @classmethod
-    async def _from_data(cls, payload: ApplicationCommandInteractionPayload, state: ConnectionState) -> Self:  # ty:ignore[invalid-method-override]
+    async def _from_data(
+        cls, payload: ApplicationCommandInteractionPayload, state: ConnectionState
+    ) -> Self:  # ty:ignore[invalid-method-override]
         self: ApplicationCommandInteraction = await super()._from_data(payload=payload, state=state)
         if self._command_type == ApplicationCommandType.CHAT_INPUT:
             ...
@@ -812,7 +814,7 @@ class ApplicationCommandInteraction(
 
 
 class AutocompleteInteraction(
-    Interaction[ApplicationCommandAutocompleteInteractionPayload], _CommandBoundInteractionMixin
+    BaseInteraction[ApplicationCommandAutocompleteInteractionPayload], _CommandBoundInteractionMixin
 ):
     def __init__(self, *, payload: ApplicationCommandAutocompleteInteractionPayload, state: ConnectionState):
         super().__init__(payload=payload, state=state)
@@ -868,8 +870,8 @@ class InteractionResponse:
         "_response_lock",
     )
 
-    def __init__(self, parent: Interaction):
-        self._parent: Interaction = parent
+    def __init__(self, parent: BaseInteraction):
+        self._parent: BaseInteraction = parent
         self._responded: bool = False
         self._response_lock = asyncio.Lock()
 
@@ -1019,7 +1021,7 @@ class InteractionResponse:
         files: list[File] = None,
         poll: Poll = None,
         delete_after: float = None,
-    ) -> Interaction:
+    ) -> BaseInteraction:
         """|coro|
 
         Responds to this interaction by sending a message.
@@ -1361,7 +1363,7 @@ class InteractionResponse:
         self._responded = True
         await self._process_callback_response(callback_response)
 
-    async def send_modal(self, modal: Modal) -> Interaction:
+    async def send_modal(self, modal: Modal) -> BaseInteraction:
         """|coro|
         Responds to this interaction by sending a modal dialog.
         This cannot be used to respond to another modal dialog submission.
@@ -1434,8 +1436,8 @@ class InteractionResponse:
 class _InteractionMessageState:
     __slots__ = ("_parent", "_interaction")
 
-    def __init__(self, interaction: Interaction, parent: ConnectionState):
-        self._interaction: Interaction = interaction
+    def __init__(self, interaction: BaseInteraction, parent: ConnectionState):
+        self._interaction: BaseInteraction = interaction
         self._parent: ConnectionState = parent
 
     async def _get_guild(self, guild_id):

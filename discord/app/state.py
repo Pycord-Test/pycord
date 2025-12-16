@@ -56,7 +56,7 @@ from ..emoji import AppEmoji, GuildEmoji
 from ..enums import ChannelType, InteractionType, Status, try_enum
 from ..flags import ApplicationFlags, Intents, MemberCacheFlags
 from ..guild import Guild
-from ..interactions import Interaction
+from ..interactions import BaseInteraction
 from ..invite import Invite
 from ..member import Member
 from ..mentions import AllowedMentions

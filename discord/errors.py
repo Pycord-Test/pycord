@@ -37,7 +37,7 @@ if TYPE_CHECKING:
     except ModuleNotFoundError:
         _ResponseType = ClientResponse
 
-    from .interactions import Interaction
+    from .interactions import BaseInteraction
 
 __all__ = (
     "AnnotationMismatch",
@@ -279,12 +279,12 @@ class InteractionResponded(ClientException):
 
     Attributes
     ----------
-    interaction: :class:`Interaction`
+    interaction: :class:`BaseInteraction`
         The interaction that's already been responded to.
     """
 
-    def __init__(self, interaction: Interaction):
-        self.interaction: Interaction = interaction
+    def __init__(self, interaction: BaseInteraction):
+        self.interaction: BaseInteraction = interaction
         super().__init__("This interaction has already been responded to before")
 
 

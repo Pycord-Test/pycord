@@ -40,7 +40,7 @@ class MyBot(commands.Bot):
         # use the new MyContext class.
         return await super().get_context(message, cls=cls)
 
-    async def get_application_context(self, interaction: discord.Interaction, cls=MyApplicationContext):
+    async def get_application_context(self, interaction: discord.BaseInteraction, cls=MyApplicationContext):
         # The same method for custom application context.
         return await super().get_application_context(interaction, cls=cls)
 

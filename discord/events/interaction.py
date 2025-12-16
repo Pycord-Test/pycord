@@ -35,13 +35,13 @@ from ..app.state import ConnectionState
 from ..interactions import (
     ApplicationCommandInteraction,
     AutocompleteInteraction,
+    BaseInteraction,
     ComponentInteraction,
-    Interaction,
     ModalInteraction,
 )
 
 
-def _interaction_factory(payload: InteractionPayload) -> type[Interaction]:
+def _interaction_factory(payload: InteractionPayload) -> type[BaseInteraction]:
     type: int = payload["type"]
     if type == InteractionType.application_command.value:
         return ApplicationCommandInteraction
@@ -51,11 +51,11 @@ def _interaction_factory(payload: InteractionPayload) -> type[Interaction]:
         return ComponentInteraction
     if type == InteractionType.modal_submit.value:
         return ModalInteraction
-    return Interaction
+    return BaseInteraction
 
 
 @lru_cache(maxsize=128)
-def _create_event_interaction_class(interaction_cls: type[Interaction]) -> type[Interaction]:
+def _create_event_interaction_class(interaction_cls: type[BaseInteraction]) -> type[BaseInteraction]:
     class EventInteraction(interaction_cls, Event):  # type: ignore
         __slots__ = ()
 
@@ -76,15 +76,10 @@ def _create_event_interaction_class(interaction_cls: type[Interaction]) -> type[
     return EventInteraction  # type: ignore
 
 
-class InteractionCreate(Event, Interaction):
+class InteractionCreate(Event, BaseInteraction):
     """Called when an interaction is created.
 
     This currently happens due to application command invocations or components being used.
-
-    .. warning::
-        This is a low level event that is not generally meant to be used.
-        If you are working with components, consider using the callbacks associated
-        with the :class:`~discord.ui.View` instead as it provides a nicer user experience.
 
     This event inherits from :class:`Interaction`.
     """

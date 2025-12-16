@@ -29,7 +29,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, Union, overload
 
 from discord.commands import ApplicationContext
-from discord.interactions import Interaction, InteractionMessage
+from discord.interactions import BaseInteraction, InteractionMessage
 from discord.message import Message
 from discord.webhook import WebhookMessage
 
@@ -67,7 +67,7 @@ class BridgeContext(ABC):
     """
 
     @abstractmethod
-    async def _respond(self, *args, **kwargs) -> Interaction | WebhookMessage | Message: ...
+    async def _respond(self, *args, **kwargs) -> BaseInteraction | WebhookMessage | Message: ...
 
     @abstractmethod
     async def _defer(self, *args, **kwargs) -> None: ...
@@ -78,7 +78,7 @@ class BridgeContext(ABC):
     @overload
     async def invoke(self, command: BridgeSlashCommand | BridgeExtCommand, *args, **kwargs) -> None: ...
 
-    async def respond(self, *args, **kwargs) -> Interaction | WebhookMessage | Message:
+    async def respond(self, *args, **kwargs) -> BaseInteraction | WebhookMessage | Message:
         """|coro|
 
         Responds to the command with the respective response type to the current context. In :class:`BridgeExtContext`,
@@ -87,7 +87,7 @@ class BridgeContext(ABC):
         """
         return await self._respond(*args, **kwargs)
 
-    async def reply(self, *args, **kwargs) -> Interaction | WebhookMessage | Message:
+    async def reply(self, *args, **kwargs) -> BaseInteraction | WebhookMessage | Message:
         """|coro|
 
         Alias for :meth:`~.BridgeContext.respond`.
@@ -137,7 +137,7 @@ class BridgeApplicationContext(BridgeContext, ApplicationContext):
         # This is needed in order to represent the correct class init signature on the docs
         super().__init__(*args, **kwargs)
 
-    async def _respond(self, *args, **kwargs) -> Interaction | WebhookMessage:
+    async def _respond(self, *args, **kwargs) -> BaseInteraction | WebhookMessage:
         return await self._get_super("respond")(*args, **kwargs)
 
     async def _defer(self, *args, **kwargs) -> None:

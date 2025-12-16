@@ -45,7 +45,7 @@ from typing import (
 
 from typing_extensions import TypeAlias, TypeVar, override
 
-from discord.interactions import AutocompleteInteraction, Interaction
+from discord.interactions import AutocompleteInteraction, BaseInteraction
 
 from ..utils.private import maybe_awaitable
 

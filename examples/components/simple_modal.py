@@ -3,7 +3,7 @@ import os
 from dotenv import load_dotenv
 
 import discord
-from discord import Interaction, components
+from discord import BaseInteraction, components
 
 load_dotenv()
 
