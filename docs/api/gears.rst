@@ -17,12 +17,15 @@ Gear
 .. autoclass:: discord.gears.Gear
     :members:
     :inherited-members:
-    :exclude-members: listen,listen_modal
+    :exclude-members: listen,listen_component,listen_modal
 
     .. automethod:: discord.gears.Gear.listen(event, once=False)
         :decorator:
 
-    .. automethod:: discord.gears.Gear.listen_modal(predicate=lambda i: i.startswith("..."))
+    .. automethod:: discord.gears.Gear.listen_component(predicate, once=False)
+        :decorator:
+
+    .. automethod:: discord.gears.Gear.listen_modal(predicate, once=False)
         :decorator:
 
 Basic Usage
@@ -94,6 +97,73 @@ Use the ``once`` parameter to create listeners that are automatically removed af
         @Gear.listen(once=True)
         async def on_first_message(self, event: MessageCreate) -> None:
             print("This will only run once!")
+
+Component Interactions
+~~~~~~~~~~~~~~~~~~~~~~
+
+Gears can handle component interactions (buttons, select menus, etc.) using the
+:meth:`~discord.gears.Gear.listen_component` decorator:
+
+.. code-block:: python3
+
+    from discord.gears import Gear
+    from discord import ComponentInteraction
+
+    class ButtonGear(Gear):
+        @Gear.listen_component("my_button")
+        async def handle_button(self, interaction: ComponentInteraction) -> None:
+            await interaction.respond("Button clicked!")
+
+        @Gear.listen_component(lambda custom_id: custom_id.startswith("page_"))
+        async def handle_pagination(self, interaction: ComponentInteraction) -> None:
+            page = interaction.custom_id.split("_")[1]
+            await interaction.respond(f"Navigating to page {page}")
+
+The predicate can be:
+
+- A string for exact custom ID matching
+- A function (sync or async) that takes a custom ID and returns a boolean
+
+You can also add component listeners to gear instances:
+
+.. code-block:: python3
+
+    my_gear = ButtonGear()
+
+    @my_gear.listen_component("instance_button")
+    async def handle_instance_button(interaction: ComponentInteraction) -> None:
+        await interaction.respond("Instance button clicked!")
+
+Modal Interactions
+~~~~~~~~~~~~~~~~~~
+
+Similarly, gears can handle modal submissions using the :meth:`~discord.gears.Gear.listen_modal` decorator:
+
+.. code-block:: python3
+
+    from discord.gears import Gear
+    from discord import ModalInteraction
+    from discord.components import PartialLabel, PartialTextInput
+
+    class FormGear(Gear):
+        @Gear.listen_modal("feedback_form")
+        async def handle_feedback(
+            self,
+            interaction: ModalInteraction[
+                PartialLabel[PartialTextInput],
+                PartialLabel[PartialTextInput],
+            ],
+        ) -> None:
+            title = interaction.components[0].component.value
+            content = interaction.components[1].component.value
+            await interaction.respond(f"Feedback received: {title}")
+
+        @Gear.listen_modal(lambda custom_id: custom_id.startswith("form_"))
+        async def handle_dynamic_form(self, interaction: ModalInteraction) -> None:
+            form_id = interaction.custom_id.split("_")[1]
+            await interaction.respond(f"Processing form {form_id}")
+
+Like component listeners, modal listeners can use string or function predicates and support the ``once`` parameter.
 
 Manual Listener Management
 ~~~~~~~~~~~~~~~~~~~~~~~~~~

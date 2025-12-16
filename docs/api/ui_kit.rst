@@ -86,6 +86,12 @@ API Models
     :members:
     :inherited-members:
 
+.. attributetable:: discord.components.FileUpload
+
+.. autoclass:: discord.components.FileUpload
+    :members:
+    :inherited-members:
+
 .. attributetable:: discord.components.Separator
 .. autoclass:: discord.components.Separator
     :members:
@@ -142,6 +148,11 @@ These objects are dataclasses that represent components as they are received fro
 
 .. attributetable:: discord.components.PartialTextDisplay
 .. autoclass:: discord.components.PartialTextDisplay
+    :members:
+    :inherited-members:
+
+.. attributetable:: discord.components.PartialFileUpload
+.. autoclass:: discord.components.PartialFileUpload
     :members:
     :inherited-members:
 
