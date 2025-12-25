@@ -465,7 +465,6 @@ class Interaction(Generic[T]):
         if self._original_response is not None:
             return self._original_response
 
-        # TODO: fix later to not raise?
         channel = self.channel
         if channel is None:
             raise ClientException(
