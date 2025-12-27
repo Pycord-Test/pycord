@@ -1179,7 +1179,6 @@ class Guild(Hashable):
             then ``None`` is returned.
         """
 
-        result = None
         members = self.members
         if len(name) > 5 and name[-5] == "#":
             name = name[:-5]
