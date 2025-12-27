@@ -47,7 +47,6 @@ if TYPE_CHECKING:
     from .member import Member
     from .message import Message
     from .partial_emoji import PartialEmoji
-    from .soundboard import PartialSoundboardSound, SoundboardSound
     from .types.channel import VoiceChannelEffectSendEvent as VoiceChannelEffectSend
     from .types.raw_models import (
         AuditLogEntryEvent,
@@ -68,6 +67,7 @@ if TYPE_CHECKING:
         VoiceChannelStatusUpdateEvent,
     )
     from .types.raw_models import AutoModActionExecutionEvent as AutoModActionExecution
+    from .types.soundboard import SoundboardSound as SoundboardSoundPayload
     from .user import User
 
 
@@ -851,7 +851,7 @@ class RawSoundboardSoundDeleteEvent(_RawReprMixin):
 
     __slots__ = ("sound_id", "guild_id", "data")
 
-    def __init__(self, data: PartialSoundboardSound) -> None:
+    def __init__(self, data: SoundboardSoundPayload) -> None:
         self.sound_id: int = int(data["sound_id"])
         self.guild_id: int = int(data["guild_id"])
-        self.data: PartialSoundboardSound = data
+        self.data: SoundboardSoundPayload = data

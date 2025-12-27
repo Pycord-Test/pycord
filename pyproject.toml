@@ -69,13 +69,13 @@ docs = [
 dev = [
     "codespell==2.4.1",
     "coverage~=7.8",
-    "mypy~=1.18.1",
     "pre-commit==4.5.0",
     "python-dotenv>=1.1.1",
     "ruff>=0.12.12",
     "tox>=4.27.0",
     "tox-gh>=1.5.0",
     "tox-uv>=1.26.1",
+    "ty>=0.0.7",
 ]
 
 test = [# Not in `dev` because we use tox for testing. Tox will install these dependencies.
@@ -303,15 +303,40 @@ extend-ignore = [
     "PLR0904", # not suitable for a library like pycord
 ]
 
-[tool.ruff.lint.per-file-ignores]
-"tests/**" = ["PLC0415"] # Allow non top-level imports in tests
+[tool.ty.environment]
+python-platform = "all"
+python-version = "3.10"
 
-[tool.mypy]
-namespace_packages = true
-install_types = true
-strict = true
-show_error_codes = true
-ignore_errors = true
+[tool.ty.rules]
+unresolved-attribute = "warn"
+invalid-argument-type = "warn"
+invalid-parameter-default = "warn"
+invalid-assignment = "warn"
+invalid-method-override = "warn"
+call-non-callable = "warn"
+invalid-return-type = "warn"
+invalid-await = "warn"
+not-iterable = "warn"
+invalid-type-form = "warn"
+no-matching-overload = "warn"
+unsupported-operator = "warn"
+invalid-key = "warn"
+invalid-type-arguments = "warn"
+missing-argument = "warn"
+invalid-overload = "warn"
+non-subscriptable = "warn"
+invalid-super-argument = "warn"
+parameter-already-assigned = "warn"
+unknown-argument = "warn"
+too-many-positional-arguments = "warn"
+unresolved-import = "warn"
+missing-typed-dict-key = "warn"
+
+[[tool.ty.overrides]]
+include = ["tests/**"]
+
+[tool.ty.overrides.rules]
+unresolved-import = "ignore"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

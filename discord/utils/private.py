@@ -541,7 +541,7 @@ def cached_slot_property(
 
 
 try:
-    import msgspec
+    import msgspec  # ty: ignore[unresolved-import]
 
     def to_json(obj: Any) -> str:  # type: ignore[reportUnusedFunction]
         return msgspec.json.encode(obj).decode("utf-8")

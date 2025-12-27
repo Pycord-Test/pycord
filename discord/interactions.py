@@ -280,7 +280,7 @@ class Interaction(Generic[T]):
         self._guild: Guild | None = None
         self._guild_data = self._payload.get("guild")
         if self._guild is None and self._guild_data:
-            self._guild = await Guild._from_data(data=self._guild_data, state=self._state)
+            self._guild = await Guild._from_data(guild=self._guild_data, state=self._state)
 
         # TODO: there's a potential data loss here
         if self.guild_id:

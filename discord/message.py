@@ -1070,7 +1070,7 @@ class Message(Hashable):
 
         self.thread: Thread | None
         try:
-            self.thread = Thread(guild=self.guild, state=self._state, data=data["thread"])
+            self.thread = await Thread._from_data(guild=self.guild, state=self._state, data=data["thread"])
         except KeyError:
             self.thread = None
 
@@ -1907,7 +1907,7 @@ class Message(Hashable):
             rate_limit_per_user=slowmode_delay or 0,
         )
 
-        self.thread = Thread(guild=self.guild, state=self._state, data=data)
+        self.thread = await Thread._from_data(guild=self.guild, state=self._state, data=data)
         return self.thread
 
     async def reply(self, content: str | None = None, **kwargs) -> Message:

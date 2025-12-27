@@ -36,11 +36,12 @@ from discord.raw_models import RawVoiceChannelStatusUpdateEvent
 from discord.utils.private import get_as_snowflake
 
 if TYPE_CHECKING:
-    from discord.abc import VocalGuildChannel
     from discord.emoji import PartialEmoji
     from discord.guild import Guild
     from discord.soundboard import PartialSoundboardSound, SoundboardSound
-    from discord.types.channel import VoiceChannelEffectSend as VoiceChannelEffectSendPayload
+
+    from ..channel import VoiceChannel
+    from ..types.channel import VoiceChannelEffectSendEvent as VoiceChannelEffectSendEventPayload
 
 _log = logging.getLogger(__name__)
 
@@ -166,7 +167,7 @@ class VoiceChannelStatusUpdate(Event):
     __event_name__: str = "VOICE_CHANNEL_STATUS_UPDATE"
 
     raw: RawVoiceChannelStatusUpdateEvent
-    channel: "VocalGuildChannel"
+    channel: "VoiceChannel"
     old_status: str | None
     new_status: str | None
 
@@ -234,7 +235,7 @@ class VoiceChannelEffectSend(Event):
         sound: "SoundboardSound | PartialSoundboardSound | None",
         guild: "Guild",
         user: Member,
-        channel: "VocalGuildChannel",
+        channel: "VoiceChannel",
         emoji: "PartialEmoji | None",
     ) -> None:
         self.animation_type = animation_type
@@ -247,7 +248,7 @@ class VoiceChannelEffectSend(Event):
 
     @classmethod
     @override
-    async def __load__(cls, data: "VoiceChannelEffectSendPayload", state: ConnectionState) -> Self | None:
+    async def __load__(cls, data: "VoiceChannelEffectSendEventPayload", state: ConnectionState) -> Self | None:
         from discord.emoji import PartialEmoji
         from discord.soundboard import PartialSoundboardSound
 

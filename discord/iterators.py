@@ -58,7 +58,7 @@ __all__ = (
 
 if TYPE_CHECKING:
     from .abc import Snowflake
-    from .channel import MessageableChannel
+    from .channel import GuildMessageableChannel
     from .channel.thread import Thread
     from .guild import BanEntry, Guild
     from .member import Member
@@ -613,7 +613,7 @@ class GuildIterator(_AsyncIterator["Guild"]):
     async def create_guild(self, data):
         from .guild import Guild
 
-        return await Guild._from_data(state=self.state, data=data)
+        return await Guild._from_data(state=self.state, guild=data)
 
     async def fill_guilds(self):
         if self._get_retrieve():
@@ -836,7 +836,7 @@ class ArchivedThreadIterator(_AsyncIterator["Thread"]):
         # This stuff is obviously WIP because 'members' is always empty
         threads: list[ThreadPayload] = data.get("threads", [])
         for d in reversed(threads):
-            self.queue.put_nowait(self.create_thread(d))
+            self.queue.put_nowait(await self.create_thread(d))
 
         self.has_more = data.get("has_more", False)
         if self.limit is not None:
@@ -847,10 +847,10 @@ class ArchivedThreadIterator(_AsyncIterator["Thread"]):
         if self.has_more:
             self.before = self.update_before(threads[-1])
 
-    def create_thread(self, data: ThreadPayload) -> Thread:
+    async def create_thread(self, data: ThreadPayload) -> Thread:
         from .channel.thread import Thread
 
-        return Thread(guild=self.guild, state=self.guild._state, data=data)
+        return await Thread._from_data(guild=self.guild, state=self.guild._state, data=data)
 
 
 class ScheduledEventSubscribersIterator(_AsyncIterator[Union["User", "Member"]]):
@@ -1165,7 +1165,7 @@ class SubscriptionIterator(_AsyncIterator["Subscription"]):
 class MessagePinIterator(_AsyncIterator["MessagePin"]):
     def __init__(
         self,
-        channel: MessageableChannel,
+        channel: GuildMessageableChannel,
         limit: int | None,
         before: Snowflake | datetime.datetime | None = None,
     ):
