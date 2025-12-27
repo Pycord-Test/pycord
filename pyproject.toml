@@ -31,7 +31,7 @@ classifiers = [
 dynamic = ["version"]
 dependencies = [
     "aiohttp>=3.6.0,<4.0",
-    "colorlog~=6.9.0",
+    "colorlog~=6.10.1",
     "typing-extensions>=4,<5",
 ]
 
