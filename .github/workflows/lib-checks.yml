@@ -83,7 +83,7 @@ jobs:
         with:
           groups: 'dev'
       - name: "Run ty type check"
-        run: uv run ty --output-format=github discord/
+        run: uv run ty check --output-format=github discord/
 
   tests:
     if: ${{ github.event_name != 'schedule' }}
