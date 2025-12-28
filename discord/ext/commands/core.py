@@ -1794,7 +1794,7 @@ def check_any(*checks: Check) -> Callable[[T], T]:
         @bot.command()
         @commands.check_any(commands.is_owner(), is_guild_owner())
         async def only_for_owners(ctx):
-            await ctx.send('Hello mister owner!')
+            await ctx.send("Hello mister owner!")
 
     Parameters
     ----------

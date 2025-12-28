@@ -393,9 +393,7 @@ class Attachment(Hashable):
         data = await self._http.get_from_cdn(url)
         return data
 
-    async def read_chunked(
-        self, chunksize: int, *, use_cached: bool = False
-    ) -> AsyncGenerator[bytes]:
+    async def read_chunked(self, chunksize: int, *, use_cached: bool = False) -> AsyncGenerator[bytes]:
         """|coro|
 
         Retrieves the content of this attachment in chunks as a :class:`AsyncGenerator` object of bytes.
