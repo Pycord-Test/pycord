@@ -67,7 +67,6 @@ from ..channel import (
     Thread,
     VoiceChannel,
 )
-from ..commands import ApplicationContext, AutocompleteContext
 from ..enums import ChannelType, SlashCommandOptionType
 from ..enums import Enum as DiscordEnum
 from ..utils import MISSING, Undefined, basic_autocomplete

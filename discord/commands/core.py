@@ -34,16 +34,7 @@ import sys
 import types
 from collections import OrderedDict
 from enum import Enum
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Coroutine,
-    Generator,
-    Generic,
-    TypeVar,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Callable, Coroutine, Generator, Generic, NewType, TypeVar, Union
 
 from discord.interactions import AutocompleteInteraction, BaseInteraction
 
@@ -72,8 +63,10 @@ from ..role import Role
 from ..user import User
 from ..utils import MISSING, find, utcnow
 from ..utils.private import async_all, maybe_awaitable, warn_deprecated
-from .context import ApplicationContext, AutocompleteContext
 from .options import Option, OptionChoice
+
+ApplicationContext = NewType("ApplicationContext", Any)  # TODO(Paillat-dev): Remove after app commands refactor
+AutocompleteContext = NewType("AutocompleteContext", Any)
 
 if sys.version_info >= (3, 11):
     from typing import Annotated, Literal, get_args, get_origin

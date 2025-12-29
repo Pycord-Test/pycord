@@ -798,9 +798,7 @@ class ApplicationCommandInteraction(
 
     @override
     @classmethod
-    async def _from_data(
-        cls, payload: ApplicationCommandInteractionPayload, state: ConnectionState
-    ) -> Self:  # ty:ignore[invalid-method-override]
+    async def _from_data(cls, payload: ApplicationCommandInteractionPayload, state: ConnectionState) -> Self:  # ty:ignore[invalid-method-override]
         self: ApplicationCommandInteraction = await super()._from_data(payload=payload, state=state)
         if self._command_type == ApplicationCommandType.CHAT_INPUT:
             ...
