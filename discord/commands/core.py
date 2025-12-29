@@ -64,9 +64,7 @@ from ..user import User
 from ..utils import MISSING, find, utcnow
 from ..utils.private import async_all, maybe_awaitable, warn_deprecated
 from .options import Option, OptionChoice
-
-ApplicationContext = NewType("ApplicationContext", Any)  # TODO(Paillat-dev): Remove after app commands refactor
-AutocompleteContext = NewType("AutocompleteContext", Any)
+from .context import ApplicationContext, AutocompleteContext
 
 if sys.version_info >= (3, 11):
     from typing import Annotated, Literal, get_args, get_origin
