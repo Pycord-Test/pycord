@@ -353,9 +353,9 @@ Stages
 Interactions
 ------------
 
-.. attributetable:: Interaction
+.. attributetable:: BaseInteraction
 
-.. autoclass:: Interaction()
+.. autoclass:: BaseInteraction()
     :members:
 
 .. autoclass:: ComponentInteraction()

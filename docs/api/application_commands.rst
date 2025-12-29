@@ -79,15 +79,3 @@ Objects
 .. attributetable:: OptionChoice
 .. autoclass:: OptionChoice
     :members:
-
-
-Context Objects
----------------
-
-.. attributetable:: ApplicationContext
-.. autoclass:: ApplicationContext
-    :members:
-
-.. attributetable:: AutocompleteContext
-.. autoclass:: AutocompleteContext
-    :members:
