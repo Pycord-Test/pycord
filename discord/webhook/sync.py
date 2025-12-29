@@ -71,7 +71,7 @@ if TYPE_CHECKING:
     from ..types.webhook import Webhook as WebhookPayload
 
     try:
-        from requests import Response, Session
+        from requests import Response, Session  # ty: ignore[unresolved-import]
     except ModuleNotFoundError:
         pass
 
@@ -666,7 +666,7 @@ class SyncWebhook(BaseWebhook):
             "type": 1,
             "token": token,
         }
-        import requests
+        import requests  # ty: ignore[unresolved-import]
 
         if session is MISSING:
             session = requests  # type: ignore
@@ -713,7 +713,7 @@ class SyncWebhook(BaseWebhook):
 
         data: dict[str, Any] = m.groupdict()
         data["type"] = 1
-        import requests
+        import requests  # ty: ignore[unresolved-import]
 
         if session is MISSING:
             session = requests  # type: ignore

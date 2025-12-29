@@ -64,10 +64,11 @@ jobs:
         with:
           groups: 'dev'
       - name: "Run ruff linter check"
-        run: uv run ruff check .
+        run: uv run ruff check --output-format=github .
       - name: "Run ruff formatter check"
-        run: uv run ruff format --check .
-  mypy:
+        run: uv run ruff format --output-format=github --check .
+
+  ty:
     if: ${{ github.event_name != 'schedule' }}
     runs-on: ubuntu-latest
     steps:
@@ -81,17 +82,9 @@ jobs:
         uses: ./.github/actions/sync-uv
         with:
           groups: 'dev'
-      - name: "Setup cache"
-        id: cache-mypy
-        uses: actions/cache@v4
-        with:
-          path: .mypy_cache
-          key: mypy
-      - name: "Make mypy cache directory"
-        id: cache-dir-mypy
-        run: mkdir -p -v .mypy_cache
-      - name: "Run mypy"
-        run: uv run mypy --non-interactive discord/
+      - name: "Run ty type check"
+        run: uv run ty check --output-format=concise discord/
+
   tests:
     if: ${{ github.event_name != 'schedule' }}
     runs-on: ${{ matrix.os }}

@@ -31,7 +31,7 @@ if TYPE_CHECKING:
     from aiohttp import ClientResponse, ClientWebSocketResponse
 
     try:
-        from requests import Response
+        from requests import Response  # ty: ignore[unresolved-import]
 
         _ResponseType = ClientResponse | Response
     except ModuleNotFoundError:
