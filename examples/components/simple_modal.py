@@ -3,7 +3,8 @@ import os
 from dotenv import load_dotenv
 
 import discord
-from discord import BaseInteraction, components
+from discord import BaseInteraction, ComponentInteraction, ModalInteraction, components
+from discord.events import MessageCreate
 
 load_dotenv()
 
@@ -17,6 +18,7 @@ bot = discord.Bot(
         discord.InteractionContextType.bot_dm,
         discord.InteractionContextType.private_channel,
     },
+    intents=discord.Intents.all(),
 )
 
 
@@ -70,9 +72,24 @@ def create_modal(user: discord.User | discord.Member) -> components.Modal:
     return modal
 
 
-@bot.slash_command()
-async def create_announcement(ctx: discord.ApplicationContext):
-    await ctx.send_modal(create_modal(ctx.author))
+@bot.listen_component("send_modal")
+async def create_announcement(interaction: ComponentInteraction):
+    await interaction.response.send_modal(create_modal(interaction.user))
+
+
+@bot.listen(MessageCreate)
+async def on_message(message: MessageCreate):
+    if message.content == "!create_announcement":
+        await message.channel.send(
+            "Click the button below to create an announcement!",
+            components=[
+                components.ActionRow(
+                    components.Button(
+                        label="Create Announcement", custom_id="send_modal", style=discord.ButtonStyle.primary
+                    )
+                )
+            ],
+        )
 
 
 def create_announcement(
@@ -99,7 +116,7 @@ def create_announcement(
     return container
 
 
-@bot.modal_listener("v1:announcement_modal")
+@bot.listen_modal("v1:announcement_modal")
 async def announcement_modal_listener(
     interaction: discord.ModalInteraction[
         components.PartialTextDisplay,
@@ -129,6 +146,7 @@ async def announcement_modal_listener(
     container = create_announcement(title, content, mentions, attachments)
     try:
         await interaction.channel.send(components=[container])
+        await interaction.respond("Announcement created successfully!", ephemeral=True)
     except discord.Forbidden:
         await interaction.respond(components=[container])
 

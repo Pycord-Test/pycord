@@ -738,6 +738,8 @@ class _ResolvedDataInteraction(BaseInteraction[T], Generic[T]):
             self.users: dict[int, User] = {
                 int(user_id): User(state=state, data=user_data) for user_id, user_data in users.items()
             }
+        else:
+            self.users = {}
         if (members := resolved.get("members")) and (guild := await self.get_guild()):
             self.members: dict[int, Member] = {}
             for member_id, member_data in members.items():
@@ -746,14 +748,20 @@ class _ResolvedDataInteraction(BaseInteraction[T], Generic[T]):
                 self.members[member_data["id"]] = await guild._get_and_update_member(
                     member_data, member_data["id"], self._state.member_cache_flags.interaction
                 )
+        else:
+            self.members = {}
         if roles := resolved.get("roles"):
             self.roles: dict[int, Role] = {
                 int(role_id): Role(state=state, data=role_data, guild=self.guild)
                 for role_id, role_data in roles.items()
             }
+        else:
+            self.roles = {}
         if channels := resolved.get("channels"):  # noqa: F841 see below
             # TODO: Partial channels @Paillat-dev
             self.channels: dict[int, InteractionChannel] = {}
+        else:
+            self.channels = {}
         if messages := resolved.get("messages"):
             self.messages: dict[int, Message] = {}
             for message_id, message_data in messages.items():
@@ -765,10 +773,14 @@ class _ResolvedDataInteraction(BaseInteraction[T], Generic[T]):
                 self.messages[int(message_id)] = await Message._from_data(
                     state=self._state, channel=channel, data=message_data
                 )
+        else:
+            self.messages = {}
         if attachments := resolved.get("attachments"):
             self.attachments: dict[int, Attachment] = {
                 int(att_id): Attachment(state=state, data=att_data) for att_id, att_data in attachments.items()
             }
+        else:
+            self.attachments = {}
         return self
 
 
