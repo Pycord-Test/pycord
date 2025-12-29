@@ -423,9 +423,13 @@ class ConnectionState:
     async def _get_message(self, msg_id: int | None) -> Message | None:
         return await self.cache.get_message(cast(int, msg_id))
 
-    def _guild_needs_chunking(self, guild: Guild) -> bool:
+    async def _guild_needs_chunking(self, guild: Guild) -> bool:
         # If presences are enabled then we get back the old guild.large behaviour
-        return self._chunk_guilds and not guild.chunked and not (self._intents.presences and not guild.large)
+        return (
+            self._chunk_guilds
+            and not await guild.is_chunked()
+            and not (self._intents.presences and not await guild.is_large())
+        )
 
     async def _get_guild_channel(
         self, data: MessagePayload, guild_id: int | None = None
@@ -592,13 +596,13 @@ class ConnectionState:
             if channel is not None:
                 return channel
 
-    def create_message(
+    async def create_message(
         self,
         *,
         channel: MessageableChannel,
         data: MessagePayload,
     ) -> Message:
-        return Message(state=self, channel=channel, data=data)
+        return await Message._from_data(state=self, channel=channel, data=data)
 
 
 class AutoShardedConnectionState(ConnectionState):
@@ -646,7 +650,7 @@ class AutoShardedConnectionState(ConnectionState):
             except asyncio.TimeoutError:
                 break
             else:
-                if self._guild_needs_chunking(guild):
+                if await self._guild_needs_chunking(guild):
                     _log.debug(
                         ("Guild ID %d requires chunking, will be done in the background."),
                         guild.id,

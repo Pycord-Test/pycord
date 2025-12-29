@@ -633,7 +633,7 @@ class Messageable:
                 poll=poll,
             )
 
-        ret = state.create_message(channel=channel, data=data)
+        ret = await state.create_message(channel=channel, data=data)
 
         if delete_after is not None:
             await ret.delete(delay=delete_after)

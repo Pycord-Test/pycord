@@ -432,7 +432,7 @@ class GuildCreate(Event, Guild):
             return
 
         # check if it requires chunking
-        if state._guild_needs_chunking(guild):
+        if await state._guild_needs_chunking(guild):
             asyncio.create_task(state._chunk_and_dispatch(guild, unavailable))
             return
 

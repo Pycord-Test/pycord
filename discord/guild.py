@@ -756,7 +756,7 @@ class Guild(Hashable):
         empty_tuple = ()
         for presence in data.get("presences", []):
             user_id = int(presence["user"]["id"])
-            member = self.get_member(user_id)
+            member = await self.get_member(user_id)
             if member is not None:
                 member._presence_update(presence, empty_tuple)  # type: ignore
 
@@ -801,7 +801,7 @@ class Guild(Hashable):
         """
         if self._large is None:
             return (
-                self._member_count or len(await cast(ConnectionState, self._state).cache.get_guild_members(self.id))
+                self._member_count or len(await cast("ConnectionState", self._state).cache.get_guild_members(self.id))
             ) >= 250
         return self._large
 

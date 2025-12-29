@@ -1094,7 +1094,7 @@ class Message(Hashable):
                         chan, _ = await state._get_guild_channel(resolved, guild_id=self.guild.id)
 
                     # the channel will be the correct type here
-                    ref.resolved = self.__class__(channel=chan, data=resolved, state=state)  # type: ignore
+                    ref.resolved = await self._from_data(channel=chan, data=resolved, state=state)  # type: ignore
 
         self.snapshots: list[MessageSnapshot]
         try:

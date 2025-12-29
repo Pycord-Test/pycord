@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 
 import discord
 from discord import components
+from discord.events import MessageCreate, Ready
 
 load_dotenv()
 
@@ -271,7 +272,7 @@ bot = discord.Bot(intents=discord.Intents.all())
 # ==============================================================================
 
 
-@bot.component_listener(lambda custom_id: custom_id.startswith(CUSTOM_ID_PREFIX))
+@bot.listen_component(lambda custom_id: custom_id.startswith(CUSTOM_ID_PREFIX))
 async def handle_tic_tac_toe_move(interaction: discord.ComponentInteraction[components.PartialButton]):
     """Handle a player clicking a Tic Tac Toe cell.
 
@@ -324,11 +325,13 @@ async def handle_tic_tac_toe_move(interaction: discord.ComponentInteraction[comp
 # ==============================================================================
 
 
-@bot.slash_command()
-async def tic_tac_toe(ctx: discord.ApplicationContext):
+@bot.listen(MessageCreate)
+async def tic_tac_toe(message: MessageCreate):
     """Start a new Tic Tac Toe game."""
+    if not message.content.startswith("!ttt"):
+        return
     initial_buttons = create_game_buttons(next_player=PLAYER_X)
-    await ctx.respond(
+    await message.reply(
         components=[create_game_container(initial_buttons, next_player=PLAYER_X)],
     )
 
@@ -338,8 +341,8 @@ async def tic_tac_toe(ctx: discord.ApplicationContext):
 # ==============================================================================
 
 
-@bot.event
-async def on_ready():
+@bot.listen(Ready)
+async def on_ready(_: Ready):
     print(f"Bot ready! Logged in as {bot.user}")
 
 
