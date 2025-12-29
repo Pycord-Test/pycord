@@ -46,8 +46,8 @@ from .commands import (
 )
 
 if TYPE_CHECKING:
+    from .commands import ApplicationContext
     from .ext.bridge import BridgeCommand
-ApplicationContext = NewType("ApplicationContext", Any)  # TODO(Paillat-dev): Remove after app commands refactor
 
 
 __all__ = (
