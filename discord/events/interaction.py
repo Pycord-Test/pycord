@@ -22,8 +22,7 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
 
-from functools import lru_cache
-from typing import Any
+from typing import Any, TypeAlias
 
 from typing_extensions import Self, override
 
@@ -40,61 +39,39 @@ from ..interactions import (
     ModalInteraction,
 )
 
-
-def _interaction_factory(payload: InteractionPayload) -> type[BaseInteraction]:
-    type: int = payload["type"]
-    if type == InteractionType.application_command.value:
-        return ApplicationCommandInteraction
-    if type == InteractionType.auto_complete.value:
-        return AutocompleteInteraction
-    if type == InteractionType.component.value:
-        return ComponentInteraction
-    if type == InteractionType.modal_submit.value:
-        return ModalInteraction
-    return BaseInteraction
+Interaction: TypeAlias = (
+    ApplicationCommandInteraction | AutocompleteInteraction | ComponentInteraction | ModalInteraction
+)
 
 
-@lru_cache(maxsize=128)
-def _create_event_interaction_class(interaction_cls: type[BaseInteraction]) -> type[BaseInteraction]:
-    class EventInteraction(interaction_cls, Event):  # type: ignore
-        __slots__ = ()
+async def _interaction_factory(payload: InteractionPayload, state: "ConnectionState") -> Interaction:
+    _type: int = payload["type"]
+    cls: type[Interaction] = BaseInteraction  # pyright: ignore[reportAssignmentType] # TODO: This should also cover ping interactions @Paillat-dev
+    if _type == InteractionType.application_command.value:
+        cls = ApplicationCommandInteraction
+    elif _type == InteractionType.auto_complete.value:
+        cls = AutocompleteInteraction
+    elif _type == InteractionType.component.value:
+        cls = ComponentInteraction
+    elif _type == InteractionType.modal_submit.value:
+        cls = ModalInteraction
 
-        @override
-        def __init__(self) -> None:
-            pass
-
-        @override
-        @classmethod
-        def event_type(self) -> type[Event]:
-            return InteractionCreate
-
-        @classmethod
-        @override
-        async def __load__(cls, data: InteractionPayload, state: ConnectionState) -> None:
-            return None
-
-    return EventInteraction  # type: ignore
+    return await cls._from_data(payload=payload, state=state)  # pyright: ignore[reportArgumentType]
 
 
-class InteractionCreate(Event, BaseInteraction):
+class InteractionCreate(Event):
     """Called when an interaction is created.
 
     This currently happens due to application command invocations or components being used.
-
-    This event inherits from :class:`Interaction`.
     """
 
     __event_name__: str = "INTERACTION_CREATE"
 
-    def __init__(self) -> None:
-        pass
+    def __init__(self, interaction: Interaction) -> None:
+        self.interaction: Interaction = interaction
 
     @classmethod
     @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
-        factory = _interaction_factory(data)
-        interaction = await factory._from_data(payload=data, state=state)
-        interaction_event_cls = _create_event_interaction_class(factory)
-        self = interaction_event_cls()
-        self._populate_from_slots(interaction)
-        return self
+        interaction = await _interaction_factory(data, state)
+        return cls(interaction)

@@ -93,24 +93,22 @@ class ComponentGearMixin(GearBase, ABC):
         self.add_listener(self._handle_component_interaction, event=InteractionCreate)
 
     async def _handle_component_interaction(self, event: InteractionCreate) -> None:
-        if not isinstance(event, ComponentInteraction):
+        if not isinstance(event.interaction, ComponentInteraction):
             return
 
         listeners_to_remove: list[ComponentListener] = []
         tasks: list[Awaitable[None]] = []
         for listener in self._component_listeners:
-            if not await maybe_awaitable(listener.predicate, event.custom_id):
+            if not await maybe_awaitable(listener.predicate, event.interaction.custom_id):
                 continue
 
             if listener.once:
                 listeners_to_remove.append(listener)
 
             if listener._pass_self:
-                callback = cast(Callable[[Any, ComponentInteraction[Any]], Awaitable[Any]], listener.callback)
-                tasks.append(callback(self, event))
+                tasks.append(listener.callback(self, event.interaction))
             else:
-                callback = cast(Callable[[ComponentInteraction[Any]], Awaitable[Any]], listener.callback)
-                tasks.append(callback(event))
+                tasks.append(listener.callback(event.interaction))
 
         for listener in listeners_to_remove:
             self._component_listeners.remove(listener)
@@ -265,28 +263,22 @@ class ModalGearMixin(GearBase, ABC):
         self.add_listener(self._handle_modal_interaction, event=InteractionCreate)
 
     async def _handle_modal_interaction(self, event: InteractionCreate) -> None:
-        if not isinstance(event, ModalInteraction):
+        if not isinstance(event.interaction, ModalInteraction):
             return
 
         listeners_to_remove: list[ModalListener] = []
         tasks: list[Awaitable[None]] = []
         for listener in self._modal_listeners:
-            if not await maybe_awaitable(listener.predicate, event.custom_id):
+            if not await maybe_awaitable(listener.predicate, event.interaction.custom_id):
                 continue
 
             if listener.once:
                 listeners_to_remove.append(listener)
 
             if listener._pass_self:
-                callback = cast(
-                    Callable[[Any, ModalInteraction[Unpack[tuple[Any, ...]]]], Awaitable[Any]], listener.callback
-                )
-                tasks.append(callback(self, event))
+                tasks.append(listener.callback(self, event.interaction))
             else:
-                callback = cast(
-                    Callable[[ModalInteraction[Unpack[tuple[Any, ...]]]], Awaitable[Any]], listener.callback
-                )
-                tasks.append(callback(event))
+                tasks.append(listener.callback(event.interaction))
 
         for listener in listeners_to_remove:
             self._modal_listeners.remove(listener)
