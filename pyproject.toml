@@ -8,7 +8,7 @@ authors = [
     {name = "Pycord Development"}
 ]
 description = "A Python wrapper for the Discord API"
-readme = {content-type = "text/x-rst", file = "README.rst"}
+readme = {content-type = "text/markdown", file = "README.md"}
 requires-python = ">=3.10,<3.14"
 license = "MIT"
 license-files = ["LICENSE"]
