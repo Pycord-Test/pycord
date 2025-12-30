@@ -79,7 +79,7 @@ dev = [
 
 test = [# Not in `dev` because we use tox for testing. Tox will install these dependencies.
     "pytest~=8.4.2",
-    "pytest-asyncio~=0.24.0",
+    "pytest-asyncio~=1.3.0",
 ]
 ci = [
     "pygithub>=2.7.0",
