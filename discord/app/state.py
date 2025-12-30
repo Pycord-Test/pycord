@@ -325,7 +325,7 @@ class ConnectionState:
     async def create_user_async(self, data: UserPayload) -> User:
         return User(state=self, data=data)
 
-    def deref_user_no_intents(self, user_id: int) -> None:
+    async def deref_user_no_intents(self, user_id: int) -> None:
         return
 
     async def get_user(self, id: int | None) -> User | None:

@@ -38,12 +38,13 @@ from typing import (
     Optional,
     Sequence,
     Tuple,
+    TypeVar,
     Union,
     cast,
     overload,
 )
 
-from typing_extensions import Self
+from typing_extensions import Self, override
 
 from . import abc, utils
 from .asset import Asset
@@ -98,7 +99,7 @@ from .utils.private import bytes_to_base64_data, get_as_snowflake
 from .welcome_screen import WelcomeScreen, WelcomeScreenChannel
 from .widget import Widget
 
-__all__ = ("BanEntry", "Guild")
+__all__ = ("BanEntry", "Guild", "GuildRoleCounts")
 
 MISSING = utils.MISSING
 
@@ -114,6 +115,7 @@ if TYPE_CHECKING:
         TextChannel,
         VoiceChannel,
     )
+    from .channel.base import ForumTag
     from .onboarding import OnboardingPrompt
     from .permissions import Permissions
     from .template import Template
@@ -134,6 +136,8 @@ if TYPE_CHECKING:
     GuildChannel = VoiceChannel | StageChannel | TextChannel | ForumChannel | CategoryChannel
     ByCategoryItem = Tuple[CategoryChannel | None, List[GuildChannel]]
 
+T = TypeVar("T")
+
 
 class BanEntry(NamedTuple):
     reason: str | None
@@ -146,6 +150,81 @@ class _GuildLimit(NamedTuple):
     soundboard: int
     bitrate: float
     filesize: int
+
+
+class GuildRoleCounts(dict[int, int]):
+    """A dictionary subclass that maps role IDs to their member counts.
+
+    This class allows accessing member counts by either role ID (:class:`int`) or by
+    a Snowflake object (which has an ``.id`` attribute).
+
+    .. versionadded:: 2.7
+    """
+
+    @override
+    def __repr__(self):
+        return f"<GuildRoleCounts {super().__repr__()}>"
+
+    @override
+    def __getitem__(self, key: int | abc.Snowflake) -> int:
+        """Get the member count for a role.
+
+        Parameters
+        ----------
+        key: Union[:class:`int`, :class:`~discord.abc.Snowflake`]
+            The role ID or a Snowflake object (e.g., a :class:`Role`).
+
+        Returns
+        -------
+        :class:`int`
+            The member count for the role.
+
+        Raises
+        ------
+        KeyError
+            The role ID was not found.
+        """
+        if isinstance(key, abc.Snowflake):
+            key = key.id
+        return super().__getitem__(key)
+
+    @override
+    def get(self, key: int | abc.Snowflake, default: T = None) -> int | T:
+        """Get the member count for a role, returning a default if not found.
+
+        Parameters
+        ----------
+        key: Union[:class:`int`, :class:`~discord.abc.Snowflake`]
+            The role ID or a Snowflake object (e.g., a :class:`Role`).
+        default: Any
+            The value to return if the role ID is not found.
+
+        Returns
+        -------
+        Optional[:class:`int`]
+            The member count for the role, or ``default`` if the role is not present.
+        """
+        if isinstance(key, abc.Snowflake):
+            key = key.id
+        return super().get(key, default)
+
+    @override
+    def __contains__(self, key: int | abc.Snowflake) -> bool:
+        """Check if a role ID or Snowflake object is in the counts.
+
+        Parameters
+        ----------
+        key: Union[:class:`int`, :class:`~discord.abc.Snowflake`]
+            The role ID or a Snowflake object (e.g., a :class:`Role`).
+
+        Returns
+        -------
+        :class:`bool`
+            ``True`` if the role ID is present, ``False`` otherwise.
+        """
+        if isinstance(key, abc.Snowflake):
+            key = key.id
+        return super().__contains__(key)
 
 
 class Guild(Hashable):
@@ -343,8 +422,8 @@ class Guild(Hashable):
                 await cast(ConnectionState, self._state).cache.store_member(member)
         return member
 
-    def _store_thread(self, payload: ThreadPayload, /) -> Thread:
-        thread = Thread(guild=self, state=self._state, data=payload)
+    async def _store_thread(self, payload: ThreadPayload, /) -> Thread:
+        thread = await Thread._from_data(guild=self, state=self._state, data=payload)
         self._threads[thread.id] = thread
         return thread
 
@@ -1021,6 +1100,44 @@ class Guild(Hashable):
         """
         return self._roles.get(role_id)
 
+    async def fetch_roles_member_counts(self) -> GuildRoleCounts:
+        """|coro|
+        Fetches a mapping of role IDs to their member counts for this guild.
+
+        .. versionadded:: 2.7
+
+        Returns
+        -------
+        :class:`GuildRoleCounts`
+            A mapping of role IDs to their member counts. Can be accessed
+            with either role IDs (:class:`int`) or Snowflake objects (e.g., :class:`Role`).
+
+        Raises
+        ------
+        :exc:`HTTPException`
+            Fetching the role member counts failed.
+
+        Examples
+        --------
+
+        Getting member counts using role IDs:
+
+        .. code-block:: python3
+
+            counts = await guild.fetch_roles_member_counts()
+            member_count = counts[123456789]
+
+        Using a role object:
+
+        .. code-block:: python3
+
+            counts = await guild.fetch_roles_member_counts()
+            role = guild.get_role(123456789)
+            member_count = counts[role]
+        """
+        r = await self._state.http.get_roles_member_counts(self.id)
+        return GuildRoleCounts({int(role_id): count for role_id, count in r.items()})
+
     @property
     def default_role(self) -> Role:
         """Gets the @everyone role that all members have by default."""
@@ -1178,22 +1295,9 @@ class Guild(Hashable):
             then ``None`` is returned.
         """
 
-        result = None
         members = self.members
         if len(name) > 5 and name[-5] == "#":
-            # The 5 length is checking to see if #0000 is in the string,
-            # as a#0000 has a length of 6, the minimum for a potential
-            # discriminator lookup.
-            potential_discriminator = name[-4:]
-
-            # do the actual lookup and return if found
-            # if it isn't found then we'll do a full name lookup below.
-            result = utils.find(
-                lambda m: m.name == name[:-5] and discriminator == potential_discriminator,
-                members,
-            )
-            if result is not None:
-                return result
+            name = name[:-5]
 
         return utils.find(lambda m: name in (m.nick, m.name, m.global_name), members)
 
@@ -1362,7 +1466,7 @@ class Guild(Hashable):
             reason=reason,
             **options,
         )
-        channel = TextChannel(state=self._state, guild=self, data=data)
+        channel = await TextChannel._from_data(state=self._state, guild=self, data=data)
         await channel._update()
 
         # temporarily add to the cache
@@ -1472,7 +1576,7 @@ class Guild(Hashable):
             reason=reason,
             **options,
         )
-        channel = VoiceChannel(state=self._state, guild=self, data=data)
+        channel = await VoiceChannel._from_data(state=self._state, guild=self, data=data)
 
         # temporarily add to the cache
         self._channels[channel.id] = channel
@@ -1597,7 +1701,7 @@ class Guild(Hashable):
             reason=reason,
             **options,
         )
-        channel = StageChannel(state=self._state, guild=self, data=data)
+        channel = await StageChannel._from_data(state=self._state, guild=self, data=data)
 
         # temporarily add to the cache
         self._channels[channel.id] = channel
@@ -1771,7 +1875,7 @@ class Guild(Hashable):
             reason=reason,
             **options,
         )
-        channel = ForumChannel(state=self._state, guild=self, data=data)
+        channel = await ForumChannel._from_data(state=self._state, guild=self, data=data)
 
         # temporarily add to the cache
         self._channels[channel.id] = channel
@@ -1819,7 +1923,7 @@ class Guild(Hashable):
             reason=reason,
             **options,
         )
-        channel = CategoryChannel(state=self._state, guild=self, data=data)
+        channel = await CategoryChannel._from_data(state=self._state, guild=self, data=data)
 
         # temporarily add to the cache
         self._channels[channel.id] = channel
@@ -2162,7 +2266,7 @@ class Guild(Hashable):
             fields["features"] = features
 
         data = await http.edit_guild(self.id, reason=reason, **fields)
-        return await Guild._from_data(data=data, state=self._state)
+        return await Guild._from_data(guild=data, state=self._state)
 
     async def fetch_channels(self) -> Sequence[GuildChannel]:
         """|coro|
@@ -2219,7 +2323,7 @@ class Guild(Hashable):
             The request to get the active threads failed.
         """
         data = await self._state.http.get_active_threads(self.id)
-        threads = [Thread(guild=self, state=self._state, data=d) for d in data.get("threads", [])]
+        threads = [await Thread._from_data(guild=self, state=self._state, data=d) for d in data.get("threads", [])]
         thread_lookup: dict[int, Thread] = {thread.id: thread for thread in threads}
         for member in data.get("members", []):
             thread = thread_lookup.get(int(member["id"]))

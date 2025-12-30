@@ -220,7 +220,7 @@ def create_mock_state(*, intents: Intents | None = None, cache: Cache | None = N
     from discord.flags import MemberCacheFlags
 
     if cache is None:
-        cache = MockCache()
+        cache = MockCache()  # ty: ignore[invalid-assignment]
 
     http = create_mock_http()
 

@@ -156,7 +156,7 @@ class ApplicationCommandOptionAutocomplete:
 
     async def __call__(self, interaction: AutocompleteInteraction) -> AutocompleteReturnType:
         if self.self is not None:
-            return await maybe_awaitable(self.autocomplete_function(self.self, interaction))
+            return await maybe_awaitable(self.autocomplete_function(self.self, interaction))  # ty:ignore[too-many-positional-arguments]
         return await maybe_awaitable(self.autocomplete_function(interaction))
 
 

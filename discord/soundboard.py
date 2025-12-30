@@ -38,9 +38,9 @@ from .types.soundboard import SoundboardSound as SoundboardSoundPayload
 from .utils.private import cached_slot_property
 
 if TYPE_CHECKING:
+    from .app.state import ConnectionState
     from .guild import Guild
     from .http import HTTPClient
-    from .state import ConnectionState
 
 
 __all__ = (

@@ -303,7 +303,7 @@ class ThreadListSync(Event):
         else:
             previous_threads = guild._filter_threads(channel_ids)
 
-        threads = {d["id"]: guild._store_thread(d) for d in data.get("threads", [])}
+        threads = {d["id"]: await guild._store_thread(d) for d in data.get("threads", [])}
 
         for member in data.get("members", []):
             try:
