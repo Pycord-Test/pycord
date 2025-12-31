@@ -85,6 +85,9 @@ ci = [
     "pygithub>=2.7.0",
 ]
 
+[tool.uv.dependency-groups]
+docs = {requires-python = ">=3.11,<3.14" }
+
 [tool.hatch.version]
 source = "vcs"
 
