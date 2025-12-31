@@ -1408,7 +1408,7 @@ docs = [
     { name = "furo", marker = "python_full_version >= '3.11' and python_full_version < '3.14'", specifier = "==2025.12.19" },
     { name = "levenshtein", marker = "python_full_version >= '3.11' and python_full_version < '3.14'", specifier = "==0.27.3" },
     { name = "myst-parser", extras = ["linkify"], marker = "python_full_version >= '3.11' and python_full_version < '3.14'", specifier = "==4.0.1" },
-    { name = "sphinx", marker = "python_full_version >= '3.11' and python_full_version < '3.14'", specifier = "==8.0.2" },
+    { name = "sphinx", marker = "python_full_version >= '3.11' and python_full_version < '3.14'", specifier = "==8.2.3" },
     { name = "sphinx-autodoc-typehints", marker = "python_full_version >= '3.11' and python_full_version < '3.14'", specifier = "==2.5.0" },
     { name = "sphinx-copybutton", marker = "python_full_version >= '3.11' and python_full_version < '3.14'", specifier = "==0.5.2" },
     { name = "sphinx-intl", marker = "python_full_version >= '3.11' and python_full_version < '3.14'", specifier = "==2.3.2" },
@@ -1742,6 +1742,27 @@ wheels = [
 ]
 
 [[package]]
+name = "roman-numerals"
+version = "4.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/ae/f9/41dc953bbeb056c17d5f7a519f50fdf010bd0553be2d630bc69d1e022703/roman_numerals-4.1.0.tar.gz", hash = "sha256:1af8b147eb1405d5839e78aeb93131690495fe9da5c91856cb33ad55a7f1e5b2", size = 9077, upload-time = "2025-12-17T18:25:34.381Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/04/54/6f679c435d28e0a568d8e8a7c0a93a09010818634c3c3907fc98d8983770/roman_numerals-4.1.0-py3-none-any.whl", hash = "sha256:647ba99caddc2cc1e55a51e4360689115551bf4476d90e8162cf8c345fe233c7", size = 7676, upload-time = "2025-12-17T18:25:33.098Z" },
+]
+
+[[package]]
+name = "roman-numerals-py"
+version = "4.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "roman-numerals", marker = "python_full_version >= '3.11'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/cb/b5/de96fca640f4f656eb79bbee0e79aeec52e3e0e359f8a3e6a0d366378b64/roman_numerals_py-4.1.0.tar.gz", hash = "sha256:f5d7b2b4ca52dd855ef7ab8eb3590f428c0b1ea480736ce32b01fef2a5f8daf9", size = 4274, upload-time = "2025-12-17T18:25:41.153Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/27/2c/daca29684cbe9fd4bc711f8246da3c10adca1ccc4d24436b17572eb2590e/roman_numerals_py-4.1.0-py3-none-any.whl", hash = "sha256:553114c1167141c1283a51743759723ecd05604a1b6b507225e91dc1a6df0780", size = 4547, upload-time = "2025-12-17T18:25:40.136Z" },
+]
+
+[[package]]
 name = "ruff"
 version = "0.14.5"
 source = { registry = "https://pypi.org/simple" }
@@ -1787,7 +1808,7 @@ wheels = [
 
 [[package]]
 name = "sphinx"
-version = "8.0.2"
+version = "8.2.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "alabaster", marker = "python_full_version >= '3.11'" },
@@ -1799,6 +1820,7 @@ dependencies = [
     { name = "packaging", marker = "python_full_version >= '3.11'" },
     { name = "pygments", marker = "python_full_version >= '3.11'" },
     { name = "requests", marker = "python_full_version >= '3.11'" },
+    { name = "roman-numerals-py", marker = "python_full_version >= '3.11'" },
     { name = "snowballstemmer", marker = "python_full_version >= '3.11'" },
     { name = "sphinxcontrib-applehelp", marker = "python_full_version >= '3.11'" },
     { name = "sphinxcontrib-devhelp", marker = "python_full_version >= '3.11'" },
@@ -1807,9 +1829,9 @@ dependencies = [
     { name = "sphinxcontrib-qthelp", marker = "python_full_version >= '3.11'" },
     { name = "sphinxcontrib-serializinghtml", marker = "python_full_version >= '3.11'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/25/a7/3cc3d6dcad70aba2e32a3ae8de5a90026a0a2fdaaa0756925e3a120249b6/sphinx-8.0.2.tar.gz", hash = "sha256:0cce1ddcc4fd3532cf1dd283bc7d886758362c5c1de6598696579ce96d8ffa5b", size = 8189041, upload-time = "2024-07-30T01:39:14.711Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/38/ad/4360e50ed56cb483667b8e6dadf2d3fda62359593faabbe749a27c4eaca6/sphinx-8.2.3.tar.gz", hash = "sha256:398ad29dee7f63a75888314e9424d40f52ce5a6a87ae88e7071e80af296ec348", size = 8321876, upload-time = "2025-03-02T22:31:59.658Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/4d/61/2ad169c6ff1226b46e50da0e44671592dbc6d840a52034a0193a99b28579/sphinx-8.0.2-py3-none-any.whl", hash = "sha256:56173572ae6c1b9a38911786e206a110c9749116745873feae4f9ce88e59391d", size = 3498950, upload-time = "2024-07-30T01:39:11.116Z" },
+    { url = "https://files.pythonhosted.org/packages/31/53/136e9eca6e0b9dc0e1962e2c908fbea2e5ac000c2a2fbd9a35797958c48b/sphinx-8.2.3-py3-none-any.whl", hash = "sha256:4405915165f13521d875a8c29c8970800a0141c14cc5416a38feca4ea5d9b9c3", size = 3589741, upload-time = "2025-03-02T22:31:56.836Z" },
 ]
 
 [[package]]
