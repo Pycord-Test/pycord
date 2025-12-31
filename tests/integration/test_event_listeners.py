@@ -261,7 +261,7 @@ async def test_remove_listener():
         called.append(event)
 
     # Add listener
-    bot.add_listener(on_sound_create, event=GuildSoundboardSoundCreate)
+    on_sound_create_listener = bot.add_listener(on_sound_create, event=GuildSoundboardSoundCreate)
 
     # Create sound payload and emit event
     sound_data = create_soundboard_sound_payload(444444444, 111111111, "test-sound-1")
@@ -276,7 +276,7 @@ async def test_remove_listener():
     assert len(called) == 1
 
     # Remove listener
-    bot.remove_listener(on_sound_create)
+    bot.remove_listener(on_sound_create_listener)
 
     # Emit another event
     sound_data = create_soundboard_sound_payload(444444445, 111111111, "test-sound-2")

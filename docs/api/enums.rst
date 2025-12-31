@@ -550,7 +550,7 @@ of :class:`enum.Enum`.
 
         An alias for :attr:`link`.
 
-.. class:: InputTextStyle
+.. class:: TextInputStyle
 
     Represents the style of the input text component.
 

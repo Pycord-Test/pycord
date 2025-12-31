@@ -34,18 +34,9 @@ import sys
 import types
 from collections import OrderedDict
 from enum import Enum
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Coroutine,
-    Generator,
-    Generic,
-    TypeVar,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Callable, Coroutine, Generator, Generic, NewType, TypeVar, Union
 
-from discord.interactions import AutocompleteInteraction, Interaction
+from discord.interactions import AutocompleteInteraction, BaseInteraction
 
 from ..channel import PartialMessageable, _threaded_guild_channel_factory
 from ..channel.thread import Thread

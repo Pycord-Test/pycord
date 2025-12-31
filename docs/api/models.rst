@@ -353,9 +353,15 @@ Stages
 Interactions
 ------------
 
-.. attributetable:: Interaction
+.. attributetable:: BaseInteraction
 
-.. autoclass:: Interaction()
+.. autoclass:: BaseInteraction()
+    :members:
+
+.. autoclass:: ComponentInteraction()
+    :members:
+
+.. autoclass:: ModalInteraction()
     :members:
 
 .. attributetable:: InteractionResponse
@@ -366,11 +372,6 @@ Interactions
 .. attributetable:: InteractionMessage
 
 .. autoclass:: InteractionMessage()
-    :members:
-
-.. attributetable:: MessageInteraction
-
-.. autoclass:: MessageInteraction()
     :members:
 
 .. attributetable:: InteractionMetadata
@@ -387,73 +388,6 @@ Interactions
 
 .. autoclass:: InteractionCallback()
     :members:
-
-Message Components
-------------------
-
-.. attributetable:: Component
-
-.. autoclass:: Component()
-    :members:
-
-.. attributetable:: ActionRow
-
-.. autoclass:: ActionRow()
-    :members:
-
-.. attributetable:: Button
-
-.. autoclass:: Button()
-    :members:
-    :inherited-members:
-
-.. attributetable:: SelectMenu
-
-.. autoclass:: SelectMenu()
-    :members:
-    :inherited-members:
-
-.. attributetable:: Section
-
-.. autoclass:: Section()
-    :members:
-    :inherited-members:
-
-.. attributetable:: TextDisplay
-
-.. autoclass:: TextDisplay()
-    :members:
-    :inherited-members:
-
-.. attributetable:: Thumbnail
-
-.. autoclass:: Thumbnail()
-    :members:
-    :inherited-members:
-
-.. attributetable:: MediaGallery
-
-.. autoclass:: MediaGallery()
-    :members:
-    :inherited-members:
-
-.. attributetable:: FileComponent
-
-.. autoclass:: FileComponent()
-    :members:
-    :inherited-members:
-
-.. attributetable:: Separator
-
-.. autoclass:: Separator()
-    :members:
-    :inherited-members:
-
-.. attributetable:: Container
-
-.. autoclass:: Container()
-    :members:
-    :inherited-members:
 
 Emoji
 -----

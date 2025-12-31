@@ -204,7 +204,7 @@ class MessageUpdate(Event, Message):
             new_msg = await state.cache.store_message(data, msg.channel)
             self.old = msg
             self.old.author = new_msg.author
-            self.__dict__.update(new_msg.__dict__)
+            self._populate_from_slots(new_msg)
         else:
             self.old = MISSING
             if poll_data := data.get("poll"):

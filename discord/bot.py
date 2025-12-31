@@ -34,6 +34,7 @@ import logging
 import sys
 import traceback
 from abc import ABC, abstractmethod
+from collections.abc import Awaitable
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -42,14 +43,15 @@ from typing import (
     Generator,
     Literal,
     Mapping,
+    TypeAlias,
     TypeVar,
 )
+
+from typing_extensions import Protocol
 
 from .client import Client
 from .commands import (
     ApplicationCommand,
-    ApplicationContext,
-    AutocompleteContext,
     MessageCommand,
     SlashCommand,
     SlashCommandGroup,
@@ -59,14 +61,17 @@ from .commands import (
 from .enums import IntegrationType, InteractionContextType, InteractionType
 from .errors import CheckFailure, DiscordException
 from .events import InteractionCreate
-from .interactions import Interaction
+from .interactions import BaseInteraction
 from .shard import AutoShardedClient
 from .types import interactions
 from .user import User
 from .utils import MISSING, find
-from .utils.private import async_all
+from .utils.private import async_all, maybe_awaitable
 
 if TYPE_CHECKING:
+    from typing import Unpack
+
+    from .interactions import ComponentInteraction, ModalInteraction
     from .member import Member
 
 CoroFunc = Callable[..., Coroutine[Any, Any, Any]]
@@ -756,7 +761,7 @@ class ApplicationCommandMixin(ABC):
                     cmd.id = i["id"]
                     self._application_commands[cmd.id] = cmd
 
-    async def process_application_commands(self, interaction: Interaction, auto_sync: bool | None = None) -> None:
+    async def process_application_commands(self, interaction: BaseInteraction, auto_sync: bool | None = None) -> None:
         """|coro|
 
         This function processes the commands that have been registered
@@ -775,7 +780,7 @@ class ApplicationCommandMixin(ABC):
 
         Parameters
         ----------
-        interaction: :class:`discord.Interaction`
+        interaction: :class:`discord.BaseInteraction`
             The interaction to process
         auto_sync: Optional[:class:`bool`]
             Whether to automatically sync and unregister the command if it is not found in the internal cache. This will
@@ -813,7 +818,7 @@ class ApplicationCommandMixin(ABC):
                         await self.sync_commands()
                     else:
                         await self.sync_commands(check_guilds=[guild_id])
-                return self._bot.dispatch("unknown_application_command", interaction)
+        #                return self._bot.dispatch("unknown_application_command", interaction)
 
         if interaction.type is InteractionType.auto_complete:
             return self._bot.dispatch("application_command_auto_complete", interaction, command)
@@ -823,7 +828,9 @@ class ApplicationCommandMixin(ABC):
             interaction.command = command
         await self.invoke_application_command(ctx)
 
-    async def on_application_command_auto_complete(self, interaction: Interaction, command: ApplicationCommand) -> None:
+    async def on_application_command_auto_complete(
+        self, interaction: BaseInteraction, command: ApplicationCommand
+    ) -> None:
         async def callback() -> None:
             ctx = await self.get_autocomplete_context(interaction)
             interaction.command = command
@@ -1015,85 +1022,6 @@ class ApplicationCommandMixin(ABC):
                 yield from command.walk_commands()
             yield command
 
-    async def get_application_context(
-        self, interaction: Interaction, cls: Any = ApplicationContext
-    ) -> ApplicationContext:
-        r"""|coro|
-
-        Returns the invocation context from the interaction.
-
-        This is a more low-level counter-part for :meth:`.process_application_commands`
-        to allow users more fine-grained control over the processing.
-
-        Parameters
-        -----------
-        interaction: :class:`discord.Interaction`
-            The interaction to get the invocation context from.
-        cls
-            The factory class that will be used to create the context.
-            By default, this is :class:`.ApplicationContext`. Should a custom
-            class be provided, it must be similar enough to
-            :class:`.ApplicationContext`\'s interface.
-
-        Returns
-        --------
-        :class:`.ApplicationContext`
-            The invocation context. The type of this can change via the
-            ``cls`` parameter.
-        """
-        return cls(self, interaction)
-
-    async def get_autocomplete_context(
-        self, interaction: Interaction, cls: Any = AutocompleteContext
-    ) -> AutocompleteContext:
-        r"""|coro|
-
-        Returns the autocomplete context from the interaction.
-
-        This is a more low-level counter-part for :meth:`.process_application_commands`
-        to allow users more fine-grained control over the processing.
-
-        Parameters
-        -----------
-        interaction: :class:`discord.Interaction`
-            The interaction to get the invocation context from.
-        cls
-            The factory class that will be used to create the context.
-            By default, this is :class:`.AutocompleteContext`. Should a custom
-            class be provided, it must be similar enough to
-            :class:`.AutocompleteContext`\'s interface.
-
-        Returns
-        --------
-        :class:`.AutocompleteContext`
-            The autocomplete context. The type of this can change via the
-            ``cls`` parameter.
-        """
-        return cls(self, interaction)
-
-    async def invoke_application_command(self, ctx: ApplicationContext) -> None:
-        """|coro|
-
-        Invokes the application command given under the invocation
-        context and handles all the internal event dispatch mechanisms.
-
-        Parameters
-        ----------
-        ctx: :class:`.ApplicationCommand`
-            The invocation context to invoke.
-        """
-        # self._bot.dispatch("application_command", ctx) # TODO: Remove when moving away from ApplicationContext
-        try:
-            if await self._bot.can_run(ctx, call_once=True):
-                await ctx.command.invoke(ctx)
-            else:
-                raise CheckFailure("The global check once functions failed.")
-        except DiscordException as exc:
-            await ctx.command.dispatch_error(ctx, exc)
-        else:
-            # self._bot.dispatch("application_command_completion", ctx) # TODO: Remove when moving away from ApplicationContext
-            pass
-
     @property
     @abstractmethod
     def _bot(self) -> Bot | AutoShardedBot: ...
@@ -1153,40 +1081,11 @@ class BotBase(ApplicationCommandMixin, ABC):
         self._before_invoke = None
         self._after_invoke = None
 
-        self._bot.add_listener(self.on_interaction, event=InteractionCreate)
+        # self._bot.add_listener(self.on_interaction, event=InteractionCreate)
 
     async def on_connect(self):
         if self.auto_sync_commands:
             await self.sync_commands()
-
-    async def on_interaction(self, interaction: InteractionCreate):
-        await self.process_application_commands(interaction)
-
-    async def on_application_command_error(self, context: ApplicationContext, exception: DiscordException) -> None:
-        """|coro|
-
-        The default command error handler provided by the bot.
-
-        By default, this prints to :data:`sys.stderr` however it could be
-        overridden to have a different implementation.
-
-        This only fires if you do not specify any listeners for command error.
-        """
-        if self._event_handlers.get("on_application_command_error", None):
-            return
-        command = context.command
-        if command and command.has_error_handler():
-            return
-
-        cog = context.cog
-        if cog and cog.has_error_handler():
-            return
-
-        print(f"Ignoring exception in command {context.command}:", file=sys.stderr)
-        traceback.print_exception(type(exception), exception, exception.__traceback__, file=sys.stderr)
-
-    # global check registration
-    # TODO: Remove these from commands.Bot
 
     def check(self, func):
         """A decorator that adds a global check to the bot. A global check is similar to a :func:`.check` that is
@@ -1275,15 +1174,6 @@ class BotBase(ApplicationCommandMixin, ABC):
         """
         self.add_check(func, call_once=True)
         return func
-
-    async def can_run(self, ctx: ApplicationContext, *, call_once: bool = False) -> bool:
-        data = self._check_once if call_once else self._checks
-
-        if not data:
-            return True
-
-        # type-checker doesn't distinguish between functions and methods
-        return await async_all(f(ctx) for f in data)  # type: ignore
 
     def before_invoke(self, coro):
         """A decorator that registers a coroutine as a pre-invoke hook.

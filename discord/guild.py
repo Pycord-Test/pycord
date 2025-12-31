@@ -406,12 +406,12 @@ class Guild(Hashable):
         await cast("ConnectionState", self._state).cache.store_member(member)
 
     async def _get_and_update_member(self, payload: MemberPayload, user_id: int, cache_flag: bool, /) -> Member:
-        members = await cast(ConnectionState, self._state).cache.get_guild_members(self.id)
+        members = await cast("ConnectionState", self._state).cache.get_guild_members(self.id)
         # we always get the member, and we only update if the cache_flag (this cache
         # flag should always be MemberCacheFlag.interaction) is set to True
         if user_id in members:
             member = cast(Member, await self.get_member(user_id))
-            await member._update(payload) if cache_flag else None
+            await member._update(payload) if cache_flag else None  # TODO: This is being cached incorrectly @VincentRPS
         else:
             # NOTE:
             # This is a fallback in case the member is not found in the guild's members.
@@ -419,7 +419,7 @@ class Guild(Hashable):
             # class will be incorrect such as status and activities.
             member = await Member._from_data(guild=self, state=self._state, data=payload)  # type: ignore
             if cache_flag:
-                await cast(ConnectionState, self._state).cache.store_member(member)
+                await cast("ConnectionState", self._state).cache.store_member(member)
         return member
 
     async def _store_thread(self, payload: ThreadPayload, /) -> Thread:
@@ -466,7 +466,6 @@ class Guild(Hashable):
             ("id", self.id),
             ("name", self.name),
             ("shard_id", self.shard_id),
-            ("chunked", self.chunked),
             ("member_count", self._member_count),
         )
         inner = " ".join("%s=%r" % t for t in attrs)
@@ -525,7 +524,7 @@ class Guild(Hashable):
         return role
 
     @classmethod
-    async def _from_data(cls, guild: GuildPayload, state: ConnectionState) -> Self:
+    async def _from_data(cls, data: GuildPayload, state: ConnectionState) -> Self:
         self = cls()
         # NOTE:
         # Adding an attribute here and getting an AttributeError saying
@@ -538,89 +537,89 @@ class Guild(Hashable):
         self._threads: dict[int, Thread] = {}
         self._sounds: dict[int, SoundboardSound] = {}
         self._state = state
-        member_count = guild.get("member_count")
+        member_count = data.get("member_count")
         # Either the payload includes member_count, or it hasn't been set yet.
         # Prevents valid _member_count from suddenly changing to None
         if member_count is not None or not hasattr(self, "_member_count"):
             self._member_count: int | None = member_count
 
-        self.name: str = guild.get("name")
-        self.verification_level: VerificationLevel = try_enum(VerificationLevel, guild.get("verification_level"))
+        self.name: str = data.get("name")
+        self.verification_level: VerificationLevel = try_enum(VerificationLevel, data.get("verification_level"))
         self.default_notifications: NotificationLevel = try_enum(
-            NotificationLevel, guild.get("default_message_notifications")
+            NotificationLevel, data.get("default_message_notifications")
         )
-        self.explicit_content_filter: ContentFilter = try_enum(ContentFilter, guild.get("explicit_content_filter", 0))
-        self.afk_timeout: int = guild.get("afk_timeout")
-        self._icon: str | None = guild.get("icon")
-        self._banner: str | None = guild.get("banner")
-        self.unavailable: bool = guild.get("unavailable", False)
-        self.id: int = int(guild["id"])
+        self.explicit_content_filter: ContentFilter = try_enum(ContentFilter, data.get("explicit_content_filter", 0))
+        self.afk_timeout: int = data.get("afk_timeout")
+        self._icon: str | None = data.get("icon")
+        self._banner: str | None = data.get("banner")
+        self.unavailable: bool = data.get("unavailable", False)
+        self.id: int = int(data["id"])
         self._roles: dict[int, Role] = {}
         state = self._state  # speed up attribute access
-        for r in guild.get("roles", []):
+        for r in data.get("roles", []):
             role = Role(guild=self, data=r, state=state)
             self._roles[role.id] = role
 
-        self.mfa_level: MFALevel = guild.get("mfa_level")
+        self.mfa_level: MFALevel = data.get("mfa_level")
         emojis = []
-        for emoji in guild.get("emojis", []):
+        for emoji in data.get("emojis", []):
             emojis.append(await state.store_emoji(self, emoji))
         self.emojis: tuple[GuildEmoji, ...] = tuple(emojis)
         stickers = []
-        for sticker in guild.get("stickers", []):
+        for sticker in data.get("stickers", []):
             stickers.append(await state.store_sticker(self, sticker))
         self.stickers: tuple[GuildSticker, ...] = tuple(stickers)
-        self.features: list[GuildFeature] = guild.get("features", [])
-        self._splash: str | None = guild.get("splash")
-        self._system_channel_id: int | None = get_as_snowflake(guild, "system_channel_id")
-        self.description: str | None = guild.get("description")
-        self.max_presences: int | None = guild.get("max_presences")
-        self.max_members: int | None = guild.get("max_members")
-        self.max_video_channel_users: int | None = guild.get("max_video_channel_users")
-        self.premium_tier: int = guild.get("premium_tier", 0)
-        self.premium_subscription_count: int = guild.get("premium_subscription_count") or 0
-        self.premium_progress_bar_enabled: bool = guild.get("premium_progress_bar_enabled") or False
-        self._system_channel_flags: int = guild.get("system_channel_flags", 0)
-        self.preferred_locale: str | None = guild.get("preferred_locale")
-        self._discovery_splash: str | None = guild.get("discovery_splash")
-        self._rules_channel_id: int | None = get_as_snowflake(guild, "rules_channel_id")
-        self._public_updates_channel_id: int | None = get_as_snowflake(guild, "public_updates_channel_id")
-        self.nsfw_level: NSFWLevel = try_enum(NSFWLevel, guild.get("nsfw_level", 0))
-        self.approximate_presence_count = guild.get("approximate_presence_count")
-        self.approximate_member_count = guild.get("approximate_member_count")
+        self.features: list[GuildFeature] = data.get("features", [])
+        self._splash: str | None = data.get("splash")
+        self._system_channel_id: int | None = get_as_snowflake(data, "system_channel_id")
+        self.description: str | None = data.get("description")
+        self.max_presences: int | None = data.get("max_presences")
+        self.max_members: int | None = data.get("max_members")
+        self.max_video_channel_users: int | None = data.get("max_video_channel_users")
+        self.premium_tier: int = data.get("premium_tier", 0)
+        self.premium_subscription_count: int = data.get("premium_subscription_count") or 0
+        self.premium_progress_bar_enabled: bool = data.get("premium_progress_bar_enabled") or False
+        self._system_channel_flags: int = data.get("system_channel_flags", 0)
+        self.preferred_locale: str | None = data.get("preferred_locale")
+        self._discovery_splash: str | None = data.get("discovery_splash")
+        self._rules_channel_id: int | None = get_as_snowflake(data, "rules_channel_id")
+        self._public_updates_channel_id: int | None = get_as_snowflake(data, "public_updates_channel_id")
+        self.nsfw_level: NSFWLevel = try_enum(NSFWLevel, data.get("nsfw_level", 0))
+        self.approximate_presence_count = data.get("approximate_presence_count")
+        self.approximate_member_count = data.get("approximate_member_count")
 
         self._stage_instances: dict[int, StageInstance] = {}
-        for s in guild.get("stage_instances", []):
+        for s in data.get("stage_instances", []):
             stage_instance = StageInstance(guild=self, data=s, state=state)
             self._stage_instances[stage_instance.id] = stage_instance
 
         cache_joined = self._state.member_cache_flags.joined
         self_id = self._state.self_id
-        for mdata in guild.get("members", []):
+        for mdata in data.get("members", []):
             member = await Member._from_data(data=mdata, guild=self, state=state)
             if cache_joined or member.id == self_id:
                 await self._add_member(member)
 
         events = []
-        for event in guild.get("guild_scheduled_events", []):
+        for event in data.get("guild_scheduled_events", []):
             creator = None if not event.get("creator", None) else await self.get_member(event.get("creator_id"))
             events.append(ScheduledEvent(state=self._state, guild=self, creator=creator, data=event))
         self._scheduled_events_from_list(events)
 
-        await self._sync(guild)
+        await self._sync(data)
         self._large: bool | None = None if self._member_count is None else self._member_count >= 250
 
-        self.owner_id: int | None = get_as_snowflake(guild, "owner_id")
-        self.afk_channel: VoiceChannel | None = self.get_channel(get_as_snowflake(guild, "afk_channel_id"))  # type: ignore
+        self.owner_id: int | None = get_as_snowflake(data, "owner_id")
+        self.afk_channel: VoiceChannel | None = self.get_channel(get_as_snowflake(data, "afk_channel_id"))  # type: ignore
 
-        for obj in guild.get("voice_states", []):
+        for obj in data.get("voice_states", []):
             await self._update_voice_state(obj, int(obj["channel_id"]))
 
-        for sound in guild.get("soundboard_sounds", []):
+        for sound in data.get("soundboard_sounds", []):
             sound = SoundboardSound(state=state, http=state.http, data=sound)
             await self._add_sound(sound)
 
-        incidents_payload = guild.get("incidents_data")
+        incidents_payload = data.get("incidents_data")
         self.incidents_data: IncidentsData | None = (
             IncidentsData(data=incidents_payload) if incidents_payload is not None else None
         )
@@ -757,7 +756,7 @@ class Guild(Hashable):
         empty_tuple = ()
         for presence in data.get("presences", []):
             user_id = int(presence["user"]["id"])
-            member = self.get_member(user_id)
+            member = await self.get_member(user_id)
             if member is not None:
                 member._presence_update(presence, empty_tuple)  # type: ignore
 
@@ -802,7 +801,7 @@ class Guild(Hashable):
         """
         if self._large is None:
             return (
-                self._member_count or len(await cast(ConnectionState, self._state).cache.get_guild_members(self.id))
+                self._member_count or len(await cast("ConnectionState", self._state).cache.get_guild_members(self.id))
             ) >= 250
         return self._large
 

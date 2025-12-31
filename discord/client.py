@@ -65,7 +65,6 @@ from .soundboard import SoundboardSound
 from .stage_instance import StageInstance
 from .sticker import GuildSticker, StandardSticker, StickerPack, _sticker_factory
 from .template import Template
-from .ui.view import View
 from .user import ClientUser, User
 from .utils import MISSING, Undefined
 from .utils.private import (
@@ -82,7 +81,7 @@ from .widget import Widget
 if TYPE_CHECKING:
     from .abc import PrivateChannel, Snowflake, SnowflakeTime
     from .channel import DMChannel, GuildChannel
-    from .interactions import Interaction
+    from .interactions import BaseInteraction
     from .member import Member
     from .message import Message
     from .poll import Poll
@@ -133,7 +132,7 @@ def _cleanup_loop(loop: asyncio.AbstractEventLoop) -> None:
         loop.close()
 
 
-class Client:
+class Client(Gear):
     r"""Represents a client connection that connects to Discord.
     This class is used to interact with the Discord WebSocket and API.
 
@@ -239,8 +238,11 @@ class Client:
         self,
         *,
         loop: asyncio.AbstractEventLoop | None = None,
+        discord_api_url: str = "https://discord.com/api/v10",
         **options: Any,
     ):
+        super().__init__()
+
         self._flavor = options.get("flavor", logging.INFO)
         self._debug = options.get("debug", False)
         self._banner_module = options.get("banner_module")
@@ -260,6 +262,7 @@ class Client:
             proxy_auth=proxy_auth,
             unsync_clock=unsync_clock,
             loop=self.loop,
+            discord_api_url=discord_api_url,
         )
 
         self._handlers: dict[str, Callable] = {"ready": self._handle_ready}
@@ -282,9 +285,7 @@ class Client:
         self._connection._get_client = lambda: self
         self._event_handlers: dict[str, list[Coro]] = {}
 
-        self._main_gear: Gear = Gear()
-
-        self._connection.emitter.add_receiver(self._handle_event)
+        self._connection.emitter.add_receiver(self._gather_events)
 
         if VoiceClient.warn_nacl:
             VoiceClient.warn_nacl = False
@@ -293,8 +294,8 @@ class Client:
         # Used to hard-reference tasks so they don't get garbage collected (discarded with done_callbacks)
         self._tasks = set()
 
-    async def _handle_event(self, event: Event) -> None:
-        await asyncio.gather(*self._main_gear._handle_event(event))
+    async def _gather_events(self, event: Event) -> None:
+        await asyncio.gather(*self._handle_event(event))
 
     async def __aenter__(self) -> Client:
         loop = asyncio.get_running_loop()
@@ -314,42 +315,6 @@ class Client:
     ) -> None:
         if not self.is_closed():
             await self.close()
-
-    # Gear methods
-
-    @copy_doc(Gear.attach_gear)
-    def attach_gear(self, gear: Gear) -> None:
-        return self._main_gear.attach_gear(gear)
-
-    @copy_doc(Gear.detach_gear)
-    def detach_gear(self, gear: Gear) -> None:
-        return self._main_gear.detach_gear(gear)
-
-    @copy_doc(Gear.add_listener)
-    def add_listener(
-        self,
-        callback: Callable[[Event], Awaitable[None]],
-        *,
-        event: type[Event] | Undefined = MISSING,
-        is_instance_function: bool = False,
-        once: bool = False,
-    ) -> None:
-        return self._main_gear.add_listener(callback, event=event, is_instance_function=is_instance_function, once=once)
-
-    @copy_doc(Gear.remove_listener)
-    def remove_listener(
-        self,
-        callback: Callable[[Event], Awaitable[None]],
-        event: type[Event] | Undefined = MISSING,
-        is_instance_function: bool = False,
-    ) -> None:
-        return self._main_gear.remove_listener(callback, event=event, is_instance_function=is_instance_function)
-
-    @copy_doc(Gear.listen)
-    def listen(
-        self, event: type[Event] | Undefined = MISSING, once: bool = False
-    ) -> Callable[[Callable[[Event], Awaitable[None]]], Callable[[Event], Awaitable[None]]]:
-        return self._main_gear.listen(event=event, once=once)
 
     # internals
 
@@ -519,7 +484,7 @@ class Client:
         print(f"Ignoring exception in {event_method}", file=sys.stderr)
         traceback.print_exc()
 
-    async def on_view_error(self, error: Exception, item: Item, interaction: Interaction) -> None:
+    async def on_view_error(self, error: Exception, item: Item, interaction: BaseInteraction) -> None:
         """|coro|
 
         The default view error handler provided by the client.
@@ -532,7 +497,7 @@ class Client:
             The exception that was raised.
         item: :class:`Item`
             The item that the user interacted with.
-        interaction: :class:`Interaction`
+        interaction: :class:`BaseInteraction`
             The interaction that was received.
         """
 
@@ -542,7 +507,7 @@ class Client:
         )
         traceback.print_exception(error.__class__, error, error.__traceback__, file=sys.stderr)
 
-    async def on_modal_error(self, error: Exception, interaction: Interaction) -> None:
+    async def on_modal_error(self, error: Exception, interaction: BaseInteraction) -> None:
         """|coro|
 
         The default modal error handler provided by the client.
@@ -554,7 +519,7 @@ class Client:
         ----------
         error: :class:`Exception`
             The exception that was raised.
-        interaction: :class:`Interaction`
+        interaction: :class:`BaseInteraction`
             The interaction that was received.
         """
 
@@ -683,7 +648,7 @@ class Client:
                 aiohttp.ClientError,
                 asyncio.TimeoutError,
             ) as exc:
-                self.dispatch("disconnect")
+                # self.dispatch("disconnect") # TODO: dispatch event
                 if not reconnect:
                     await self.close()
                     if isinstance(exc, ConnectionClosed) and exc.code == 1000:
@@ -1709,47 +1674,6 @@ class Client:
 
         data = await state.http.start_private_message(user.id)
         return await state.add_dm_channel(data)
-
-    async def add_view(self, view: View, *, message_id: int | None = None) -> None:
-        """Registers a :class:`~discord.ui.View` for persistent listening.
-
-        This method should be used for when a view is comprised of components
-        that last longer than the lifecycle of the program.
-
-        .. versionadded:: 2.0
-
-        Parameters
-        ----------
-        view: :class:`discord.ui.View`
-            The view to register for dispatching.
-        message_id: Optional[:class:`int`]
-            The message ID that the view is attached to. This is currently used to
-            refresh the view's state during message update events. If not given
-            then message update events are not propagated for the view.
-
-        Raises
-        ------
-        TypeError
-            A view was not passed.
-        ValueError
-            The view is not persistent. A persistent view has no timeout
-            and all their components have an explicitly provided ``custom_id``.
-        """
-
-        if not isinstance(view, View):
-            raise TypeError(f"expected an instance of View not {view.__class__!r}")
-
-        if not view.is_persistent():
-            raise ValueError("View is not persistent. Items need to have a custom_id set and View must have no timeout")
-
-        await self._connection.store_view(view, message_id)
-
-    async def get_persistent_views(self) -> Sequence[View]:
-        """A sequence of persistent views added to the client.
-
-        .. versionadded:: 2.0
-        """
-        return await self._connection.get_persistent_views()
 
     async def fetch_role_connection_metadata_records(
         self,

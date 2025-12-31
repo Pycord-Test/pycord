@@ -22,8 +22,7 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
 
-from functools import lru_cache
-from typing import Any
+from typing import Any, TypeAlias
 
 from typing_extensions import Self, override
 
@@ -32,50 +31,47 @@ from discord.types.interactions import Interaction as InteractionPayload
 
 from ..app.event_emitter import Event
 from ..app.state import ConnectionState
-from ..interactions import ApplicationCommandInteraction, AutocompleteInteraction, Interaction
+from ..interactions import (
+    ApplicationCommandInteraction,
+    AutocompleteInteraction,
+    BaseInteraction,
+    ComponentInteraction,
+    ModalInteraction,
+)
+
+Interaction: TypeAlias = (
+    ApplicationCommandInteraction | AutocompleteInteraction | ComponentInteraction | ModalInteraction
+)
 
 
-def _interaction_factory(payload: InteractionPayload) -> type[Interaction]:
-    type: int = payload["type"]
-    if type == InteractionType.application_command:
-        return ApplicationCommandInteraction
-    if type == InteractionType.auto_complete:
-        return AutocompleteInteraction
-    return Interaction
+async def _interaction_factory(payload: InteractionPayload, state: "ConnectionState") -> Interaction:
+    _type: int = payload["type"]
+    cls: type[Interaction] = BaseInteraction  # pyright: ignore[reportAssignmentType] # TODO: This should also cover ping interactions @Paillat-dev
+    if _type == InteractionType.application_command.value:
+        cls = ApplicationCommandInteraction
+    elif _type == InteractionType.auto_complete.value:
+        cls = AutocompleteInteraction
+    elif _type == InteractionType.component.value:
+        cls = ComponentInteraction
+    elif _type == InteractionType.modal_submit.value:
+        cls = ModalInteraction
+
+    return await cls._from_data(payload=payload, state=state)  # pyright: ignore[reportArgumentType]
 
 
-@lru_cache(maxsize=128)
-def _create_event_interaction_class(event_cls: type[Event], interaction_cls: type[Interaction]) -> type[Interaction]:
-    class EventInteraction(event_cls, interaction_cls):  # type: ignore
-        __slots__ = ()
-
-    return EventInteraction  # type: ignore
-
-
-class InteractionCreate(Event, Interaction):
+class InteractionCreate(Event):
     """Called when an interaction is created.
 
     This currently happens due to application command invocations or components being used.
-
-    .. warning::
-        This is a low level event that is not generally meant to be used.
-        If you are working with components, consider using the callbacks associated
-        with the :class:`~discord.ui.View` instead as it provides a nicer user experience.
-
-    This event inherits from :class:`Interaction`.
     """
 
     __event_name__: str = "INTERACTION_CREATE"
 
-    def __init__(self) -> None:
-        pass
+    def __init__(self, interaction: Interaction) -> None:
+        self.interaction: Interaction = interaction
 
     @classmethod
     @override
     async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
-        factory = _interaction_factory(data)
-        interaction = await factory._from_data(payload=data, state=state)
-        interaction_event_cls = _create_event_interaction_class(cls, factory)
-        self = interaction_event_cls()
-        self._populate_from_slots(interaction)
-        return self
+        interaction = await _interaction_factory(data, state)
+        return cls(interaction)

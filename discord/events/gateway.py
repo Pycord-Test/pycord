@@ -54,7 +54,7 @@ class Resumed(Event):
     __event_name__: str = "RESUMED"
 
     @classmethod
-    async def __load__(cls, _data: Any, _state: ConnectionState) -> Self | None:
+    async def __load__(cls, data: Any, state: ConnectionState) -> Self | None:
         return cls()
 
 
@@ -218,7 +218,8 @@ class PresenceUpdate(Event):
         self.old = Member._copy(member)
         self.new = member
         user_update = member._presence_update(data=data, user=user)
-        await state.emitter.emit("USER_UPDATE", user_update)
+        if user_update is not None:
+            await state.emitter.emit("USER_UPDATE", user_update)
         return self
 
 

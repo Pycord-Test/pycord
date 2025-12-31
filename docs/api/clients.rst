@@ -38,6 +38,7 @@ Clients
 .. attributetable:: Client
 .. autoclass:: Client
     :members:
+    :inherited-members:
     :exclude-members: fetch_guilds, listen
 
     .. automethod:: Client.fetch_guilds

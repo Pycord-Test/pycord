@@ -27,6 +27,7 @@ from __future__ import annotations
 
 from .public import (
     DISCORD_EPOCH,
+    EMOJIS_MAP,
     MISSING,
     UNICODE_EMOJIS,
     Undefined,
@@ -63,4 +64,5 @@ __all__ = (
     "MISSING",
     "DISCORD_EPOCH",
     "UNICODE_EMOJIS",
+    "EMOJIS_MAP",
 )

@@ -25,11 +25,11 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Dict, Generic, Literal, Union
+from typing import TYPE_CHECKING, Dict, Generic, Literal, TypeAlias, TypeVar, Union
 
 from ..permissions import Permissions
 from .channel import Channel, ChannelType
-from .components import Component, ComponentType
+from .component_types import Component, ComponentType
 from .embed import Embed
 from .guild import Guild
 from .member import Member
@@ -283,13 +283,6 @@ InteractionResponseType = Literal[1, 4, 5, 6, 7, 8, 9, 10]
 class InteractionResponse(TypedDict):
     data: NotRequired[InteractionApplicationCommandCallbackData]
     type: InteractionResponseType
-
-
-class MessageInteraction(TypedDict):
-    id: Snowflake
-    type: InteractionType
-    name: str
-    user: User
 
 
 class EditApplicationCommand(TypedDict):

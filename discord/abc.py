@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import asyncio
 import time
+from collections.abc import Sequence
 from typing import (
     TYPE_CHECKING,
     Callable,
@@ -77,12 +78,12 @@ if TYPE_CHECKING:
     )
     from .channel.thread import Thread
     from .client import Client
+    from .components import AnyComponent
     from .embeds import Embed
     from .message import Message, MessageReference, PartialMessage
     from .poll import Poll
     from .types.channel import OverwriteType
     from .types.channel import PermissionOverwrite as PermissionOverwritePayload
-    from .ui.view import View
     from .user import ClientUser
 
     PartialMessageableChannel = TextChannel | VoiceChannel | StageChannel | Thread | DMChannel | PartialMessageable
@@ -319,7 +320,7 @@ class Messageable:
         allowed_mentions: AllowedMentions = ...,
         reference: Message | MessageReference | PartialMessage = ...,
         mention_author: bool = ...,
-        view: View = ...,
+        components: Sequence[AnyComponent] = ...,
         poll: Poll = ...,
         suppress: bool = ...,
         silent: bool = ...,
@@ -340,7 +341,7 @@ class Messageable:
         allowed_mentions: AllowedMentions = ...,
         reference: Message | MessageReference | PartialMessage = ...,
         mention_author: bool = ...,
-        view: View = ...,
+        components: Sequence[AnyComponent] = ...,
         poll: Poll = ...,
         suppress: bool = ...,
         silent: bool = ...,
@@ -361,7 +362,7 @@ class Messageable:
         allowed_mentions: AllowedMentions = ...,
         reference: Message | MessageReference | PartialMessage = ...,
         mention_author: bool = ...,
-        view: View = ...,
+        components: Sequence[AnyComponent] = ...,
         poll: Poll = ...,
         suppress: bool = ...,
         silent: bool = ...,
@@ -382,7 +383,7 @@ class Messageable:
         allowed_mentions: AllowedMentions = ...,
         reference: Message | MessageReference | PartialMessage = ...,
         mention_author: bool = ...,
-        view: View = ...,
+        components: Sequence[AnyComponent] = ...,
         poll: Poll = ...,
         suppress: bool = ...,
         silent: bool = ...,
@@ -404,7 +405,7 @@ class Messageable:
         allowed_mentions=None,
         reference=None,
         mention_author=None,
-        view=None,
+        components=None,
         poll=None,
         suppress=None,
         silent=None,
@@ -473,8 +474,10 @@ class Messageable:
             If set, overrides the :attr:`~discord.AllowedMentions.replied_user` attribute of ``allowed_mentions``.
 
             .. versionadded:: 1.6
-        view: :class:`discord.ui.View`
-            A Discord UI View to add to the message.
+        components: :class:`Sequence[AnyComponent]`
+            A sequence of components to add to the message.
+
+            .. versionadded:: 3.0
         embeds: List[:class:`~discord.Embed`]
             A list of embeds to upload. Must be a maximum of 10.
 
@@ -565,17 +568,15 @@ class Messageable:
                     "reference parameter must be Message, MessageReference, or PartialMessage"
                 ) from None
 
-        if view:
-            if not hasattr(view, "__discord_ui_view__"):
-                raise InvalidArgument(f"view parameter must be View not {view.__class__!r}")
-
-            components = view.to_components()
-            if view.is_components_v2():
-                if embeds or content:
-                    raise TypeError("cannot send embeds or content with a view using v2 component logic")
-                flags.is_components_v2 = True
+        if components is not None:
+            components_p = []
+            if components:
+                for c in components:
+                    components_p.append(c.to_dict())
+                    if c.any_is_v2():
+                        flags.is_components_v2 = True
         else:
-            components = None
+            components_p = None
 
         if poll:
             poll = poll.to_dict()
@@ -608,7 +609,7 @@ class Messageable:
                     allowed_mentions=allowed_mentions,
                     message_reference=_reference,
                     stickers=stickers,
-                    components=components,
+                    components=components_p,
                     flags=flags.value,
                     poll=poll,
                 )
@@ -627,17 +628,12 @@ class Messageable:
                 allowed_mentions=allowed_mentions,
                 message_reference=_reference,
                 stickers=stickers,
-                components=components,
+                components=components_p,
                 flags=flags.value,
                 poll=poll,
             )
 
-        ret = state.create_message(channel=channel, data=data)
-        if view:
-            if view.is_dispatchable():
-                await state.store_view(view, ret.id)
-            view.message = ret
-            view.refresh(ret.components)
+        ret = await state.create_message(channel=channel, data=data)
 
         if delete_after is not None:
             await ret.delete(delay=delete_after)

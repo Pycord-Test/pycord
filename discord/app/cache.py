@@ -40,8 +40,6 @@ from ..types.emoji import Emoji as EmojiPayload
 from ..types.message import Message as MessagePayload
 from ..types.sticker import GuildSticker as GuildStickerPayload
 from ..types.user import User as UserPayload
-from ..ui.modal import Modal
-from ..ui.view import View
 from ..user import User
 
 if TYPE_CHECKING:
@@ -84,20 +82,6 @@ class Cache(Protocol):
     async def store_sticker(self, guild: Guild, data: GuildStickerPayload) -> GuildSticker: ...
 
     async def delete_sticker(self, sticker_id: int) -> None: ...
-
-    # interactions
-
-    async def store_view(self, view: View, message_id: int | None) -> None: ...
-
-    async def delete_view_on(self, message_id: int) -> None: ...
-
-    async def get_all_views(self) -> list[View]: ...
-
-    async def store_modal(self, modal: Modal, user_id: int) -> None: ...
-
-    async def delete_modal(self, custom_id: str) -> None: ...
-
-    async def get_all_modals(self) -> list[Modal]: ...
 
     # guilds
 
@@ -186,8 +170,6 @@ class MemoryCache(Cache):
         self._guilds: dict[int, Guild] = {}
         self._polls: dict[int, Poll] = {}
         self._stickers: dict[int, list[GuildSticker]] = {}
-        self._views: dict[str, View] = {}
-        self._modals: dict[str, Modal] = {}
         self._sounds: dict[int, SoundboardSound] = {}
         self._messages: Deque[Message] = deque(maxlen=self.max_messages)
 
@@ -206,9 +188,6 @@ class MemoryCache(Cache):
         self._guilds: dict[int, Guild] = {}
         self._polls: dict[int, Poll] = {}
         self._stickers: dict[int, list[GuildSticker]] = {}
-        if views:
-            self._views: dict[str, View] = {}
-        self._modals: dict[str, Modal] = {}
         self._messages: Deque[Message] = deque(maxlen=self.max_messages)
 
         self._emojis: dict[int, list[GuildEmoji | AppEmoji]] = {}
@@ -260,25 +239,6 @@ class MemoryCache(Cache):
 
     async def delete_sticker(self, sticker_id: int) -> None:
         self._stickers.pop(sticker_id, None)
-
-    # interactions
-
-    async def delete_view_on(self, message_id: int) -> View | None:
-        for view in await self.get_all_views():
-            if view.message and view.message.id == message_id:
-                return view
-
-    async def store_view(self, view: View, message_id: int) -> None:
-        self._views[str(message_id or view.id)] = view
-
-    async def get_all_views(self) -> list[View]:
-        return list(self._views.values())
-
-    async def store_modal(self, modal: Modal) -> None:
-        self._modals[modal.custom_id] = modal
-
-    async def get_all_modals(self) -> list[Modal]:
-        return list(self._modals.values())
 
     # guilds
 

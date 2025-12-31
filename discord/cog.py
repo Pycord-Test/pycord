@@ -32,14 +32,7 @@ import pathlib
 import sys
 import types
 from collections.abc import Generator, Mapping
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    ClassVar,
-    TypeVar,
-    overload,
-)
+from typing import TYPE_CHECKING, Any, Callable, ClassVar, NewType, TypeVar, overload
 
 from typing_extensions import TypeGuard
 
@@ -48,12 +41,12 @@ import discord.utils
 from . import errors
 from .commands import (
     ApplicationCommand,
-    ApplicationContext,
     SlashCommandGroup,
     _BaseCommand,
 )
 
 if TYPE_CHECKING:
+    from .commands import ApplicationContext
     from .ext.bridge import BridgeCommand
 
 

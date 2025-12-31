@@ -66,7 +66,7 @@ __all__ = (
     "ScheduledEventStatus",
     "ScheduledEventPrivacyLevel",
     "ScheduledEventLocationType",
-    "InputTextStyle",
+    "TextInputStyle",
     "SlashCommandOptionType",
     "AutoModTriggerType",
     "AutoModEventType",
@@ -645,8 +645,7 @@ class ComponentType(Enum):
     action_row = 1
     button = 2
     string_select = 3
-    select = string_select  # (deprecated) alias for string_select
-    input_text = 4
+    text_input = 4
     user_select = 5
     role_select = 6
     mentionable_select = 7
@@ -659,6 +658,8 @@ class ComponentType(Enum):
     separator = 14
     content_inventory_entry = 16
     container = 17
+    label = 18
+    file_upload = 19
 
     def __int__(self):
         return self.value
@@ -682,18 +683,15 @@ class ButtonStyle(Enum):
     red = 4
     url = 5
 
-    def __int__(self):
-        return self.value
+    def __int__(self) -> int:
+        return int(self.value)
 
 
-class InputTextStyle(Enum):
+class TextInputStyle(Enum):
     """Input text style"""
 
     short = 1
-    singleline = 1
     paragraph = 2
-    multiline = 2
-    long = 2
 
 
 class ApplicationType(Enum):
@@ -987,6 +985,12 @@ class ApplicationCommandPermissionType(Enum):
     role = 1
     user = 2
     channel = 3
+
+
+class ApplicationCommandType(IntEnum):
+    CHAT_INPUT = 1
+    USER = 2
+    MESSAGE = 3
 
 
 def try_enum(cls: type[E], val: Any) -> E:

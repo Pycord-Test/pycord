@@ -24,7 +24,7 @@ from .__version import *
 # isort: on
 
 
-from . import abc, opus, sinks, ui, utils
+from . import abc, components, opus, sinks, utils
 from .activity import *
 from .appinfo import *
 from .application_role_connection import *
@@ -39,7 +39,6 @@ from .cog import *
 from .collectibles import *
 from .colour import *
 from .commands import *
-from .components import *
 from .embeds import *
 from .emoji import *
 from .enums import *

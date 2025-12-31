@@ -56,7 +56,7 @@ from ..emoji import AppEmoji, GuildEmoji
 from ..enums import ChannelType, InteractionType, Status, try_enum
 from ..flags import ApplicationFlags, Intents, MemberCacheFlags
 from ..guild import Guild
-from ..interactions import Interaction
+from ..interactions import BaseInteraction
 from ..invite import Invite
 from ..member import Member
 from ..mentions import AllowedMentions
@@ -68,8 +68,6 @@ from ..poll import Poll, PollAnswerCount
 from ..raw_models import *
 from ..role import Role
 from ..sticker import GuildSticker
-from ..ui.modal import Modal
-from ..ui.view import View
 from ..user import ClientUser, User
 from ..utils.private import get_as_snowflake, parse_time, sane_wait_for
 from .cache import Cache
@@ -344,20 +342,6 @@ class ConnectionState:
     async def store_sticker(self, guild: Guild, data: GuildStickerPayload) -> GuildSticker:
         return await self.cache.store_sticker(guild, data)
 
-    async def store_view(self, view: View, message_id: int | None = None) -> None:
-        await self.cache.store_view(view, message_id)
-
-    async def store_modal(self, modal: Modal, user_id: int) -> None:
-        await self.cache.store_modal(modal, user_id)
-
-    async def prevent_view_updates_for(self, message_id: int) -> View | None:
-        return await self.cache.delete_view_on(message_id)
-
-    async def get_persistent_views(self) -> Sequence[View]:
-        views = await self.cache.get_all_views()
-        persistent_views = {view.id: view for view in views if view.is_persistent()}
-        return list(persistent_views.values())
-
     async def get_guilds(self) -> list[Guild]:
         return await self.cache.get_all_guilds()
 
@@ -439,9 +423,13 @@ class ConnectionState:
     async def _get_message(self, msg_id: int | None) -> Message | None:
         return await self.cache.get_message(cast(int, msg_id))
 
-    def _guild_needs_chunking(self, guild: Guild) -> bool:
+    async def _guild_needs_chunking(self, guild: Guild) -> bool:
         # If presences are enabled then we get back the old guild.large behaviour
-        return self._chunk_guilds and not guild.chunked and not (self._intents.presences and not guild.large)
+        return (
+            self._chunk_guilds
+            and not await guild.is_chunked()
+            and not (self._intents.presences and not await guild.is_large())
+        )
 
     async def _get_guild_channel(
         self, data: MessagePayload, guild_id: int | None = None
@@ -608,13 +596,13 @@ class ConnectionState:
             if channel is not None:
                 return channel
 
-    def create_message(
+    async def create_message(
         self,
         *,
         channel: MessageableChannel,
         data: MessagePayload,
     ) -> Message:
-        return Message(state=self, channel=channel, data=data)
+        return await Message._from_data(state=self, channel=channel, data=data)
 
 
 class AutoShardedConnectionState(ConnectionState):
@@ -662,7 +650,7 @@ class AutoShardedConnectionState(ConnectionState):
             except asyncio.TimeoutError:
                 break
             else:
-                if self._guild_needs_chunking(guild):
+                if await self._guild_needs_chunking(guild):
                     _log.debug(
                         ("Guild ID %d requires chunking, will be done in the background."),
                         guild.id,

@@ -45,7 +45,7 @@ from typing import (
 
 from typing_extensions import TypeAlias, TypeVar, override
 
-from discord.interactions import AutocompleteInteraction, Interaction
+from discord.interactions import AutocompleteInteraction, BaseInteraction
 
 from ..utils.private import maybe_awaitable
 
@@ -67,7 +67,6 @@ from ..channel import (
     Thread,
     VoiceChannel,
 )
-from ..commands import ApplicationContext, AutocompleteContext
 from ..enums import ChannelType, SlashCommandOptionType
 from ..enums import Enum as DiscordEnum
 from ..utils import MISSING, Undefined, basic_autocomplete

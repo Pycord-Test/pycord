@@ -27,13 +27,17 @@ from __future__ import annotations
 
 import asyncio
 import datetime
-from typing import TYPE_CHECKING, Any, Coroutine, Generic, Union
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Any, Coroutine, Generic, Protocol, cast
 
-from typing_extensions import Self, TypeVar, override, reveal_type
+from typing_extensions import Self, TypeVar, TypeVarTuple, Unpack, override, reveal_type
 
 from . import utils
-from .channel import ChannelType, PartialMessageable, _threaded_channel_factory
+from .channel import PartialMessageable, _threaded_channel_factory
+from .components import ComponentsHolder, _partial_component_factory
 from .enums import (
+    ApplicationCommandType,
+    ChannelType,
     InteractionContextType,
     InteractionResponseType,
     InteractionType,
@@ -48,10 +52,14 @@ from .message import Attachment, Message
 from .monetization import Entitlement
 from .object import Object
 from .permissions import Permissions
+from .role import Role
 from .types.interactions import (
     ApplicationCommandAutocompleteInteraction as ApplicationCommandAutocompleteInteractionPayload,
 )
 from .types.interactions import ApplicationCommandInteraction as ApplicationCommandInteractionPayload
+from .types.interactions import (
+    ApplicationCommandInteractionDataOption,
+)
 from .types.interactions import Interaction as InteractionPayload
 from .user import User
 from .utils import find
@@ -64,10 +72,12 @@ from .webhook.async_ import (
 )
 
 __all__ = (
-    "Interaction",
+    "BaseInteraction",
+    "ModalInteraction",
+    "ComponentInteraction",
+    "ApplicationCommandInteraction",
     "InteractionMessage",
     "InteractionResponse",
-    "MessageInteraction",
     "InteractionMetadata",
     "AuthorizingIntegrationOwners",
     "InteractionCallback",
@@ -89,16 +99,23 @@ if TYPE_CHECKING:
     from .channel.thread import Thread
     from .client import Client
     from .commands import ApplicationCommand, OptionChoice
+    from .components import (
+        AnyComponent,
+        AnyMessagePartialComponent,
+        AnyTopLevelModalComponent,
+        AnyTopLevelModalPartialComponent,
+        Modal,
+    )
     from .embeds import Embed
     from .mentions import AllowedMentions
     from .poll import Poll
+    from .types.interactions import ComponentInteraction as ComponentInteractionPayload
     from .types.interactions import InteractionCallback as InteractionCallbackPayload
     from .types.interactions import InteractionCallbackResponse, InteractionData
     from .types.interactions import InteractionData as InteractionDataPayload
     from .types.interactions import InteractionMetadata as InteractionMetadataPayload
-    from .types.interactions import MessageInteraction as MessageInteractionPayload
-    from .ui.modal import Modal
-    from .ui.view import View
+    from .types.interactions import ModalInteraction as ModalInteractionPayload
+    from .types.partial_components import PartialComponent
 
     InteractionChannel = (
         VoiceChannel
@@ -117,7 +134,7 @@ MISSING: Any = utils.MISSING
 T = TypeVar("T", bound="InteractionPayload")
 
 
-class Interaction(Generic[T]):
+class BaseInteraction(Generic[T]):
     """Represents a Discord interaction.
 
     An interaction happens when a user does an action that needs to
@@ -175,14 +192,6 @@ class Interaction(Generic[T]):
         The command that this interaction belongs to.
 
         .. versionadded:: 2.7
-    view: Optional[:class:`View`]
-        The view that this interaction belongs to.
-
-        .. versionadded:: 2.7
-    modal: Optional[:class:`Modal`]
-        The modal that this interaction belongs to.
-
-        .. versionadded:: 2.7
     attachment_size_limit: :class:`int`
         The attachment size limit.
 
@@ -209,9 +218,6 @@ class Interaction(Generic[T]):
         "authorizing_integration_owners",
         "callback",
         "command",
-        "view",
-        "modal",
-        "_payload",
         "attachment_size_limit",
         "_channel_data",
         "_message_data",
@@ -226,6 +232,7 @@ class Interaction(Generic[T]):
         "_cs_response",
         "_cs_followup",
         "_cs_channel",
+        "_payload",
     )
 
     def __init__(self, *, payload: InteractionPayload, state: ConnectionState):
@@ -235,6 +242,7 @@ class Interaction(Generic[T]):
         self._original_response: InteractionMessage | None = None
         self.data = payload.get("data")
         self.callback: InteractionCallback | None = None
+        super().__init__()
 
     @classmethod
     async def _from_data(cls, payload: InteractionPayload, state: ConnectionState) -> Self:
@@ -252,7 +260,6 @@ class Interaction(Generic[T]):
         self.application_id: int = int(self._payload["application_id"])
         self.locale: str | None = self._payload.get("locale")
         self.guild_locale: str | None = self._payload.get("guild_locale")
-        self.custom_id: str | None = self.data.get("custom_id") if self.data is not None else None
         self._app_permissions: int = int(self._payload.get("app_permissions", 0))
         self.entitlements: list[Entitlement] = [
             Entitlement(data=e, state=self._state) for e in self._payload.get("entitlements", [])
@@ -266,9 +273,6 @@ class Interaction(Generic[T]):
             try_enum(InteractionContextType, self._payload["context"]) if "context" in self._payload else None
         )
 
-        self.command: ApplicationCommand | None = None
-        self.view: View | None = None
-        self.modal: Modal | None = None
         self.attachment_size_limit: int = self._payload.get("attachment_size_limit")
 
         self.message: Message | None = None
@@ -280,7 +284,7 @@ class Interaction(Generic[T]):
         self._guild: Guild | None = None
         self._guild_data = self._payload.get("guild")
         if self._guild is None and self._guild_data:
-            self._guild = await Guild._from_data(guild=self._guild_data, state=self._state)
+            self._guild = await Guild._from_data(data=self._guild_data, state=self._state)
 
         # TODO: there's a potential data loss here
         if self.guild_id:
@@ -310,8 +314,8 @@ class Interaction(Generic[T]):
             if ch_type in (ChannelType.group, ChannelType.private):
                 self.channel = await factory._from_data(data=channel, state=self._state)
 
-        if self.channel is None and self.guild:
-            self.channel = self.guild._resolve_channel(self.channel_id)
+        if self.channel is None and self._guild:
+            self.channel = self._guild._resolve_channel(self.channel_id)
         if self.channel is None and self.channel_id is not None:
             ch_type = ChannelType.text if self.guild_id is not None else ChannelType.private
             self.channel = PartialMessageable(state=self._state, id=self.channel_id, type=ch_type)
@@ -322,6 +326,8 @@ class Interaction(Generic[T]):
             self.message = await Message._from_data(state=self._state, channel=self.channel, data=message_data)
 
         self._message_data = message_data
+
+        return self
 
     @property
     def client(self) -> Client:
@@ -346,23 +352,6 @@ class Interaction(Generic[T]):
     def is_component(self) -> bool:
         """Indicates whether the interaction is a message component."""
         return self.type == InteractionType.component
-
-    @cached_slot_property("_cs_channel")
-    @deprecated("Interaction.channel", "2.7", stacklevel=4)
-    def cached_channel(self) -> InteractionChannel | None:
-        """The cached channel from which the interaction was sent.
-        DM channels are not resolved. These are :class:`PartialMessageable` instead.
-
-        .. deprecated:: 2.7
-        """
-        guild = self.guild
-        channel = guild and guild._resolve_channel(self.channel_id)
-        if channel is None:
-            if self.channel_id is not None:
-                type = ChannelType.text if self.guild_id is not None else ChannelType.private
-                return PartialMessageable(state=self._state, id=self.channel_id, type=type)
-            return None
-        return channel
 
     @property
     def permissions(self) -> Permissions:
@@ -485,24 +474,6 @@ class Interaction(Generic[T]):
         self._original_response = message
         return message
 
-    @deprecated("Interaction.original_response", "2.2")
-    async def original_message(self):
-        """An alias for :meth:`original_response`.
-
-        Returns
-        -------
-        InteractionMessage
-            The original interaction response message.
-
-        Raises
-        ------
-        HTTPException
-            Fetching the original response message failed.
-        ClientException
-            The channel for the message could not be resolved.
-        """
-        return await self.original_response()
-
     async def edit_original_response(
         self,
         *,
@@ -512,7 +483,7 @@ class Interaction(Generic[T]):
         file: File | utils.Undefined = MISSING,
         files: list[File] | utils.Undefined = MISSING,
         attachments: list[Attachment] | utils.Undefined = MISSING,
-        view: View | None | utils.Undefined = MISSING,
+        components: Sequence[AnyTopLevelModalComponent] | None | utils.Undefined = MISSING,
         allowed_mentions: AllowedMentions | None = None,
         delete_after: float | None = None,
         suppress: bool = False,
@@ -547,9 +518,11 @@ class Interaction(Generic[T]):
         allowed_mentions: :class:`AllowedMentions`
             Controls the mentions being processed in this message.
             See :meth:`.abc.Messageable.send` for more information.
-        view: Optional[:class:`~discord.ui.View`]
-            The updated view to update this message with. If ``None`` is passed then
-            the view is removed.
+        components:
+            The updated components to update this message with. If ``None`` is passed then
+            the components are removed.
+
+            .. versionadded:: 3.0
         delete_after: Optional[:class:`float`]
             If provided, the number of seconds to wait in the background
             before deleting the message we just edited. If the deletion fails,
@@ -582,7 +555,7 @@ class Interaction(Generic[T]):
             attachments=attachments,
             embed=embed,
             embeds=embeds,
-            view=view,
+            components=components,
             allowed_mentions=allowed_mentions,
             previous_allowed_mentions=previous_mentions,
             suppress=suppress,
@@ -603,38 +576,11 @@ class Interaction(Generic[T]):
         # The message channel types should always match
         state = _InteractionMessageState(self, self._state)
         message = InteractionMessage(state=state, channel=self.channel, data=data)  # type: ignore
-        if view and not view.is_finished():
-            view.message = message
-            view.refresh(message.components)
-            if view.is_dispatchable():
-                await self._state.store_view(view, message.id)
 
         if delete_after is not None:
             await self.delete_original_response(delay=delete_after)
 
         return message
-
-    @deprecated("Interaction.edit_original_response", "2.2")
-    async def edit_original_message(self, **kwargs):
-        """An alias for :meth:`edit_original_response`.
-
-        Returns
-        -------
-        :class:`InteractionMessage`
-            The newly edited message.
-
-        Raises
-        ------
-        HTTPException
-            Editing the message failed.
-        Forbidden
-            Edited a message that is not yours.
-        TypeError
-            You specified both ``embed`` and ``embeds`` or ``file`` and ``files``
-        ValueError
-            The length of ``embeds`` was invalid.
-        """
-        return await self.edit_original_response(**kwargs)
 
     async def delete_original_response(self, *, delay: float | None = None) -> None:
         """|coro|
@@ -672,20 +618,7 @@ class Interaction(Generic[T]):
         else:
             await func
 
-    @deprecated("Interaction.delete_original_response", "2.2")
-    async def delete_original_message(self, **kwargs):
-        """An alias for :meth:`delete_original_response`.
-
-        Raises
-        ------
-        HTTPException
-            Deleting the message failed.
-        Forbidden
-            Deleted a message that is not yours.
-        """
-        return await self.delete_original_response(**kwargs)
-
-    async def respond(self, *args, **kwargs) -> Interaction | WebhookMessage:
+    async def respond(self, *args, **kwargs) -> BaseInteraction | WebhookMessage:
         """|coro|
 
         Sends either a response or a message using the followup webhook determined by whether the interaction
@@ -770,23 +703,128 @@ class Interaction(Generic[T]):
 U = TypeVar("U", bound="ApplicationCommandInteractionPayload | ApplicationCommandAutocompleteInteractionPayload")
 
 
-class _CommandBoundInteraction(Interaction[U], Generic[U]):
-    def __init__(self, *, payload: U, state: ConnectionState):
-        super().__init__(payload=payload, state=state)
+class _CommandBoundInteractionMixin:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
         self._command: ApplicationCommand | None = None
 
     @property
     def command(self) -> ApplicationCommand:
         """The command that this interaction belongs to."""
         if self._command is None:
+            return None  # TODO: this is incorrect @Paillat-dev
             raise RuntimeError("This interaction has no command associated with it.")
         return self._command
 
 
-class ApplicationCommandInteraction(_CommandBoundInteraction[ApplicationCommandInteractionPayload]): ...
+class _ResolvedDataInteraction(BaseInteraction[T], Generic[T]):
+    """A mixin that loads and parses the resolved data from an interaction payload."""
+
+    __slots__: tuple[str, ...] = (
+        "users",
+        "members",
+        "roles",
+        "channels",
+        "messages",
+        "attachments",
+    )
+
+    @override
+    @classmethod
+    async def _from_data(cls, payload: InteractionPayload, state: ConnectionState) -> Self:
+        self = await super()._from_data(payload=payload, state=state)
+        resolved = self._payload.get("data", {}).get("resolved", {})
+        if users := resolved.get("users"):
+            self.users: dict[int, User] = {
+                int(user_id): User(state=state, data=user_data) for user_id, user_data in users.items()
+            }
+        else:
+            self.users = {}
+        if (members := resolved.get("members")) and (guild := await self.get_guild()):
+            self.members: dict[int, Member] = {}
+            for member_id, member_data in members.items():
+                member_data["id"] = int(member_id)
+                member_data["user"] = resolved["users"][member_id]
+                self.members[member_data["id"]] = await guild._get_and_update_member(
+                    member_data, member_data["id"], self._state.member_cache_flags.interaction
+                )
+        else:
+            self.members = {}
+        if roles := resolved.get("roles"):
+            self.roles: dict[int, Role] = {
+                int(role_id): Role(state=state, data=role_data, guild=self.guild)
+                for role_id, role_data in roles.items()
+            }
+        else:
+            self.roles = {}
+        if channels := resolved.get("channels"):  # noqa: F841 see below
+            # TODO: Partial channels @Paillat-dev
+            self.channels: dict[int, InteractionChannel] = {}
+        else:
+            self.channels = {}
+        if messages := resolved.get("messages"):
+            self.messages: dict[int, Message] = {}
+            for message_id, message_data in messages.items():
+                channel = self.channel
+                if channel.id != int(message_data["channel_id"]):
+                    # we got weird stuff going on, make up a channel
+                    channel = PartialMessageable(state=self._state, id=int(message_data["channel_id"]))
+
+                self.messages[int(message_id)] = await Message._from_data(
+                    state=self._state, channel=channel, data=message_data
+                )
+        else:
+            self.messages = {}
+        if attachments := resolved.get("attachments"):
+            self.attachments: dict[int, Attachment] = {
+                int(att_id): Attachment(state=state, data=att_data) for att_id, att_data in attachments.items()
+            }
+        else:
+            self.attachments = {}
+        return self
 
 
-class AutocompleteInteraction(_CommandBoundInteraction[ApplicationCommandAutocompleteInteractionPayload]):
+class ApplicationCommandInteraction(
+    _ResolvedDataInteraction[ApplicationCommandInteractionPayload], _CommandBoundInteractionMixin
+):
+    __slots__: tuple[str, ...] = ("_command",)
+
+    def __init__(self, *, payload: ApplicationCommandInteractionPayload, state: ConnectionState):
+        super().__init__(payload=payload, state=state)
+        if self.data is None:  # TODO: make it so that this can never be None @Paillat-dev
+            raise RuntimeError("This interaction has no data associated with it.")
+        self.command_name = self._parse_command_name(self.data["name"], self.data.get("options", []))
+        self.command_type: ApplicationCommandType = self.data["type"]
+        self.guild_id: int | None = self.data.get("guild_id")
+        # self.options: list[ApplicationCommandInteractionDataOption] = self.data.get("options", [])
+        self.target: User | Member | Message | None = None
+        self._target_id: int | None = None
+        self._command_type: ApplicationCommandType = self.data["type"]
+
+    def _parse_command_name(self, current_name: str, options: list[ApplicationCommandInteractionDataOption]) -> str:
+        if options and (child_options := options[0].get("options")):
+            current_name += " " + options[0]["name"]
+            return self._parse_command_name(current_name, child_options)
+        return current_name
+
+    @override
+    @classmethod
+    async def _from_data(cls, payload: ApplicationCommandInteractionPayload, state: ConnectionState) -> Self:  # ty:ignore[invalid-method-override]
+        self: ApplicationCommandInteraction = await super()._from_data(payload=payload, state=state)
+        if self._command_type == ApplicationCommandType.CHAT_INPUT:
+            ...
+        else:
+            self._target_id = int(self.data["target_id"])
+            if self._command_type == ApplicationCommandType.USER:
+                self.target = self.users[self._target_id]
+            elif self._command_type == ApplicationCommandType.MESSAGE:
+                self.target = self.messages[self._target_id]
+        return self
+
+
+class AutocompleteInteraction(
+    BaseInteraction[ApplicationCommandAutocompleteInteractionPayload], _CommandBoundInteractionMixin
+):
     def __init__(self, *, payload: ApplicationCommandAutocompleteInteractionPayload, state: ConnectionState):
         super().__init__(payload=payload, state=state)
         options = self.data.get("options", [])
@@ -796,6 +834,35 @@ class AutocompleteInteraction(_CommandBoundInteraction[ApplicationCommandAutocom
         self.name: str = option.get("name")
         self.value: int | str | float = option.get("value")
         self.values: dict[str, int | str | float] = {o["name"]: o["value"] for o in options}  # type: ignore # this is not called for subcommand autocompletes
+
+
+Components_t = TypeVarTuple("Components_t", default="Unpack[tuple[AnyTopLevelModalPartialComponent, ...]]")
+
+
+class ModalInteraction(_ResolvedDataInteraction["ModalInteractionPayload"], Generic[Unpack[Components_t]]):
+    __slots__ = ("components", "custom_id")
+
+    @override
+    def __init__(self, *, payload: ModalInteractionPayload, state: ConnectionState):
+        super().__init__(payload=payload, state=state)
+        self.custom_id: str = self.data["custom_id"]
+        components_payload = cast("list[PartialComponent]", self.data.get("components", []))
+        self.components: ComponentsHolder[Unpack[Components_t]] = ComponentsHolder(
+            *(_partial_component_factory(component) for component in components_payload)
+        )
+
+
+Component_t = TypeVar("Component_t", bound="AnyMessagePartialComponent", default="AnyMessagePartialComponent")
+
+
+class ComponentInteraction(_ResolvedDataInteraction["ComponentInteractionPayload"], Generic[Component_t]):
+    __slots__ = ("component", "custom_id")
+
+    @override
+    def __init__(self, *, payload: ComponentInteractionPayload, state: ConnectionState):
+        super().__init__(payload=payload, state=state)
+        self.custom_id: str = self.data["custom_id"]
+        self.component: Component_t = _partial_component_factory(self.data, key="component_type")
 
 
 class InteractionResponse:
@@ -812,8 +879,8 @@ class InteractionResponse:
         "_response_lock",
     )
 
-    def __init__(self, parent: Interaction):
-        self._parent: Interaction = parent
+    def __init__(self, parent: BaseInteraction):
+        self._parent: BaseInteraction = parent
         self._responded: bool = False
         self._response_lock = asyncio.Lock()
 
@@ -955,7 +1022,7 @@ class InteractionResponse:
         *,
         embed: Embed = None,
         embeds: list[Embed] = None,
-        view: View = None,
+        components: Sequence[AnyTopLevelModalComponent] = None,
         tts: bool = False,
         ephemeral: bool = False,
         allowed_mentions: AllowedMentions = None,
@@ -963,7 +1030,7 @@ class InteractionResponse:
         files: list[File] = None,
         poll: Poll = None,
         delete_after: float = None,
-    ) -> Interaction:
+    ) -> BaseInteraction:
         """|coro|
 
         Responds to this interaction by sending a message.
@@ -980,11 +1047,11 @@ class InteractionResponse:
             ``embeds`` parameter.
         tts: :class:`bool`
             Indicates if the message should be sent using text-to-speech.
-        view: :class:`discord.ui.View`
-            The view to send with the message.
+        components:
+            The components to send with the message.
         ephemeral: :class:`bool`
             Indicates if the message should only be visible to the user who started the interaction.
-            If a view is sent with an ephemeral message, and it has no timeout set then the timeout
+            If components are sent with an ephemeral message, and it has no timeout set then the timeout
             is set to 15 minutes.
         allowed_mentions: :class:`AllowedMentions`
             Controls the mentions being processed in this message.
@@ -1040,12 +1107,17 @@ class InteractionResponse:
 
         flags = MessageFlags(ephemeral=ephemeral)
 
-        if view is not None:
-            payload["components"] = view.to_components()
-            if view.is_components_v2():
-                if embeds or content:
-                    raise TypeError("cannot send embeds or content with a view using v2 component logic")
-                flags.is_components_v2 = True
+        if components is not None:
+            payload["components"] = []
+            if components:
+                for c in components:
+                    payload["components"].append(c.to_dict())
+                    if c.any_is_v2():
+                        flags.is_components_v2 = True
+
+        if flags.is_components_v2:
+            if embeds or content:
+                raise TypeError("cannot send embeds or content with components using v2 component logic")
 
         if poll is not None:
             payload["poll"] = poll.to_dict()
@@ -1100,14 +1172,6 @@ class InteractionResponse:
                 for file in files:
                     file.close()
 
-        if view is not None:
-            if ephemeral and view.timeout is None:
-                view.timeout = 15 * 60.0
-
-            view.parent = self._parent
-            if view.is_dispatchable():
-                self._parent._state.store_view(view)
-
         self._responded = True
         await self._process_callback_response(callback_response)
         if delete_after is not None:
@@ -1123,7 +1187,7 @@ class InteractionResponse:
         file: File | utils.Undefined = MISSING,
         files: list[File] | utils.Undefined = MISSING,
         attachments: list[Attachment] | utils.Undefined = MISSING,
-        view: View | None | utils.Undefined = MISSING,
+        components: Sequence[AnyComponent] | None | utils.Undefined = MISSING,
         delete_after: float | None = None,
         suppress: bool | None | utils.Undefined = MISSING,
         allowed_mentions: AllowedMentions | None = None,
@@ -1150,9 +1214,9 @@ class InteractionResponse:
         attachments: List[:class:`Attachment`]
             A list of attachments to keep in the message. If ``[]`` is passed
             then all attachments are removed.
-        view: Optional[:class:`~discord.ui.View`]
-            The updated view to update this message with. If ``None`` is passed then
-            the view is removed.
+        components:
+            The updated components to update this message with. If ``None`` is passed then
+            the components are removed.
         delete_after: Optional[:class:`float`]
             If provided, the number of seconds to wait in the background
             before deleting the message we just edited. If the deletion fails,
@@ -1182,7 +1246,6 @@ class InteractionResponse:
         parent = self._parent
         msg = parent.message
         state = parent._state
-        message_id = msg.id if msg else None
         if parent.type not in (InteractionType.component, InteractionType.modal_submit):
             return
 
@@ -1200,9 +1263,8 @@ class InteractionResponse:
         if attachments is not MISSING:
             payload["attachments"] = [a.to_dict() for a in attachments]
 
-        if view is not MISSING:
-            await state.prevent_view_updates_for(message_id)
-            payload["components"] = [] if view is None else view.to_components()
+        if components is not MISSING:
+            payload["components"] = [] if components is None else [c.to_dict() for c in components]
 
         if file is not MISSING and files is not MISSING:
             raise InvalidArgument("cannot pass both file and files parameter to edit_message()")
@@ -1258,10 +1320,6 @@ class InteractionResponse:
                 for file in files:
                     file.close()
 
-        if view and not view.is_finished():
-            view.message = msg
-            await state.store_view(view, message_id)
-
         self._responded = True
         await self._process_callback_response(callback_response)
         if delete_after is not None:
@@ -1314,14 +1372,14 @@ class InteractionResponse:
         self._responded = True
         await self._process_callback_response(callback_response)
 
-    async def send_modal(self, modal: Modal) -> Interaction:
+    async def send_modal(self, modal: Modal) -> BaseInteraction:
         """|coro|
         Responds to this interaction by sending a modal dialog.
         This cannot be used to respond to another modal dialog submission.
 
         Parameters
         ----------
-        modal: :class:`discord.ui.Modal`
+        modal: :class:`discord.Modal`
             The modal dialog to display to the user.
 
         Raises
@@ -1348,45 +1406,6 @@ class InteractionResponse:
                 proxy_auth=http.proxy_auth,
                 type=InteractionResponseType.modal.value,
                 data=payload,
-            )
-        )
-        self._responded = True
-        await self._process_callback_response(callback_response)
-        await self._parent._state.store_modal(modal, int(self._parent._payload["user"]["id"]))  # type: ignore
-        return self._parent
-
-    @deprecated("a button with type ButtonType.premium", "2.6")
-    async def premium_required(self) -> Interaction:
-        """|coro|
-
-        Responds to this interaction by sending a premium required message.
-
-        .. deprecated:: 2.6
-
-            A button with type :attr:`ButtonType.premium` should be used instead.
-
-        Raises
-        ------
-        HTTPException
-            Sending the message failed.
-        InteractionResponded
-            This interaction has already been responded to before.
-        """
-        if self._responded:
-            raise InteractionResponded(self._parent)
-
-        parent = self._parent
-
-        adapter = async_context.get()
-        http = parent._state.http
-        callback_response: InteractionCallbackResponse = await self._locked_response(
-            adapter.create_interaction_response(
-                parent.id,
-                parent.token,
-                session=parent._session,
-                proxy=http.proxy,
-                proxy_auth=http.proxy_auth,
-                type=InteractionResponseType.premium_required.value,
             )
         )
         self._responded = True
@@ -1426,8 +1445,8 @@ class InteractionResponse:
 class _InteractionMessageState:
     __slots__ = ("_parent", "_interaction")
 
-    def __init__(self, interaction: Interaction, parent: ConnectionState):
-        self._interaction: Interaction = interaction
+    def __init__(self, interaction: BaseInteraction, parent: ConnectionState):
+        self._interaction: BaseInteraction = interaction
         self._parent: ConnectionState = parent
 
     async def _get_guild(self, guild_id):
@@ -1470,7 +1489,7 @@ class InteractionMessage(Message):
         file: File | utils.Undefined = MISSING,
         files: list[File] | utils.Undefined = MISSING,
         attachments: list[Attachment] | utils.Undefined = MISSING,
-        view: View | None | utils.Undefined = MISSING,
+        components: Sequence[AnyTopLevelModalComponent] | None | utils.Undefined = MISSING,
         allowed_mentions: AllowedMentions | None = None,
         delete_after: float | None = None,
         suppress: bool | None | utils.Undefined = MISSING,
@@ -1499,9 +1518,9 @@ class InteractionMessage(Message):
         allowed_mentions: :class:`AllowedMentions`
             Controls the mentions being processed in this message.
             See :meth:`.abc.Messageable.send` for more information.
-        view: Optional[:class:`~discord.ui.View`]
-            The updated view to update this message with. If ``None`` is passed then
-            the view is removed.
+        components:
+            The updated components to update this message with. If ``None`` is passed then
+            the components are removed.
         delete_after: Optional[:class:`float`]
             If provided, the number of seconds to wait in the background
             before deleting the message we just edited. If the deletion fails,
@@ -1536,7 +1555,7 @@ class InteractionMessage(Message):
             file=file,
             files=files,
             attachments=attachments,
-            view=view,
+            components=components,
             allowed_mentions=allowed_mentions,
             delete_after=delete_after,
             suppress=suppress,
@@ -1563,46 +1582,6 @@ class InteractionMessage(Message):
             Deleting the message failed.
         """
         await self._state._interaction.delete_original_response(delay=delay)
-
-
-class MessageInteraction:
-    """Represents a Discord message interaction.
-
-    This is sent on the message object when the message is a response
-    to an interaction without an existing message e.g. application command.
-
-    .. versionadded:: 2.0
-
-    .. deprecated:: 2.6
-
-        See :class:`InteractionMetadata`.
-
-    .. note::
-        Responses to message components do not include this property.
-
-    Attributes
-    ----------
-    id: :class:`int`
-        The interaction's ID.
-    type: :class:`InteractionType`
-        The interaction type.
-    name: :class:`str`
-        The name of the invoked application command.
-    user: :class:`User`
-        The user that sent the interaction.
-    data: :class:`dict`
-        The raw interaction data.
-    """
-
-    __slots__: tuple[str, ...] = ("id", "type", "name", "user", "data", "_state")
-
-    def __init__(self, *, data: MessageInteractionPayload, state: ConnectionState):
-        self._state = state
-        self.data = data
-        self.id: int = int(data["id"])
-        self.type: InteractionType = data["type"]
-        self.name: str = data["name"]
-        self.user: User = self._state.store_user(data["user"])
 
 
 class InteractionMetadata:

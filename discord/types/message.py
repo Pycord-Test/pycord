@@ -28,7 +28,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Literal
 
 from .channel import ChannelType
-from .components import Component
+from .component_types import Component
 from .embed import Embed
 from .emoji import PartialEmoji
 from .member import Member, UserWithMember
@@ -39,7 +39,7 @@ from .threads import Thread
 from .user import User
 
 if TYPE_CHECKING:
-    from .interactions import InteractionMetadata, MessageInteraction
+    from .interactions import InteractionMetadata
 
 from typing_extensions import NotRequired, TypedDict
 
@@ -81,6 +81,7 @@ class Attachment(TypedDict):
     waveform: NotRequired[str]
     flags: NotRequired[int]
     title: NotRequired[str]
+    ephemeral: NotRequired[bool]
 
 
 MessageActivityType = Literal[1, 2, 3, 5]
@@ -150,7 +151,6 @@ class Message(TypedDict):
     flags: NotRequired[int]
     sticker_items: NotRequired[list[StickerItem]]
     referenced_message: NotRequired[Message | None]
-    interaction: NotRequired[MessageInteraction]
     interaction_metadata: NotRequired[InteractionMetadata]
     components: NotRequired[list[Component]]
     thread: NotRequired[Thread | None]

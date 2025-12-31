@@ -21,21 +21,6 @@ dynamic attributes in mind.
 .. autoclass:: Object
     :members:
 
-.. attributetable:: SelectOption
-
-.. autoclass:: SelectOption
-    :members:
-
-.. attributetable:: MediaGalleryItem
-
-.. autoclass:: MediaGalleryItem
-    :members:
-
-.. attributetable:: UnfurledMediaItem
-
-.. autoclass:: UnfurledMediaItem
-    :members:
-
 .. attributetable:: Intents
 
 .. autoclass:: Intents

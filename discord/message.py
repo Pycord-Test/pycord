@@ -28,7 +28,7 @@ from __future__ import annotations
 import datetime
 import io
 import re
-from inspect import isawaitable
+from collections.abc import Sequence
 from os import PathLike
 from typing import (
     TYPE_CHECKING,
@@ -36,7 +36,6 @@ from typing import (
     AsyncGenerator,
     Callable,
     ClassVar,
-    Sequence,
     TypeVar,
     Union,
     overload,
@@ -48,7 +47,7 @@ from typing_extensions import Self
 from . import utils
 from .channel import PartialMessageable
 from .channel.thread import Thread
-from .components import _component_factory
+from .components import AnyComponent, ComponentsHolder, _component_factory
 from .embeds import Embed
 from .emoji import AppEmoji, GuildEmoji
 from .enums import ChannelType, MessageReferenceType, MessageType, try_enum
@@ -76,10 +75,9 @@ if TYPE_CHECKING:
     from .channel import TextChannel
     from .channel.base import GuildChannel
     from .components import Component
-    from .interactions import MessageInteraction
     from .mentions import AllowedMentions
     from .role import Role
-    from .types.components import Component as ComponentPayload
+    from .types.component_types import Component as ComponentPayload
     from .types.embed import Embed as EmbedPayload
     from .types.member import Member as MemberPayload
     from .types.member import UserWithMember as UserWithMemberPayload
@@ -97,7 +95,6 @@ if TYPE_CHECKING:
     from .types.snowflake import SnowflakeList
     from .types.threads import ThreadArchiveDuration
     from .types.user import User as UserPayload
-    from .ui.view import View
     from .user import User
 
     MR = TypeVar("MR", bound="MessageReference")
@@ -740,8 +737,11 @@ class ForwardedMessage:
         A list of :class:`Role` that were originally mentioned.
     stickers: List[:class:`StickerItem`]
         A list of sticker items given to the original message.
-    components: List[:class:`Component`]
+    components: :class:`ComponentsHolder`
         A list of components in the original message.
+
+        .. versionchanged:: 3.0
+            Now is of type :class:`ComponentsHolder` instead of :class:`list`.
     """
 
     def __init__(
@@ -768,7 +768,9 @@ class ForwardedMessage:
         self.attachments: list[Attachment] = [Attachment(data=a, state=state) for a in data["attachments"]]
         self.flags: MessageFlags = MessageFlags._from_value(data.get("flags", 0))
         self.stickers: list[StickerItem] = [StickerItem(data=d, state=state) for d in data.get("sticker_items", [])]
-        self.components: list[Component] = [_component_factory(d) for d in data.get("components", [])]
+        self.components: ComponentsHolder[AnyComponent] = ComponentsHolder(
+            *(_component_factory(d) for d in data.get("components", []))
+        )
         self._edited_timestamp: datetime.datetime | None = parse_time(data["edited_timestamp"])
 
     @property
@@ -952,18 +954,16 @@ class Message(Hashable):
         A list of sticker items given to the message.
 
         .. versionadded:: 1.6
-    components: List[:class:`Component`]
+    components: :class:`ComponentsHolder`
         A list of components in the message.
 
         .. versionadded:: 2.0
+
+        .. versionchanged:: 3.0
+            Now is of type :class:`ComponentsHolder` instead of :class:`list`.
+
     guild: Optional[:class:`Guild`]
         The guild that the message belongs to, if applicable.
-    interaction: Optional[:class:`MessageInteraction`]
-        The interaction associated with the message, if applicable.
-
-        .. deprecated:: 2.6
-
-            Use :attr:`interaction_metadata` instead.
     interaction_metadata: Optional[:class:`InteractionMetadata`]
         The interaction metadata associated with the message, if applicable.
 
@@ -1044,26 +1044,28 @@ class Message(Hashable):
         data: MessagePayload,
     ) -> Self:
         self = cls()
-        self._state = state
-        self._raw_data = data
-        self.id = int(data["id"])
-        self.webhook_id = get_as_snowflake(data, "webhook_id")
-        self.reactions = [Reaction(message=self, data=d) for d in data.get("reactions", [])]
-        self.attachments = [Attachment(data=a, state=self._state) for a in data["attachments"]]
-        self.embeds = [Embed.from_dict(a) for a in data["embeds"]]
-        self.application = data.get("application")
-        self.activity = data.get("activity")
-        self.channel = channel
-        self._edited_timestamp = parse_time(data["edited_timestamp"])
-        self.type = try_enum(MessageType, data["type"])
-        self.pinned = data["pinned"]
-        self.flags = MessageFlags._from_value(data.get("flags", 0))
-        self.mention_everyone = data["mention_everyone"]
-        self.tts = data["tts"]
-        self.content = data["content"]
-        self.nonce = data.get("nonce")
-        self.stickers = [StickerItem(data=d, state=state) for d in data.get("sticker_items", [])]
-        self.components = [_component_factory(d, state=state) for d in data.get("components", [])]
+        self._state: ConnectionState = state
+        self._raw_data: MessagePayload = data
+        self.id: int = int(data["id"])
+        self.webhook_id: int | None = get_as_snowflake(data, "webhook_id")
+        self.reactions: list[Reaction] = [Reaction(message=self, data=d) for d in data.get("reactions", [])]
+        self.attachments: list[Attachment] = [Attachment(data=a, state=self._state) for a in data["attachments"]]
+        self.embeds: list[Embed] = [Embed.from_dict(a) for a in data["embeds"]]
+        self.application: MessageApplicationPayload | None = data.get("application")
+        self.activity: MessageActivityPayload | None = data.get("activity")
+        self.channel: MessageableChannel = channel
+        self._edited_timestamp: datetime.datetime | None = parse_time(data["edited_timestamp"])
+        self.type: MessageType = try_enum(MessageType, data["type"])
+        self.pinned: bool = data["pinned"]
+        self.flags: MessageFlags = MessageFlags._from_value(data.get("flags", 0))
+        self.mention_everyone: bool = data["mention_everyone"]
+        self.tts: bool = data["tts"]
+        self.content: str = data["content"]
+        self.nonce: int | str | None = data.get("nonce")
+        self.stickers: list[StickerItem] = [StickerItem(data=d, state=state) for d in data.get("sticker_items", [])]
+        self.components: ComponentsHolder[AnyComponent] = ComponentsHolder(
+            *(_component_factory(d, state=state) for d in data.get("components", []))
+        )
 
         try:
             # if the channel doesn't have a guild attribute, we handle that
@@ -1092,7 +1094,7 @@ class Message(Hashable):
                         chan, _ = await state._get_guild_channel(resolved, guild_id=self.guild.id)
 
                     # the channel will be the correct type here
-                    ref.resolved = self.__class__(channel=chan, data=resolved, state=state)  # type: ignore
+                    ref.resolved = await self._from_data(channel=chan, data=resolved, state=state)  # type: ignore
 
         self.snapshots: list[MessageSnapshot]
         try:
@@ -1107,13 +1109,8 @@ class Message(Hashable):
         except KeyError:
             self.snapshots = []
 
-        from .interactions import InteractionMetadata, MessageInteraction  # circular import
+        from .interactions import InteractionMetadata  # circular import
 
-        self._interaction: MessageInteraction | None
-        try:
-            self._interaction = MessageInteraction(data=data["interaction"], state=state)
-        except KeyError:
-            self._interaction = None
         try:
             self.interaction_metadata = InteractionMetadata(data=data["interaction_metadata"], state=state)
         except KeyError:
@@ -1239,26 +1236,6 @@ class Message(Hashable):
     def _rebind_cached_references(self, new_guild: Guild, new_channel: TextChannel | Thread) -> None:
         self.guild = new_guild
         self.channel = new_channel
-
-    @property
-    def interaction(self) -> MessageInteraction | None:
-        warn_deprecated(
-            "interaction",
-            "interaction_metadata",
-            "2.6",
-            reference="https://discord.com/developers/docs/change-log#userinstallable-apps-preview",
-        )
-        return self._interaction
-
-    @interaction.setter
-    def interaction(self, value: MessageInteraction | None) -> None:
-        warn_deprecated(
-            "interaction",
-            "interaction_metadata",
-            "2.6",
-            reference="https://discord.com/developers/docs/change-log#userinstallable-apps-preview",
-        )
-        self._interaction = value
 
     @cached_slot_property("_cs_raw_mentions")
     def raw_mentions(self) -> list[int]:
@@ -1553,7 +1530,7 @@ class Message(Hashable):
         suppress: bool = ...,
         delete_after: float | None = ...,
         allowed_mentions: AllowedMentions | None = ...,
-        view: View | None = ...,
+        components: Sequence[AnyComponent] | None | utils.Undefined = MISSING,
     ) -> Message: ...
 
     async def edit(
@@ -1567,7 +1544,7 @@ class Message(Hashable):
         suppress: bool | utils.Undefined = MISSING,
         delete_after: float | None = None,
         allowed_mentions: AllowedMentions | None | utils.Undefined = MISSING,
-        view: View | None | utils.Undefined = MISSING,
+        components: Sequence[AnyComponent] | None | utils.Undefined = MISSING,
     ) -> Message:
         """|coro|
 
@@ -1616,9 +1593,8 @@ class Message(Hashable):
             are used instead.
 
             .. versionadded:: 1.4
-        view: Optional[:class:`~discord.ui.View`]
-            The updated view to update this message with. If ``None`` is passed then
-            the view is removed.
+        components:
+            The new components to replace the originals with. If ``None`` is passed then the components are removed.
 
         Raises
         ------
@@ -1663,11 +1639,14 @@ class Message(Hashable):
         if attachments is not MISSING:
             payload["attachments"] = [a.to_dict() for a in attachments]
 
-        if view is not MISSING:
-            await self._state.prevent_view_updates_for(self.id)
-            payload["components"] = view.to_components() if view else []
-            if view and view.is_components_v2():
-                flags.is_components_v2 = True
+        if components is not MISSING:
+            payload["components"] = []
+            if components:
+                for c in components:
+                    if c.any_is_v2():
+                        flags.is_components_v2 = True
+                    payload["components"].append(c.to_dict())
+
         if file is not MISSING and files is not MISSING:
             raise InvalidArgument("cannot pass both file and files parameter to edit()")
 
@@ -1701,12 +1680,6 @@ class Message(Hashable):
         else:
             data = await self._state.http.edit_message(self.channel.id, self.id, **payload)
         message = await Message._from_data(state=self._state, channel=self.channel, data=data)
-
-        if view and not view.is_finished():
-            view.message = message
-            view.refresh(message.components)
-            if view.is_dispatchable():
-                await self._state.store_view(view, self.id)
 
         if delete_after is not None:
             await self.delete(delay=delete_after)
@@ -2253,11 +2226,12 @@ class PartialMessage(Hashable):
             to the object, otherwise it uses the attributes set in :attr:`~discord.Client.allowed_mentions`.
             If no object is passed at all then the defaults given by :attr:`~discord.Client.allowed_mentions`
             are used instead.
-        view: Optional[:class:`~discord.ui.View`]
-            The updated view to update this message with. If ``None`` is passed then
-            the view is removed.
+        components:
+            The new components to replace the originals with. If ``None`` is passed then the components
+            are removed.
 
-            .. versionadded:: 2.0
+            .. versionchanged:: 3.0
+                Changed from view to components.
 
         Returns
         -------
@@ -2310,10 +2284,14 @@ class PartialMessage(Hashable):
                 self._state.allowed_mentions.to_dict() if self._state.allowed_mentions else None
             )
 
-        view = fields.pop("view", MISSING)
-        if view is not MISSING:
-            await self._state.prevent_view_updates_for(self.id)
-            fields["components"] = view.to_components() if view else []
+        components = fields.pop("components", MISSING)
+        if components is not MISSING:
+            fields["components"] = []
+            if components:
+                for c in components:
+                    if c.any_is_v2():
+                        flags.is_components_v2 = True
+                    fields["components"].append(c.to_dict())
 
         if fields:
             data = await self._state.http.edit_message(self.channel.id, self.id, **fields)
@@ -2324,11 +2302,6 @@ class PartialMessage(Hashable):
         if fields:
             # data isn't unbound
             msg = self._state.create_message(channel=self.channel, data=data)  # type: ignore
-            if view and not view.is_finished():
-                view.message = msg
-                view.refresh(msg.components)
-                if view.is_dispatchable():
-                    await self._state.store_view(view, self.id)
             return msg
 
     async def end_poll(self) -> Message:
