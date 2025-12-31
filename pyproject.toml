@@ -8,7 +8,7 @@ authors = [
     {name = "Pycord Development"}
 ]
 description = "A Python wrapper for the Discord API"
-readme = {content-type = "text/x-rst", file = "README.rst"}
+readme = {content-type = "text/markdown", file = "README.md"}
 requires-python = ">=3.10,<3.14"
 license = "MIT"
 license-files = ["LICENSE"]
@@ -31,7 +31,7 @@ classifiers = [
 dynamic = ["version"]
 dependencies = [
     "aiohttp>=3.6.0,<4.0",
-    "colorlog~=6.9.0",
+    "colorlog~=6.10.1",
     "typing-extensions>=4,<5",
 ]
 
@@ -54,8 +54,8 @@ speed = [
 
 [dependency-groups]
 docs = [
-    "furo==2024.8.6",
-    "levenshtein==0.27.1",
+    "furo==2025.12.19",
+    "levenshtein==0.27.3",
     "myst-parser[linkify]==4.0.1",
     "sphinx==8.0.2",
     "sphinx-autodoc-typehints==2.5.0",
@@ -69,13 +69,12 @@ docs = [
 dev = [
     "codespell==2.4.1",
     "coverage~=7.8",
-    "mypy~=1.18.1",
-    "pre-commit==4.3.0",
     "python-dotenv>=1.1.1",
     "ruff>=0.12.12",
     "tox>=4.27.0",
     "tox-gh>=1.5.0",
     "tox-uv>=1.26.1",
+    "ty>=0.0.7",
 ]
 
 test = [# Not in `dev` because we use tox for testing. Tox will install these dependencies.
@@ -120,12 +119,13 @@ exclude = [
 
 [tool.ruff.lint]
 select = ["ALL"]
-per-file-ignores = {}
+
 # When ignoring a rule globally, please consider if it can be ignored in a more specific way.
 # Also, leave a comment explaining why the rule is ignored.
 extend-ignore = [
     "A001", # Ignored when migrating from original codebase, idem for others if not mentioned otherwise
     "PLW1641", # Object does not implement `__hash__` method
+    "PLC0415", # Allow non top-level imports in some files
     "A002",
     "A005",
     "ANN001",
@@ -295,15 +295,44 @@ extend-ignore = [
     "SLF001",
     "W293",
     "D211",
-    "D203" # conflicts with formatter
+    "D203", # conflicts with formatter
+    "PLR0904", # not suitable for a library like pycord
 ]
 
-[tool.mypy]
-namespace_packages = true
-install_types = true
-strict = true
-show_error_codes = true
-ignore_errors = true
+[tool.ty.environment]
+python-platform = "all"
+python-version = "3.10"
+
+[tool.ty.rules]
+unresolved-attribute = "warn"
+invalid-argument-type = "warn"
+invalid-parameter-default = "warn"
+invalid-assignment = "warn"
+invalid-method-override = "warn"
+call-non-callable = "warn"
+invalid-return-type = "warn"
+invalid-await = "warn"
+not-iterable = "warn"
+invalid-type-form = "warn"
+no-matching-overload = "warn"
+unsupported-operator = "warn"
+invalid-key = "warn"
+invalid-type-arguments = "warn"
+missing-argument = "warn"
+invalid-overload = "warn"
+non-subscriptable = "warn"
+invalid-super-argument = "warn"
+parameter-already-assigned = "warn"
+unknown-argument = "warn"
+too-many-positional-arguments = "warn"
+unresolved-import = "warn"
+missing-typed-dict-key = "warn"
+
+[[tool.ty.overrides]]
+include = ["tests/**"]
+
+[tool.ty.overrides.rules]
+unresolved-import = "ignore"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

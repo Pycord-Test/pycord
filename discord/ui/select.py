@@ -32,6 +32,7 @@ from typing import TYPE_CHECKING, Callable, TypeVar
 from discord import utils
 
 from ..channel import _threaded_guild_channel_factory
+from ..channel.thread import Thread
 from ..components import SelectMenu, SelectOption
 from ..emoji import AppEmoji, GuildEmoji
 from ..enums import ChannelType, ComponentType
@@ -40,7 +41,6 @@ from ..interactions import Interaction
 from ..member import Member
 from ..partial_emoji import PartialEmoji
 from ..role import Role
-from ..threads import Thread
 from ..user import User
 from ..utils import MISSING
 from .item import Item, ItemCallbackType
@@ -58,7 +58,7 @@ __all__ = (
 if TYPE_CHECKING:
     from typing_extensions import Self
 
-    from ..abc import GuildChannel
+    from ..channel.base import GuildChannel
     from ..types.components import SelectMenu as SelectMenuPayload
     from ..types.interactions import ComponentInteractionData
     from .view import View
@@ -72,7 +72,7 @@ class Select(Item[V]):
 
     This is usually represented as a drop down menu.
 
-    In order to get the selected items that the user has chosen, use :attr:`Select.values`.
+    In order to get the selected items that the user has chosen, use :meth:`Select.get_values`.
 
     .. versionadded:: 2.0
 
@@ -332,8 +332,7 @@ class Select(Item[V]):
         self._underlying.options.append(option)
         return self
 
-    @property
-    def values(
+    async def get_values(
         self,
     ) -> list[str] | list[Member | User] | list[Role] | list[Member | User | Role] | list[GuildChannel | Thread]:
         """List[:class:`str`] | List[:class:`discord.Member` | :class:`discord.User`]] | List[:class:`discord.Role`]] |
@@ -382,7 +381,7 @@ class Select(Item[V]):
                         member = dict(_member_data)
                         member["user"] = _data
                         _data = member
-                        result = guild._get_and_update_member(_data, int(_id), cache_flag)
+                        result = await guild._get_and_update_member(_data, int(_id), cache_flag)
                     else:
                         result = User(state=state, data=_data)
                     resolved.append(result)
@@ -463,7 +462,7 @@ def select(
     the :class:`discord.Interaction` you receive.
 
     In order to get the selected items that the user has chosen within the callback
-    use :attr:`Select.values`.
+    use :meth:`Select.get_values`.
 
     .. versionchanged:: 2.3
 

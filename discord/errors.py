@@ -31,7 +31,7 @@ if TYPE_CHECKING:
     from aiohttp import ClientResponse, ClientWebSocketResponse
 
     try:
-        from requests import Response
+        from requests import Response  # ty: ignore[unresolved-import]
 
         _ResponseType = ClientResponse | Response
     except ModuleNotFoundError:
@@ -40,6 +40,7 @@ if TYPE_CHECKING:
     from .interactions import Interaction
 
 __all__ = (
+    "AnnotationMismatch",
     "DiscordException",
     "ClientException",
     "NoMoreItems",
@@ -95,6 +96,10 @@ class GatewayNotFound(DiscordException):
 
 class ValidationError(DiscordException):
     """An Exception that is raised when there is a Validation Error."""
+
+
+class AnnotationMismatch(SyntaxError, ValidationError):
+    """An Exception that is raised when an annotation does not match the type of the value."""
 
 
 def _flatten_error_dict(d: dict[str, Any], key: str = "") -> dict[str, str]:

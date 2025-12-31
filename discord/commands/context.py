@@ -39,6 +39,7 @@ if TYPE_CHECKING:
     import discord
 
     from .. import Bot
+    from ..app.state import ConnectionState
     from ..client import ClientUser
     from ..cog import Cog
     from ..guild import Guild
@@ -46,7 +47,6 @@ if TYPE_CHECKING:
     from ..member import Member
     from ..message import Message
     from ..permissions import Permissions
-    from ..state import ConnectionState
     from ..user import User
     from ..voice_client import VoiceClient
     from ..webhook import WebhookMessage

@@ -231,6 +231,11 @@ Role
 .. autoclass:: RoleColours
     :members:
 
+.. attributetable:: GuildRoleCounts
+
+.. autoclass:: GuildRoleCounts()
+    :members:
+
 Scheduled Event
 ~~~~~~~~~~~~~~~
 
@@ -505,6 +510,19 @@ Channels
     :members:
     :inherited-members:
 
+.. attributetable:: NewsChannel
+
+.. autoclass:: NewsChannel()
+    :members:
+    :inherited-members:
+    :exclude-members: history, typing
+
+    .. automethod:: history
+        :async-for:
+
+    .. automethod:: typing
+        :async-with:
+
 .. attributetable:: CategoryChannel
 
 .. autoclass:: CategoryChannel()
@@ -660,11 +678,6 @@ Events
 .. attributetable:: RawVoiceChannelStatusUpdateEvent
 
 .. autoclass:: RawVoiceChannelStatusUpdateEvent()
-    :members:
-
-.. attributetable:: VoiceChannelEffectSendEvent
-
-.. autoclass:: VoiceChannelEffectSendEvent()
     :members:
 
 

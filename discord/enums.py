@@ -82,6 +82,7 @@ __all__ = (
     "EntitlementOwnerType",
     "IntegrationType",
     "InteractionContextType",
+    "ApplicationCommandPermissionType",
     "PollLayoutType",
     "MessageReferenceType",
     "ThreadArchiveDuration",
@@ -736,69 +737,6 @@ class SlashCommandOptionType(Enum):
     number = 10
     attachment = 11
 
-    @classmethod
-    def from_datatype(cls, datatype):
-        if isinstance(datatype, tuple):  # typing.Union has been used
-            datatypes = [cls.from_datatype(op) for op in datatype]
-            if all(x == cls.channel for x in datatypes):
-                return cls.channel
-            elif set(datatypes) <= {cls.role, cls.user}:
-                return cls.mentionable
-            else:
-                raise TypeError("Invalid usage of typing.Union")
-
-        py_3_10_union_type = hasattr(types, "UnionType") and isinstance(datatype, types.UnionType)
-
-        if py_3_10_union_type or getattr(datatype, "__origin__", None) is Union:
-            # Python 3.10+ "|" operator or typing.Union has been used. The __args__ attribute is a tuple of the types.
-            # Type checking fails for this case, so ignore it.
-            return cls.from_datatype(datatype.__args__)  # type: ignore
-
-        if isinstance(datatype, str):
-            datatype_name = datatype
-        else:
-            datatype_name = datatype.__name__
-        if datatype_name in ["Member", "User"]:
-            return cls.user
-        if datatype_name in [
-            "GuildChannel",
-            "TextChannel",
-            "VoiceChannel",
-            "StageChannel",
-            "CategoryChannel",
-            "ThreadOption",
-            "Thread",
-            "ForumChannel",
-            "MediaChannel",
-            "DMChannel",
-        ]:
-            return cls.channel
-        if datatype_name == "Role":
-            return cls.role
-        if datatype_name == "Attachment":
-            return cls.attachment
-        if datatype_name == "Mentionable":
-            return cls.mentionable
-
-        if isinstance(datatype, str) or issubclass(datatype, str):
-            return cls.string
-        if issubclass(datatype, bool):
-            return cls.boolean
-        if issubclass(datatype, int):
-            return cls.integer
-        if issubclass(datatype, float):
-            return cls.number
-
-        from .commands.context import ApplicationContext  # noqa: PLC0415
-        from .ext.bridge import BridgeContext  # noqa: PLC0415
-
-        if not issubclass(
-            datatype, (ApplicationContext, BridgeContext)
-        ):  # TODO: prevent ctx being passed here in cog commands
-            raise TypeError(
-                f"Invalid class {datatype} used as an input type for an Option"
-            )  # TODO: Improve the error message
-
 
 class EmbeddedActivity(Enum):
     """Embedded activity"""
@@ -1041,6 +979,14 @@ class SeparatorSpacingSize(Enum):
 
     def __int__(self):
         return self.value
+
+
+class ApplicationCommandPermissionType(Enum):
+    """The type of permission"""
+
+    role = 1
+    user = 2
+    channel = 3
 
 
 def try_enum(cls: type[E], val: Any) -> E:

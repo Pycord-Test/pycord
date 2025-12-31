@@ -45,7 +45,10 @@ from typing import (
     Union,
 )
 
+from discord.interactions import AutocompleteInteraction, Interaction
+
 from ..channel import PartialMessageable, _threaded_guild_channel_factory
+from ..channel.thread import Thread
 from ..enums import Enum as DiscordEnum
 from ..enums import (
     IntegrationType,
@@ -66,7 +69,6 @@ from ..member import Member
 from ..message import Attachment, Message
 from ..object import Object
 from ..role import Role
-from ..threads import Thread
 from ..user import User
 from ..utils import MISSING, find, utcnow
 from ..utils.private import async_all, maybe_awaitable, warn_deprecated
@@ -111,7 +113,7 @@ else:
 
 
 def wrap_callback(coro):
-    from ..ext.commands.errors import CommandError  # noqa: PLC0415
+    from ..ext.commands.errors import CommandError
 
     @functools.wraps(coro)
     async def wrapped(*args, **kwargs):
@@ -131,7 +133,7 @@ def wrap_callback(coro):
 
 
 def hooked_wrapped_callback(command, ctx, coro):
-    from ..ext.commands.errors import CommandError  # noqa: PLC0415
+    from ..ext.commands.errors import CommandError
 
     @functools.wraps(coro)
     async def wrapped(arg):
@@ -188,7 +190,7 @@ class ApplicationCommand(_BaseCommand, Generic[CogT, P, T]):
     cog = None
 
     def __init__(self, func: Callable, **kwargs) -> None:
-        from ..ext.commands.cooldowns import BucketType, CooldownMapping, MaxConcurrency  # noqa: PLC0415
+        from ..ext.commands.cooldowns import BucketType, CooldownMapping, MaxConcurrency
 
         cooldown = getattr(func, "__commands_cooldown__", kwargs.get("cooldown"))
 
@@ -330,7 +332,7 @@ class ApplicationCommand(_BaseCommand, Generic[CogT, P, T]):
                 retry_after = bucket.update_rate_limit(current)
 
                 if retry_after:
-                    from ..ext.commands.errors import CommandOnCooldown  # noqa: PLC0415
+                    from ..ext.commands.errors import CommandOnCooldown
 
                     raise CommandOnCooldown(bucket, retry_after, self._buckets.type)  # type: ignore
 
@@ -464,7 +466,9 @@ class ApplicationCommand(_BaseCommand, Generic[CogT, P, T]):
                     wrapped = wrap_callback(local)
                     await wrapped(ctx, error)
         finally:
-            ctx.bot.dispatch("application_command_error", ctx, error)
+            ctx.bot.dispatch(
+                "application_command_error", ctx, error
+            )  # TODO: Remove this when migrating away from ApplicationContext
 
     def _get_signature_parameters(self):
         return OrderedDict(inspect.signature(self.callback).parameters)
@@ -963,7 +967,7 @@ class SlashCommand(ApplicationCommand):
                         # We resolved the user from the user id
                         _data["user"] = _user_data
                     cache_flag = ctx.interaction._state.member_cache_flags.interaction
-                    arg = ctx.guild._get_and_update_member(_data, int(arg), cache_flag)
+                    arg = await ctx.guild._get_and_update_member(_data, int(arg), cache_flag)
                 elif op.input_type is SlashCommandOptionType.mentionable:
                     if (_data := resolved.get("users", {}).get(arg)) is not None:
                         arg = User(state=ctx.interaction._state, data=_data)
@@ -1003,7 +1007,7 @@ class SlashCommand(ApplicationCommand):
                     arg = Object(id=int(arg))
 
             elif op.input_type == SlashCommandOptionType.string and (converter := op.converter) is not None:
-                from discord.ext.commands import Converter  # noqa: PLC0415
+                from discord.ext.commands import Converter
 
                 if isinstance(converter, Converter):
                     if isinstance(converter, type):
@@ -1042,30 +1046,14 @@ class SlashCommand(ApplicationCommand):
         else:
             await self.callback(ctx, **kwargs)
 
-    async def invoke_autocomplete_callback(self, ctx: AutocompleteContext):
-        values = {i.name: i.default for i in self.options}
+    async def invoke_autocomplete_callback(self, interaction: AutocompleteInteraction) -> None:
+        option = find(lambda o: o.name == interaction.name, self.options)
+        if not option.autocomplete:
+            raise ClientException(f"Option {interaction.name} is not an autocomplete option.")
+        result = await option.autocomplete(interaction)
 
-        for op in ctx.interaction.data.get("options", []):
-            if op.get("focused", False):
-                # op_name is used because loop variables leak in surrounding scope
-                option = find(lambda o, op_name=op["name"]: o.name == op_name, self.options)
-                values.update({i["name"]: i["value"] for i in ctx.interaction.data["options"]})
-                ctx.command = self
-                ctx.focused = option
-                ctx.value = op.get("value")
-                ctx.options = values
-
-                if option.autocomplete._is_instance_method:
-                    instance = getattr(option.autocomplete, "__self__", ctx.cog)
-                    result = option.autocomplete(instance, ctx)
-                else:
-                    result = option.autocomplete(ctx)
-
-                if inspect.isawaitable(result):
-                    result = await result
-
-                choices = [o if isinstance(o, OptionChoice) else OptionChoice(o) for o in result][:25]
-                return await ctx.interaction.response.send_autocomplete_result(choices=choices)
+        choices = [o if isinstance(o, OptionChoice) else OptionChoice(o) for o in result][:25]
+        return await interaction.response.send_autocomplete_result(choices=choices)
 
     def copy(self):
         """Creates a copy of this command.
@@ -1230,7 +1218,7 @@ class SlashCommandGroup(ApplicationCommand):
         self.description_localizations: dict[str, str] = kwargs.get("description_localizations", MISSING)
 
         # similar to ApplicationCommand
-        from ..ext.commands.cooldowns import BucketType, CooldownMapping, MaxConcurrency  # noqa: PLC0415
+        from ..ext.commands.cooldowns import BucketType, CooldownMapping, MaxConcurrency
 
         # no need to getattr, since slash cmds groups cant be created using a decorator
 
@@ -1416,11 +1404,10 @@ class SlashCommandGroup(ApplicationCommand):
         ctx.interaction.data = option
         await command.invoke(ctx)
 
-    async def invoke_autocomplete_callback(self, ctx: AutocompleteContext) -> None:
-        option = ctx.interaction.data["options"][0]
+    async def invoke_autocomplete_callback(self, interaction: AutocompleteInteraction) -> None:
+        option = interaction.data["options"][0]
         command = find(lambda x: x.name == option["name"], self.subcommands)
-        ctx.interaction.data = option
-        await command.invoke_autocomplete_callback(ctx)
+        await command.invoke_autocomplete_callback(interaction)
 
     async def call_before_hooks(self, ctx: ApplicationContext) -> None:
         # only call local hooks
@@ -1708,7 +1695,7 @@ class UserCommand(ContextMenuCommand):
                 user = v
             member["user"] = user
             cache_flag = ctx.interaction._state.member_cache_flags.interaction
-            target = ctx.guild._get_and_update_member(member, user["id"], cache_flag)
+            target = await ctx.guild._get_and_update_member(member, user["id"], cache_flag)
         if self.cog is not None:
             await self.callback(self.cog, ctx, target)
         else:
@@ -1815,7 +1802,7 @@ class MessageCommand(ContextMenuCommand):
             # we got weird stuff going on, make up a channel
             channel = PartialMessageable(state=ctx.interaction._state, id=int(message["channel_id"]))
 
-        target = Message(state=ctx.interaction._state, channel=channel, data=message)
+        target = Message._from_data(state=ctx.interaction._state, channel=channel, data=message)
 
         if self.cog is not None:
             await self.callback(self.cog, ctx, target)

@@ -39,7 +39,6 @@ from typing import TYPE_CHECKING
 
 import aiohttp
 
-from . import utils
 from .activity import BaseActivity
 from .enums import SpeakingState
 from .errors import ConnectionClosed, InvalidArgument
@@ -290,10 +289,6 @@ class DiscordWebSocket:
         self.socket = socket
         self.loop = loop
 
-        # an empty dispatcher to prevent crashes
-        self._dispatch = lambda *args: None
-        # generic event listeners
-        self._dispatch_listeners = []
         # the keep alive
         self._keep_alive = None
         self.thread_id = threading.get_ident()
@@ -314,10 +309,10 @@ class DiscordWebSocket:
     def is_ratelimited(self):
         return self._rate_limiter.is_ratelimited()
 
-    def debug_log_receive(self, data, /):
-        self._dispatch("socket_raw_receive", data)
+    async def debug_log_receive(self, data, /):
+        await self._emitter.emit("socket_raw_receive", data)
 
-    def log_receive(self, _, /):
+    async def log_receive(self, _, /):
         pass
 
     @classmethod
@@ -343,8 +338,7 @@ class DiscordWebSocket:
         # dynamically add attributes needed
         ws.token = client.http.token
         ws._connection = client._connection
-        ws._discord_parsers = client._connection.parsers
-        ws._dispatch = client.dispatch
+        ws._emitter = client._connection.emitter
         ws.gateway = gateway
         ws.call_hooks = client._connection.call_hooks
         ws._initial_identify = initial
@@ -372,31 +366,6 @@ class DiscordWebSocket:
 
         await ws.resume()
         return ws
-
-    def wait_for(self, event, predicate, result=None):
-        """Waits for a DISPATCH'd event that meets the predicate.
-
-        Parameters
-        ----------
-        event: :class:`str`
-            The event name in all upper case to wait for.
-        predicate
-            A function that takes a data parameter to check for event
-            properties. The data parameter is the 'd' key in the JSON message.
-        result
-            A function that takes the same data parameter and executes to send
-            the result to the future. If ``None``, returns the data.
-
-        Returns
-        -------
-        asyncio.Future
-            A future to wait for.
-        """
-
-        future = self.loop.create_future()
-        entry = EventListener(event=event, predicate=predicate, result=result, future=future)
-        self._dispatch_listeners.append(entry)
-        return future
 
     async def identify(self):
         """Sends the IDENTIFY packet."""
@@ -458,13 +427,13 @@ class DiscordWebSocket:
             msg = msg.decode("utf-8")
             self._buffer = bytearray()
 
-        self.log_receive(msg)
+        await self.log_receive(msg)
         msg = from_json(msg)
 
         _log.debug("For Shard ID %s: WebSocket Event: %s", self.shard_id, msg)
         event = msg.get("t")
         if event:
-            self._dispatch("socket_event_type", event)
+            await self._emitter.emit("socket_event_type", event)
 
         op = msg.get("op")
         data = msg.get("d")
@@ -542,37 +511,7 @@ class DiscordWebSocket:
                 ", ".join(trace),
             )
 
-        try:
-            func = self._discord_parsers[event]
-        except KeyError:
-            _log.debug("Unknown event %s.", event)
-        else:
-            func(data)
-
-        # remove the dispatched listeners
-        removed = []
-        for index, entry in enumerate(self._dispatch_listeners):
-            if entry.event != event:
-                continue
-
-            future = entry.future
-            if future.cancelled():
-                removed.append(index)
-                continue
-
-            try:
-                valid = entry.predicate(data)
-            except Exception as exc:
-                future.set_exception(exc)
-                removed.append(index)
-            else:
-                if valid:
-                    ret = data if entry.result is None else entry.result(data)
-                    future.set_result(ret)
-                    removed.append(index)
-
-        for index in reversed(removed):
-            del self._dispatch_listeners[index]
+        await self._emitter.emit(event, data)
 
     @property
     def latency(self) -> float:
@@ -637,7 +576,7 @@ class DiscordWebSocket:
 
     async def debug_send(self, data, /):
         await self._rate_limiter.block()
-        self._dispatch("socket_raw_send", data)
+        await self._emitter.emit("socket_raw_send", data)
         await self.socket.send_str(data)
 
     async def send(self, data, /):

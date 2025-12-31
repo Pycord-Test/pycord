@@ -31,6 +31,7 @@ from collections import deque
 from typing import TYPE_CHECKING, Any, Callable, Deque, TypeVar
 
 import discord.abc
+import discord.channel.base
 from discord.enums import Enum
 
 from ...abc import PrivateChannel
@@ -72,7 +73,7 @@ class BucketType(Enum):
         elif self is BucketType.category:
             return (
                 msg.channel.category.id
-                if isinstance(msg.channel, discord.abc.GuildChannel) and msg.channel.category
+                if isinstance(msg.channel, discord.channel.base.GuildChannel) and msg.channel.category
                 else msg.channel.id
             )
         elif self is BucketType.role:

@@ -21,6 +21,7 @@ The following section outlines the API of Pycord.
   clients
   application_commands
   cogs
+  gears
   application_info
   voice
   events

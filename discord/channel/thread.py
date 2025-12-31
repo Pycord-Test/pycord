@@ -27,19 +27,23 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Callable, Iterable
 
+from typing_extensions import override
+
 from discord import utils
 
-from .abc import Messageable, _purge_messages_helper
-from .enums import (
+from ..abc import Messageable, _purge_messages_helper
+from ..enums import (
     ChannelType,
     try_enum,
 )
-from .enums import ThreadArchiveDuration as ThreadArchiveDurationEnum
-from .errors import ClientException
-from .flags import ChannelFlags
-from .mixins import Hashable
-from .utils import MISSING
-from .utils.private import get_as_snowflake, parse_time
+from ..enums import ThreadArchiveDuration as ThreadArchiveDurationEnum
+from ..errors import ClientException
+from ..flags import ChannelFlags
+from ..mixins import Hashable
+from ..types.threads import Thread as ThreadPayload
+from ..utils import MISSING
+from ..utils.private import get_as_snowflake, parse_time
+from .base import BaseChannel, GuildMessageableChannel
 
 __all__ = (
     "Thread",
@@ -47,21 +51,20 @@ __all__ = (
 )
 
 if TYPE_CHECKING:
-    from .abc import Snowflake, SnowflakeTime
-    from .channel import CategoryChannel, ForumChannel, ForumTag, TextChannel
-    from .guild import Guild
-    from .member import Member
-    from .message import Message, PartialMessage
-    from .permissions import Permissions
-    from .role import Role
-    from .state import ConnectionState
-    from .types.snowflake import SnowflakeList
-    from .types.threads import Thread as ThreadPayload
-    from .types.threads import ThreadArchiveDuration, ThreadMetadata
-    from .types.threads import ThreadMember as ThreadMemberPayload
+    from ..abc import Snowflake, SnowflakeTime
+    from ..app.state import ConnectionState
+    from ..guild import Guild
+    from ..member import Member
+    from ..message import Message, PartialMessage
+    from ..permissions import Permissions
+    from ..role import Role
+    from ..types.snowflake import SnowflakeList
+    from ..types.threads import ThreadArchiveDuration, ThreadMetadata
+    from ..types.threads import ThreadMember as ThreadMemberPayload
+    from . import CategoryChannel, ForumChannel, ForumTag, TextChannel
 
 
-class Thread(Messageable, Hashable):
+class Thread(BaseChannel[ThreadPayload], GuildMessageableChannel):
     """Represents a Discord thread.
 
     .. container:: operations
@@ -86,55 +89,55 @@ class Thread(Messageable, Hashable):
 
     Attributes
     ----------
-    name: :class:`str`
+    name: str
         The thread name.
-    guild: :class:`Guild`
+    guild: Guild
         The guild the thread belongs to.
-    id: :class:`int`
+    id: int
         The thread ID.
 
         .. note::
             This ID is the same as the thread starting message ID.
 
-    parent_id: :class:`int`
+    parent_id: int
         The parent :class:`TextChannel` ID this thread belongs to.
-    owner_id: :class:`int`
+    owner_id: int
         The user's ID that created this thread.
-    last_message_id: Optional[:class:`int`]
+    last_message_id: int | None
         The last message ID of the message sent to this thread. It may
         *not* point to an existing or valid message.
-    slowmode_delay: :class:`int`
+    slowmode_delay: int
         The number of seconds a member must wait between sending messages
         in this thread. A value of `0` denotes that it is disabled.
         Bots and users with :attr:`~Permissions.manage_channels` or
         :attr:`~Permissions.manage_messages` bypass slowmode.
-    message_count: :class:`int`
+    message_count: int
         An approximate number of messages in this thread. This caps at 50.
-    member_count: :class:`int`
+    member_count: int
         An approximate number of members in this thread. This caps at 50.
-    me: Optional[:class:`ThreadMember`]
+    me: ThreadMember | None
         A thread member representing yourself, if you've joined the thread.
         This could not be available.
-    archived: :class:`bool`
+    archived: bool
         Whether the thread is archived.
-    locked: :class:`bool`
+    locked: bool
         Whether the thread is locked.
-    invitable: :class:`bool`
+    invitable: bool
         Whether non-moderators can add other non-moderators to this thread.
         This is always ``True`` for public threads.
-    auto_archive_duration: :class:`int`
+    auto_archive_duration: int
         The duration in minutes until the thread is automatically archived due to inactivity.
         Usually a value of 60, 1440, 4320 and 10080.
-    archive_timestamp: :class:`datetime.datetime`
+    archive_timestamp: datetime.datetime
         An aware timestamp of when the thread's archived status was last updated in UTC.
-    created_at: Optional[:class:`datetime.datetime`]
+    created_at: datetime.datetime | None
         An aware timestamp of when the thread was created.
         Only available for threads created after 2022-01-09.
-    flags: :class:`ChannelFlags`
+    flags: ChannelFlags
         Extra features of the thread.
 
         .. versionadded:: 2.0
-    total_message_sent: :class:`int`
+    total_message_sent: int
         Number of messages ever sent in a thread.
         It's similar to message_count on message creation,
         but will not decrement the number when a message is deleted.
@@ -142,20 +145,14 @@ class Thread(Messageable, Hashable):
         .. versionadded:: 2.3
     """
 
-    __slots__ = (
-        "name",
-        "id",
+    __slots__: tuple[str, ...] = (
         "guild",
-        "_type",
-        "_state",
         "_members",
         "_applied_tags",
         "owner_id",
         "parent_id",
-        "last_message_id",
         "message_count",
         "member_count",
-        "slowmode_delay",
         "me",
         "locked",
         "archived",
@@ -163,86 +160,83 @@ class Thread(Messageable, Hashable):
         "auto_archive_duration",
         "archive_timestamp",
         "created_at",
-        "flags",
         "total_message_sent",
     )
 
-    def __init__(self, *, guild: Guild, state: ConnectionState, data: ThreadPayload):
-        self._state: ConnectionState = state
-        self.guild = guild
+    @override
+    def __init__(self, *, id: int, guild: Guild, state: ConnectionState):
+        super().__init__(id, state)
+        self.guild: Guild = guild
         self._members: dict[int, ThreadMember] = {}
-        self._from_data(data)
+
+    @classmethod
+    @override
+    async def _from_data(
+        cls,
+        *,
+        data: ThreadPayload,
+        state: ConnectionState,
+        guild: Guild,
+    ) -> Thread:
+        """Create thread instance from API payload."""
+        self = cls(
+            id=int(data["id"]),
+            guild=guild,
+            state=state,
+        )
+        await self._update(data)
+        return self
+
+    @override
+    async def _update(self, data: ThreadPayload) -> None:
+        """Update mutable attributes from API payload."""
+        await super()._update(data)
+
+        # Thread-specific attributes
+        self.parent_id: int = int(data.get("parent_id", self.parent_id if hasattr(self, "parent_id") else 0))
+        self.owner_id: int | None = int(data["owner_id"]) if data.get("owner_id") is not None else None
+        self.message_count: int | None = data.get("message_count")
+        self.member_count: int | None = data.get("member_count")
+        self.total_message_sent: int | None = data.get("total_message_sent")
+        self._applied_tags: list[int] = [int(tag_id) for tag_id in data.get("applied_tags", [])]
+
+        # Handle thread metadata
+        if "thread_metadata" in data:
+            metadata = data["thread_metadata"]
+            self.archived: bool = metadata["archived"]
+            self.auto_archive_duration: int = metadata["auto_archive_duration"]
+            self.archive_timestamp = parse_time(metadata["archive_timestamp"])
+            self.locked: bool = metadata["locked"]
+            self.invitable: bool = metadata.get("invitable", True)
+            self.created_at = parse_time(metadata.get("create_timestamp"))
+
+        # Handle thread member data
+        if "member" in data:
+            self.me: ThreadMember | None = ThreadMember(self, data["member"])
+        elif not hasattr(self, "me"):
+            self.me = None
 
     async def _get_channel(self):
         return self
 
+    @override
     def __repr__(self) -> str:
         return (
             f"<Thread id={self.id!r} name={self.name!r} parent={self.parent}"
             f" owner_id={self.owner_id!r} locked={self.locked} archived={self.archived}>"
         )
 
-    def __str__(self) -> str:
-        return self.name
+    @property
+    def topic(self) -> None:
+        """Threads don't have topics. Always returns None."""
+        return None
 
-    def _from_data(self, data: ThreadPayload):
-        # This data will always exist
-        self.id = int(data["id"])
-        self.parent_id = int(data["parent_id"])
-        self.name = data["name"]
-        self._type = try_enum(ChannelType, data["type"])
-
-        # This data may be missing depending on how this object is being created
-        self.owner_id = int(data.get("owner_id")) if data.get("owner_id", None) is not None else None
-        self.last_message_id = get_as_snowflake(data, "last_message_id")
-        self.slowmode_delay = data.get("rate_limit_per_user", 0)
-        self.message_count = data.get("message_count", None)
-        self.member_count = data.get("member_count", None)
-        self.flags: ChannelFlags = ChannelFlags._from_value(data.get("flags", 0))
-        self.total_message_sent = data.get("total_message_sent", None)
-        self._applied_tags: list[int] = [int(tag_id) for tag_id in data.get("applied_tags", [])]
-
-        # Here, we try to fill in potentially missing data
-        if thread := self.guild.get_thread(self.id) and data.pop("_invoke_flag", False):
-            self.owner_id = thread.owner_id if self.owner_id is None else self.owner_id
-            self.last_message_id = thread.last_message_id if self.last_message_id is None else self.last_message_id
-            self.message_count = thread.message_count if self.message_count is None else self.message_count
-            self.total_message_sent = (
-                thread.total_message_sent if self.total_message_sent is None else self.total_message_sent
-            )
-            self.member_count = thread.member_count if self.member_count is None else self.member_count
-
-        self._unroll_metadata(data["thread_metadata"])
-
-        try:
-            member = data["member"]
-        except KeyError:
-            self.me = None
-        else:
-            self.me = ThreadMember(self, member)
-
-    def _unroll_metadata(self, data: ThreadMetadata):
-        self.archived = data["archived"]
-        self.auto_archive_duration = data["auto_archive_duration"]
-        self.archive_timestamp = parse_time(data["archive_timestamp"])
-        self.locked = data["locked"]
-        self.invitable = data.get("invitable", True)
-        self.created_at = parse_time(data.get("create_timestamp", None))
-
-    def _update(self, data):
-        try:
-            self.name = data["name"]
-        except KeyError:
-            pass
-
-        self._applied_tags: list[int] = [int(tag_id) for tag_id in data.get("applied_tags", [])]
-        self.flags: ChannelFlags = ChannelFlags._from_value(data.get("flags", 0))
-        self.slowmode_delay = data.get("rate_limit_per_user", 0)
-
-        try:
-            self._unroll_metadata(data["thread_metadata"])
-        except KeyError:
-            pass
+    @property
+    @override
+    def nsfw(self) -> bool:
+        """Whether the thread is NSFW. Inherited from parent channel."""
+        parent = self.parent
+        return parent.nsfw if parent else False
 
     @property
     def type(self) -> ChannelType:
@@ -254,10 +248,9 @@ class Thread(Messageable, Hashable):
         """The parent channel this thread belongs to."""
         return self.guild.get_channel(self.parent_id)  # type: ignore
 
-    @property
-    def owner(self) -> Member | None:
+    async def get_owner(self) -> Member | None:
         """The member this thread belongs to."""
-        return self.guild.get_member(self.owner_id)
+        return await self.guild.get_member(self.owner_id)
 
     @property
     def mention(self) -> str:
@@ -288,14 +281,13 @@ class Thread(Messageable, Hashable):
 
         This is only available for threads in forum or media channels.
         """
-        from .channel import ForumChannel  # noqa: PLC0415 # to prevent circular import
+        from .channel import ForumChannel  # to prevent circular import
 
         if isinstance(self.parent, ForumChannel):
             return [tag for tag_id in self._applied_tags if (tag := self.parent.get_tag(tag_id)) is not None]
         return []
 
-    @property
-    def last_message(self) -> Message | None:
+    async def get_last_message(self) -> Message | None:
         """Returns the last message from this thread in cache.
 
         The message might not be valid or point to an existing message.
@@ -313,7 +305,7 @@ class Thread(Messageable, Hashable):
         Optional[:class:`Message`]
             The last message in this channel or ``None`` if not found.
         """
-        return self._state._get_message(self.last_message_id) if self.last_message_id else None
+        return await self._state._get_message(self.last_message_id) if self.last_message_id else None
 
     @property
     def category(self) -> CategoryChannel | None:
@@ -355,8 +347,7 @@ class Thread(Messageable, Hashable):
             raise ClientException("Parent channel not found")
         return parent.category_id
 
-    @property
-    def starting_message(self) -> Message | None:
+    async def get_starting_message(self) -> Message | None:
         """Returns the message that started this thread.
 
         The message might not be valid or point to an existing message.
@@ -369,7 +360,7 @@ class Thread(Messageable, Hashable):
         Optional[:class:`Message`]
             The message that started this thread or ``None`` if not found in the cache.
         """
-        return self._state._get_message(self.id)
+        return await self._state._get_message(self.id)
 
     def is_pinned(self) -> bool:
         """Whether the thread is pinned to the top of its parent forum or media channel.
@@ -657,7 +648,7 @@ class Thread(Messageable, Hashable):
 
         data = await self._state.http.edit_channel(self.id, **payload, reason=reason)
         # The data payload will always be a Thread payload
-        return Thread(data=data, state=self._state, guild=self.guild)  # type: ignore
+        return await Thread._from_data(data=data, state=self._state, guild=self.guild)  # type: ignore
 
     async def archive(self, locked: bool | utils.Undefined = MISSING) -> Thread:
         """|coro|
@@ -825,7 +816,7 @@ class Thread(Messageable, Hashable):
             The partial message.
         """
 
-        from .message import PartialMessage  # noqa: PLC0415
+        from .message import PartialMessage
 
         return PartialMessage(channel=self, id=message_id)
 

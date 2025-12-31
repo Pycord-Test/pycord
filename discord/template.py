@@ -27,6 +27,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from typing_extensions import Self
+
 from .guild import Guild
 from .utils import MISSING, Undefined
 from .utils.private import bytes_to_base64_data, parse_time
@@ -36,7 +38,7 @@ __all__ = ("Template",)
 if TYPE_CHECKING:
     import datetime
 
-    from .state import ConnectionState
+    from .app.state import ConnectionState
     from .types.template import Template as TemplatePayload
     from .user import User
 
@@ -78,8 +80,8 @@ class _PartialTemplateState:
     def _get_message(self, id):
         return None
 
-    def _get_guild(self, id):
-        return self.__state._get_guild(id)
+    async def _get_guild(self, id):
+        return await self.__state._get_guild(id)
 
     async def query_members(self, **kwargs: Any):
         return []
@@ -131,11 +133,11 @@ class Template:
         "_state",
     )
 
-    def __init__(self, *, state: ConnectionState, data: TemplatePayload) -> None:
+    @classmethod
+    async def from_data(cls, state: ConnectionState, data: TemplatePayload) -> Self:
+        self = cls()
         self._state = state
-        self._store(data)
 
-    def _store(self, data: TemplatePayload) -> None:
         self.code: str = data["code"]
         self.uses: int = data["usage_count"]
         self.name: str = data["name"]
@@ -147,7 +149,7 @@ class Template:
         self.updated_at: datetime.datetime | None = parse_time(data.get("updated_at"))
 
         guild_id = int(data["source_guild_id"])
-        guild: Guild | None = self._state._get_guild(guild_id)
+        guild: Guild | None = await self._state._get_guild(guild_id)
 
         self.source_guild: Guild
         if guild is None:
@@ -155,51 +157,18 @@ class Template:
             source_serialised["id"] = guild_id
             state = _PartialTemplateState(state=self._state)
             # Guild expects a ConnectionState, we're passing a _PartialTemplateState
-            self.source_guild = Guild(data=source_serialised, state=state)  # type: ignore
+            self.source_guild = await Guild._from_data(data=source_serialised, state=state)  # type: ignore
         else:
             self.source_guild = guild
 
         self.is_dirty: bool | None = data.get("is_dirty", None)
+        return self
 
     def __repr__(self) -> str:
         return (
             f"<Template code={self.code!r} uses={self.uses} name={self.name!r}"
             f" creator={self.creator!r} source_guild={self.source_guild!r} is_dirty={self.is_dirty}>"
         )
-
-    async def create_guild(self, name: str, icon: Any = None) -> Guild:
-        """|coro|
-
-        Creates a :class:`.Guild` using the template.
-
-        Bot accounts in more than 10 guilds are not allowed to create guilds.
-
-        Parameters
-        ----------
-        name: :class:`str`
-            The name of the guild.
-        icon: :class:`bytes`
-            The :term:`py:bytes-like object` representing the icon. See :meth:`.ClientUser.edit`
-            for more details on what is expected.
-
-        Returns
-        -------
-        :class:`.Guild`
-            The guild created. This is not the same guild that is
-            added to cache.
-
-        Raises
-        ------
-        HTTPException
-            Guild creation failed.
-        InvalidArgument
-            Invalid icon image format given. Must be PNG or JPG.
-        """
-        if icon is not None:
-            icon = bytes_to_base64_data(icon)
-
-        data = await self._state.http.create_from_template(self.code, name, icon)
-        return Guild(data=data, state=self._state)
 
     async def sync(self) -> Template:
         """|coro|
@@ -230,7 +199,7 @@ class Template:
         """
 
         data = await self._state.http.sync_template(self.source_guild.id, self.code)
-        return Template(state=self._state, data=data)
+        return await Template.from_data(state=self._state, data=data)
 
     async def edit(
         self,
@@ -279,7 +248,7 @@ class Template:
             payload["description"] = description
 
         data = await self._state.http.edit_template(self.source_guild.id, self.code, payload)
-        return Template(state=self._state, data=data)
+        return await Template.from_data(state=self._state, data=data)
 
     async def delete(self) -> None:
         """|coro|

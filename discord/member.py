@@ -32,6 +32,8 @@ import sys
 from operator import attrgetter
 from typing import TYPE_CHECKING, Any, TypeVar, Union
 
+from typing_extensions import Self
+
 import discord.abc
 
 from . import utils
@@ -55,12 +57,12 @@ __all__ = (
 
 if TYPE_CHECKING:
     from .abc import Snowflake
+    from .app.state import ConnectionState
     from .channel import DMChannel, StageChannel, VoiceChannel
     from .flags import PublicUserFlags
     from .guild import Guild
     from .message import Message
     from .role import Role
-    from .state import ConnectionState
     from .types.activity import PartialPresenceUpdate
     from .types.member import Member as MemberPayload
     from .types.member import MemberWithUser as MemberWithUserPayload
@@ -313,7 +315,6 @@ class Member(discord.abc.Messageable, _UserTag):
 
     def __init__(self, *, data: MemberWithUserPayload, guild: Guild, state: ConnectionState):
         self._state: ConnectionState = state
-        self._user: User = state.store_user(data["user"])
         self.guild: Guild = guild
         self.joined_at: datetime.datetime | None = parse_time(data.get("joined_at"))
         self.premium_since: datetime.datetime | None = parse_time(data.get("premium_since"))
@@ -328,6 +329,12 @@ class Member(discord.abc.Messageable, _UserTag):
             data.get("communication_disabled_until")
         )
         self.flags: MemberFlags = MemberFlags._from_value(data.get("flags", 0))
+
+    @classmethod
+    async def _from_data(cls, data: MemberWithUserPayload, guild: Guild, state: ConnectionState) -> Self:
+        self = cls(data=data, guild=guild, state=state)
+        self._user = await state.store_user(data["user"])
+        return self
 
     def __str__(self) -> str:
         return str(self._user)
@@ -951,7 +958,7 @@ class Member(discord.abc.Messageable, _UserTag):
         else:
             return None
 
-        return Member(data=data, guild=self.guild, state=self._state)
+        return await Member._from_data(data=data, guild=self.guild, state=self._state)
 
     async def timeout(self, until: datetime.datetime | None, *, reason: str | None = None) -> None:
         """|coro|

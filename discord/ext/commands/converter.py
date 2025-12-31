@@ -81,9 +81,9 @@ __all__ = (
 )
 
 
-def _get_from_guilds(bot, getter, argument):
+async def _get_from_guilds(bot, getter, argument):
     result = None
-    for guild in bot.guilds:
+    for guild in await bot.get_guilds():
         result = getattr(guild, getter)(argument)
         if result:
             return result
@@ -92,7 +92,7 @@ def _get_from_guilds(bot, getter, argument):
 
 T = TypeVar("T")
 T_co = TypeVar("T_co", covariant=True)
-CT = TypeVar("CT", bound=discord.abc.GuildChannel)
+CT = TypeVar("CT", bound=discord.channel.GuildChannel)
 TT = TypeVar("TT", bound=discord.Thread)
 
 
@@ -213,7 +213,7 @@ class MemberConverter(IDConverter[discord.Member]):
                 return None
 
             if cache:
-                guild._add_member(member)
+                await guild._add_member(member)
             return member
 
         # If we're not being rate limited then we can use the websocket to actually query
@@ -233,15 +233,15 @@ class MemberConverter(IDConverter[discord.Member]):
             if guild:
                 result = guild.get_member_named(argument)
             else:
-                result = _get_from_guilds(bot, "get_member_named", argument)
+                result = await _get_from_guilds(bot, "get_member_named", argument)
         else:
             user_id = int(match.group(1))
             if guild:
-                result = guild.get_member(user_id)
+                result = await guild.get_member(user_id)
                 if ctx.message is not None and result is None:
                     result = discord.utils.find(lambda e: e.id == user_id, ctx.message.mentions)
             else:
-                result = _get_from_guilds(bot, "get_member", user_id)
+                result = await _get_from_guilds(bot, "get_member", user_id)
 
         if result is None:
             if guild is None:
@@ -285,7 +285,7 @@ class UserConverter(IDConverter[discord.User]):
 
         if match is not None:
             user_id = int(match.group(1))
-            result = ctx.bot.get_user(user_id)
+            result = await ctx.bot.get_user(user_id)
             if ctx.message is not None and result is None:
                 result = discord.utils.find(lambda e: e.id == user_id, ctx.message.mentions)
             if result is None:
@@ -308,12 +308,12 @@ class UserConverter(IDConverter[discord.User]):
             discrim = arg[-4:]
             name = arg[:-5]
             predicate = lambda u: u.name == name and u.discriminator == discrim
-            result = discord.utils.find(predicate, state._users.values())
+            result = discord.utils.find(predicate, await state.cache.get_all_users())
             if result is not None:
                 return result
 
         predicate = lambda u: arg in (u.name, u.global_name)
-        result = discord.utils.find(predicate, state._users.values())
+        result = discord.utils.find(predicate, await state.cache.get_all_users())
 
         if result is None:
             raise UserNotFound(argument)
@@ -397,7 +397,7 @@ class MessageConverter(IDConverter[discord.Message]):
 
     async def convert(self, ctx: Context, argument: str) -> discord.Message:
         guild_id, message_id, channel_id = PartialMessageConverter._get_id_matches(ctx, argument)
-        message = ctx.bot._connection._get_message(message_id)
+        message = await ctx.bot._connection._get_message(message_id)
         if message:
             return message
         channel = PartialMessageConverter._resolve_channel(ctx, guild_id, channel_id)
@@ -411,7 +411,7 @@ class MessageConverter(IDConverter[discord.Message]):
             raise ChannelNotReadable(channel) from e
 
 
-class GuildChannelConverter(IDConverter[discord.abc.GuildChannel]):
+class GuildChannelConverter(IDConverter[discord.channel.GuildChannel]):
     """Converts to a :class:`~discord.abc.GuildChannel`.
 
     All lookups are via the local guild. If in a DM context, then the lookup
@@ -426,11 +426,11 @@ class GuildChannelConverter(IDConverter[discord.abc.GuildChannel]):
     .. versionadded:: 2.0
     """
 
-    async def convert(self, ctx: Context, argument: str) -> discord.abc.GuildChannel:
-        return self._resolve_channel(ctx, argument, "channels", discord.abc.GuildChannel)
+    async def convert(self, ctx: Context, argument: str) -> discord.channel.GuildChannel:
+        return await self._resolve_channel(ctx, argument, "channels", discord.channel.base.GuildChannel)
 
     @staticmethod
-    def _resolve_channel(ctx: Context, argument: str, attribute: str, type: type[CT]) -> CT:
+    async def _resolve_channel(ctx: Context, argument: str, attribute: str, type: type[CT]) -> CT:
         bot = ctx.bot
 
         match = IDConverter._get_id_match(argument) or re.match(r"<#([0-9]{15,20})>$", argument)
@@ -453,7 +453,7 @@ class GuildChannelConverter(IDConverter[discord.abc.GuildChannel]):
             if guild:
                 result = guild.get_channel(channel_id)
             else:
-                result = _get_from_guilds(bot, "get_channel", channel_id)
+                result = await _get_from_guilds(bot, "get_channel", channel_id)
 
         if not isinstance(result, type):
             raise ChannelNotFound(argument)
@@ -760,7 +760,7 @@ class GuildConverter(IDConverter[discord.Guild]):
             result = ctx.bot.get_guild(guild_id)
 
         if result is None:
-            result = discord.utils.find(lambda e: e.name == argument, ctx.bot.guilds)
+            result = discord.utils.find(lambda e: e.name == argument, await ctx.bot.get_guilds())
 
             if result is None:
                 raise GuildNotFound(argument)
@@ -795,12 +795,12 @@ class EmojiConverter(IDConverter[discord.GuildEmoji]):
                 result = discord.utils.find(lambda e: e.name == argument, guild.emojis)
 
             if result is None:
-                result = discord.utils.find(lambda e: e.name == argument, bot.emojis)
+                result = discord.utils.find(lambda e: e.name == argument, await bot.get_emojis())
         else:
             emoji_id = int(match.group(1))
 
             # Try to look up emoji by id.
-            result = bot.get_emoji(emoji_id)
+            result = await bot.get_emoji(emoji_id)
 
         if result is None:
             raise EmojiNotFound(argument)
@@ -870,12 +870,12 @@ class GuildStickerConverter(IDConverter[discord.GuildSticker]):
                 result = discord.utils.find(lambda s: s.name == argument, guild.stickers)
 
             if result is None:
-                result = discord.utils.find(lambda s: s.name == argument, bot.stickers)
+                result = discord.utils.find(lambda s: s.name == argument, await bot.get_stickers())
         else:
             sticker_id = int(match.group(1))
 
             # Try to look up sticker by id.
-            result = bot.get_sticker(sticker_id)
+            result = await bot.get_sticker(sticker_id)
 
         if result is None:
             raise GuildStickerNotFound(argument)
@@ -936,6 +936,7 @@ class clean_content(Converter[str]):
         else:
 
             def resolve_member(id: int) -> str:
+                # TODO: how tf to fix this???
                 m = (
                     None if msg is None else discord.utils.find(lambda e: e.id == id, msg.mentions)
                 ) or ctx.bot.get_user(id)
@@ -1077,7 +1078,7 @@ CONVERTER_MAPPING: dict[type[Any], Any] = {
     discord.CategoryChannel: CategoryChannelConverter,
     discord.ForumChannel: ForumChannelConverter,
     discord.Thread: ThreadConverter,
-    discord.abc.GuildChannel: GuildChannelConverter,
+    discord.channel.GuildChannel: GuildChannelConverter,
     discord.GuildSticker: GuildStickerConverter,
 }
 

@@ -31,6 +31,7 @@ from typing import TYPE_CHECKING, Any, Callable, TypeVar
 
 import aiohttp
 
+from .app.state import AutoShardedConnectionState
 from .backoff import ExponentialBackoff
 from .client import Client
 from .enums import Status
@@ -42,14 +43,12 @@ from .errors import (
     PrivilegedIntentsRequired,
 )
 from .gateway import *
-from .state import AutoShardedConnectionState
 
 if TYPE_CHECKING:
     from .activity import BaseActivity
     from .gateway import DiscordWebSocket
 
     EI = TypeVar("EI", bound="EventItem")
-
 __all__ = (
     "AutoShardedClient",
     "ShardInfo",
@@ -98,7 +97,7 @@ class Shard:
     ) -> None:
         self.ws: DiscordWebSocket = ws
         self._client: Client = client
-        self._dispatch: Callable[..., None] = client.dispatch
+        self._dispatch: Callable[..., None] = client._connection.emitter.emit
         self._queue_put: Callable[[EventItem], None] = queue_put
         self.loop: asyncio.AbstractEventLoop = self._client.loop
         self._disconnect: bool = False
@@ -132,11 +131,11 @@ class Shard:
 
     async def disconnect(self) -> None:
         await self.close()
-        self._dispatch("shard_disconnect", self.id)
+        await self._dispatch("shard_disconnect", self.id)
 
     async def _handle_disconnect(self, e: Exception) -> None:
-        self._dispatch("disconnect")
-        self._dispatch("shard_disconnect", self.id)
+        await self._dispatch("disconnect")
+        await self._dispatch("shard_disconnect", self.id)
         if not self._reconnect:
             self._queue_put(EventItem(EventType.close, self, e))
             return
@@ -187,8 +186,8 @@ class Shard:
 
     async def reidentify(self, exc: ReconnectWebSocket) -> None:
         self._cancel_task()
-        self._dispatch("disconnect")
-        self._dispatch("shard_disconnect", self.id)
+        await self._dispatch("disconnect")
+        await self._dispatch("shard_disconnect", self.id)
         _log.info("Got a request to %s the websocket at Shard ID %s.", exc.op, self.id)
         try:
             coro = DiscordWebSocket.from_client(
@@ -533,11 +532,11 @@ class AutoShardedClient(Client):
             for shard in self.__shards.values():
                 await shard.ws.change_presence(activity=activity, status=status_value)
 
-            guilds = self._connection.guilds
+            guilds = await self._connection.get_guilds()
         else:
             shard = self.__shards[shard_id]
             await shard.ws.change_presence(activity=activity, status=status_value)
-            guilds = [g for g in self._connection.guilds if g.shard_id == shard_id]
+            guilds = [g for g in await self._connection.get_guilds() if g.shard_id == shard_id]
 
         activities = () if activity is None else (activity,)
         for guild in guilds:

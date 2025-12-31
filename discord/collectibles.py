@@ -26,7 +26,7 @@ from functools import cached_property
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .state import ConnectionState
+    from .app.state import ConnectionState
 
 from .asset import Asset
 from .types.collectibles import Nameplate as NameplatePayload

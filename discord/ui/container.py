@@ -402,7 +402,7 @@ class Container(Item[V]):
 
     @classmethod
     def from_component(cls: type[C], component: ContainerComponent) -> C:
-        from .view import _component_to_item  # noqa: PLC0415
+        from .view import _component_to_item
 
         items = [_component_to_item(c) for c in _walk_all_components(component.components)]
         return cls(
