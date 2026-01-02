@@ -5,6 +5,9 @@ release.
 
 ### Added
 
+- `discord.datetime.Datetime` class, a `datetime.datetime` subclass that offers additional 
+  functionality for snowflakes and util methods.
+
 ### Fixed
 
 ### Changed
@@ -28,3 +31,5 @@ release.
 - `AsyncIterator.get` use `AsyncIterator.find` with `lambda i: i.attr == val` instead
 - `utils.as_chunks` use `itertools.batched` on Python 3.12+ or your own implementation
   instead
+- `utils.generate_snowflake`, moved to `discord.datetime.Datetime`
+- `utils.utcnow`, moved to `discord.datetime.Datetime`
