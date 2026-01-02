@@ -23,15 +23,12 @@ DEALINGS IN THE SOFTWARE.
 """
 
 import datetime
-from typing import override, Literal
+from typing import Literal
 
-from typing_extensions import Self
-
-__all__ = (
-    "DiscordTime",
-)
+from typing_extensions import Self, override
 
 DISCORD_EPOCH = 1420070400000
+TimestampStyle = Literal["f", "F", "d", "D", "t", "T", "R"]
 
 
 class DiscordTime(datetime.datetime):
@@ -104,7 +101,9 @@ class DiscordTime(datetime.datetime):
             raise ValueError(f"Invalid mode '{mode}'. Must be 'realistic' or 'boundary'")
 
     @classmethod
-    def from_datetime(cls, dt: datetime.datetime) -> Self:
+    def from_datetime(cls, dt: datetime.datetime | datetime.time) -> Self:
+        if isinstance(dt, datetime.time):
+            dt = datetime.datetime.combine(cls.utcnow(), dt)
         return cls(day=dt.day, month=dt.month, year=dt.year, hour=dt.hour, minute=dt.minute, second=dt.second,
                    microsecond=dt.microsecond, tzinfo=dt.tzinfo)
 
@@ -124,3 +123,49 @@ class DiscordTime(datetime.datetime):
         """
         timestamp = ((id >> 22) + DISCORD_EPOCH) / 1000
         return DiscordTime.fromtimestamp(timestamp, tz=datetime.timezone.utc)
+
+    @classmethod
+    def format_datetime(cls, /, style: TimestampStyle | None = None) -> str:
+        """A method to format this :class:`datetime.datetime` for presentation within Discord.
+
+        This allows for a locale-independent way of presenting data using Discord specific Markdown.
+
+        +-------------+----------------------------+-----------------+
+        |    Style    |       Example Output       |   Description   |
+        +=============+============================+=================+
+        | t           | 22:57                      | Short Time      |
+        +-------------+----------------------------+-----------------+
+        | T           | 22:57:58                   | Long Time       |
+        +-------------+----------------------------+-----------------+
+        | d           | 17/05/2016                 | Short Date      |
+        +-------------+----------------------------+-----------------+
+        | D           | 17 May 2016                | Long Date       |
+        +-------------+----------------------------+-----------------+
+        | f (default) | 17 May 2016 22:57          | Short Date Time |
+        +-------------+----------------------------+-----------------+
+        | F           | Tuesday, 17 May 2016 22:57 | Long Date Time  |
+        +-------------+----------------------------+-----------------+
+        | R           | 5 years ago                | Relative Time   |
+        +-------------+----------------------------+-----------------+
+
+        Note that the exact output depends on the user's locale setting in the client. The example output
+        presented is using the ``en-GB`` locale.
+
+        .. versionadded:: 2.0
+
+        Parameters
+        ----------
+        style: :class:`str`R
+            The style to format the datetime with.
+
+        Returns
+        -------
+        :class:`str`
+            The formatted string.
+        """
+        dt = cls
+        if isinstance(dt, datetime.time):
+            dt = datetime.datetime.combine(datetime.datetime.now(), dt)
+        if style is None:
+            return f"<t:{int(dt.timestamp())}>"
+        return f"<t:{int(dt.timestamp())}:{style}>"

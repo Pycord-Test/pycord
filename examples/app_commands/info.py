@@ -20,7 +20,7 @@ async def info(ctx: discord.ApplicationContext, user: discord.Member = None):
             discord.EmbedField(name="ID", value=str(user.id), inline=False),  # User ID
             discord.EmbedField(
                 name="Created",
-                value=discord.utils.format_dt(user.created_at, "F"),
+                value=discord.DiscordTime.from_datetime(user.created_at).format_datetime("F"),
                 inline=False,
             ),  # When the user's account was created
         ],
@@ -36,7 +36,7 @@ async def info(ctx: discord.ApplicationContext, user: discord.Member = None):
     else:  # We end up here if the user is a discord.Member object
         embed.add_field(
             name="Joined",
-            value=discord.utils.format_dt(user.joined_at, "F"),
+            value=discord.DiscordTime.from_datetime(user.joined_at).format_datetime("F"),
             inline=False,
         )  # When the user joined the server
 
