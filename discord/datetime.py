@@ -174,6 +174,7 @@ class DiscordTime(datetime.datetime):
         ----------
         style: :class:`str`
             The style to format the datetime with.
+
         Returns
         -------
         :class:`str`
