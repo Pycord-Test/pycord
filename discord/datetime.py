@@ -81,16 +81,21 @@ class DiscordTime(datetime.datetime):
 
         Examples
         --------
-        # Generate realistic snowflake
-        snowflake = DateTime.utcnow().generate_snowflake()
+        .. code-block:: python
 
-        # Generate boundary snowflakes
-        lower_bound = DateTime.utcnow().generate_snowflake(mode="boundary", high=False)
-        upper_bound = DateTime.utcnow().generate_snowflake(mode="boundary", high=True)
+            # Generate realistic snowflake
+            snowflake = DateTime.utcnow().generate_snowflake()
 
-        # For inclusive ranges:
-        # Lower: DateTime.utcnow().generate_snowflake(mode="boundary", high=False) - 1
-        # Upper: DateTime.utcnow().generate_snowflake(mode="boundary", high=True) + 1
+            # Generate boundary snowflakes
+            lower_bound = DateTime.utcnow().generate_snowflake(mode="boundary", high=False)
+            upper_bound = DateTime.utcnow().generate_snowflake(mode="boundary", high=True)
+
+            # For inclusive ranges:
+            # Lower:
+            DateTime.utcnow().generate_snowflake(mode="boundary", high=False) - 1
+            # Upper:
+            DateTime.utcnow().generate_snowflake(mode="boundary", high=True) + 1
+
         """
         discord_millis = int(self.timestamp() * 1000 - DISCORD_EPOCH)
 
@@ -109,8 +114,6 @@ class DiscordTime(datetime.datetime):
         ----------
         dt: :class:`datetime.datetime` | :class:`datetime.time`
             A datetime or time object to generate a DiscordTime from.
-
-        .. versionadded:: 3.0
         """
         if isinstance(dt, datetime.time):
             dt = datetime.datetime.combine(cls.utcnow(), dt)
