@@ -107,3 +107,20 @@ class DiscordTime(datetime.datetime):
     def from_datetime(cls, dt: datetime.datetime) -> Self:
         cls(day=dt.day, month=dt.month, year=dt.year, hour=dt.hour, minute=dt.minute, second=dt.second,
             microsecond=dt.microsecond, tzinfo=dt.tzinfo)
+
+    @classmethod
+    def from_snowflake(cls, id: int) -> Self:
+        """Converts a Discord snowflake ID to a UTC-aware datetime object.
+
+        Parameters
+        ----------
+        id: :class:`int`
+            The snowflake ID.
+
+        Returns
+        -------
+        :class:`discord.datetime.DiscordTime`
+            An aware datetime in UTC representing the creation time of the snowflake.
+        """
+        timestamp = ((id >> 22) + DISCORD_EPOCH) / 1000
+        return DiscordTime.fromtimestamp(timestamp, tz=datetime.timezone.utc)

@@ -11,7 +11,7 @@ from collections.abc import Awaitable, Callable, Iterable
 from enum import Enum, auto
 from typing import TYPE_CHECKING, Any, Literal, TypeVar, cast
 
-from discord.datetime import DiscordTime
+from discord import DiscordTime
 
 if TYPE_CHECKING:
     from ..abc import Snowflake
@@ -133,23 +133,6 @@ def basic_autocomplete(values: Values, *, filter: FilterFunc | None = None) -> A
         return cast(V, iter(itertools.islice(gen, 25)))
 
     return autocomplete_callback
-
-def snowflake_time(id: int) -> DiscordTime:
-    """Converts a Discord snowflake ID to a UTC-aware datetime object.
-
-    Parameters
-    ----------
-    id: :class:`int`
-        The snowflake ID.
-
-    Returns
-    -------
-    :class:`datetime.datetime`
-        An aware datetime in UTC representing the creation time of the snowflake.
-    """
-    timestamp = ((id >> 22) + DISCORD_EPOCH) / 1000
-    return DiscordTime.fromtimestamp(timestamp, tz=datetime.timezone.utc)
-
 
 def oauth_url(
     client_id: int | str,

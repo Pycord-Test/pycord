@@ -45,7 +45,7 @@ from urllib.parse import parse_qs, urlparse
 
 from typing_extensions import Self
 
-from . import utils
+from . import utils, DiscordTime
 from .channel import PartialMessageable
 from .channel.thread import Thread
 from .components import _component_factory
@@ -769,15 +769,15 @@ class ForwardedMessage:
         self.flags: MessageFlags = MessageFlags._from_value(data.get("flags", 0))
         self.stickers: list[StickerItem] = [StickerItem(data=d, state=state) for d in data.get("sticker_items", [])]
         self.components: list[Component] = [_component_factory(d) for d in data.get("components", [])]
-        self._edited_timestamp: datetime.datetime | None = parse_time(data["edited_timestamp"])
+        self._edited_timestamp: DiscordTime | None = parse_time(data["edited_timestamp"])
 
     @property
-    def created_at(self) -> datetime.datetime:
+    def created_at(self) -> DiscordTime:
         """The original message's creation time in UTC."""
-        return utils.snowflake_time(self.id)
+        return DiscordTime.from_snowflake(self.id)
 
     @property
-    def edited_at(self) -> datetime.datetime | None:
+    def edited_at(self) -> DiscordTime | None:
         """An aware UTC datetime object containing the
         edited time of the original message.
         """
@@ -1332,12 +1332,12 @@ class Message(Hashable):
         return escape_mentions(result)
 
     @property
-    def created_at(self) -> datetime.datetime:
+    def created_at(self) -> DiscordTime:
         """The message's creation time in UTC."""
-        return utils.snowflake_time(self.id)
+        return DiscordTime.from_snowflake(self.id)
 
     @property
-    def edited_at(self) -> datetime.datetime | None:
+    def edited_at(self) -> DiscordTime | None:
         """An aware UTC datetime object containing the
         edited time of the message.
         """
@@ -2181,9 +2181,9 @@ class PartialMessage(Hashable):
         return f"<PartialMessage id={self.id} channel={self.channel!r}>"
 
     @property
-    def created_at(self) -> datetime.datetime:
+    def created_at(self) -> DiscordTime:
         """The partial message's creation time in UTC."""
-        return utils.snowflake_time(self.id)
+        return DiscordTime.from_snowflake(self.id)
 
     @property
     def poll(self) -> Poll | None:

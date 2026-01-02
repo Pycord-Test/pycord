@@ -33,3 +33,4 @@ release.
   instead
 - `utils.generate_snowflake`, moved to `discord.datetime.Datetime`
 - `utils.utcnow`, moved to `discord.datetime.Datetime`
+- `utils.snowflake_time`, moved to `discord.datetime.Datetime` as `Datetime.from_snowflake`

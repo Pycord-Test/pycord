@@ -30,13 +30,14 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 from typing_extensions import Self
 
+from . import DiscordTime
 from .asset import Asset
 from .colour import Colour
 from .errors import InvalidArgument
 from .flags import RoleFlags
 from .mixins import Hashable
 from .permissions import Permissions
-from .utils import MISSING, snowflake_time
+from .utils import MISSING
 from .utils.private import bytes_to_base64_data, deprecated, get_as_snowflake, warn_deprecated
 
 __all__ = ("RoleTags", "Role", "RoleColours")
@@ -481,9 +482,9 @@ class Role(Hashable):
         return self.colours
 
     @property
-    def created_at(self) -> datetime.datetime:
+    def created_at(self) -> DiscordTime:
         """Returns the role's creation time in UTC."""
-        return snowflake_time(self.id)
+        return DiscordTime.from_snowflake(self.id)
 
     @property
     def mention(self) -> str:

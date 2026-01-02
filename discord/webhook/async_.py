@@ -36,7 +36,7 @@ from urllib.parse import quote as urlquote
 
 import aiohttp
 
-from .. import utils
+from .. import utils, DiscordTime
 from ..asset import Asset
 from ..channel import ForumChannel, PartialMessageable
 from ..channel.thread import Thread
@@ -67,8 +67,6 @@ __all__ = (
 _log = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    import datetime
-
     from ..abc import Snowflake
     from ..app.state import ConnectionState
     from ..channel import TextChannel
@@ -1086,9 +1084,9 @@ class BaseWebhook(Hashable):
         return guild and guild.get_channel(self.channel_id)  # type: ignore
 
     @property
-    def created_at(self) -> datetime.datetime:
+    def created_at(self) -> DiscordTime:
         """Returns the webhook's creation time in UTC."""
-        return utils.snowflake_time(self.id)
+        return DiscordTime.from_snowflake(self.id)
 
     @property
     def avatar(self) -> Asset:

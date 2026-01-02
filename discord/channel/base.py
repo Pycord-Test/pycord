@@ -33,6 +33,7 @@ from typing import TYPE_CHECKING, Any, Callable, Generic, cast, overload
 
 from typing_extensions import Self, TypeVar, override
 
+from .. import DiscordTime
 from ..abc import Messageable, Snowflake, SnowflakeTime, User, _Overwrites, _purge_messages_helper
 from ..emoji import GuildEmoji, PartialEmoji
 from ..enums import ChannelType, InviteTarget, SortOrder, try_enum
@@ -40,7 +41,7 @@ from ..errors import ClientException
 from ..flags import ChannelFlags, MessageFlags
 from ..iterators import ArchivedThreadIterator
 from ..mixins import Hashable
-from ..utils import MISSING, Undefined, find, snowflake_time
+from ..utils import MISSING, Undefined, find
 from ..utils.private import SnowflakeList, bytes_to_base64_data, copy_doc, get_as_snowflake
 
 if TYPE_CHECKING:
@@ -114,9 +115,9 @@ class BaseChannel(ABC, Generic[P]):
         return self
 
     @property
-    def created_at(self) -> datetime.datetime:
+    def created_at(self) -> DiscordTime:
         """The channel's creation time in UTC."""
-        return snowflake_time(self.id)
+        return DiscordTime.from_snowflake(self.id)
 
     @abstractmethod
     @override

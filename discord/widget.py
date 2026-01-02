@@ -27,16 +27,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from . import DiscordTime
 from .activity import BaseActivity, Spotify, create_activity
 from .enums import Status, try_enum
 from .invite import Invite
 from .user import BaseUser
-from .utils import snowflake_time
 from .utils.private import get_as_snowflake, resolve_invite
 
 if TYPE_CHECKING:
-    import datetime
-
     from .app.state import ConnectionState
     from .types.widget import Widget as WidgetPayload
     from .types.widget import WidgetMember as WidgetMemberPayload
@@ -98,9 +96,9 @@ class WidgetChannel:
         return f"<#{self.id}>"
 
     @property
-    def created_at(self) -> datetime.datetime:
+    def created_at(self) -> DiscordTime:
         """Returns the channel's creation time in UTC."""
-        return snowflake_time(self.id)
+        return DiscordTime.from_snowflake(self.id)
 
 
 class WidgetMember(BaseUser):
@@ -286,9 +284,9 @@ class Widget:
         return f"<Widget id={self.id} name={self.name!r} invite_url={self.invite_url!r}>"
 
     @property
-    def created_at(self) -> datetime.datetime:
+    def created_at(self) -> DiscordTime:
         """Returns the member's creation time in UTC."""
-        return snowflake_time(self.id)
+        return DiscordTime.from_snowflake(self.id)
 
     @property
     def json_url(self) -> str:

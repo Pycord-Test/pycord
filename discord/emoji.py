@@ -27,10 +27,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Iterator
 
+from . import DiscordTime
 from .asset import Asset, AssetMixin
 from .partial_emoji import PartialEmoji, _EmojiTag
 from .user import User
-from .utils import MISSING, Undefined, snowflake_time
+from .utils import MISSING, Undefined
 from .utils.private import SnowflakeList
 
 __all__ = (
@@ -102,7 +103,7 @@ class BaseEmoji(_EmojiTag, AssetMixin):
     @property
     def created_at(self) -> datetime:
         """Returns the emoji's creation time in UTC."""
-        return snowflake_time(self.id)
+        return DiscordTime.from_snowflake(self.id)
 
     @property
     def url(self) -> str:

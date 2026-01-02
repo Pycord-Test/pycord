@@ -29,6 +29,7 @@ import asyncio
 from typing import TYPE_CHECKING, Any, TypeVar
 
 import discord.abc
+from . import DiscordTime
 
 from .asset import Asset
 from .collectibles import Nameplate
@@ -37,12 +38,10 @@ from .flags import PublicUserFlags
 from .iterators import EntitlementIterator
 from .monetization import Entitlement
 from .primary_guild import PrimaryGuild
-from .utils import MISSING, Undefined, snowflake_time
+from .utils import MISSING, Undefined
 from .utils.private import bytes_to_base64_data
 
 if TYPE_CHECKING:
-    from datetime import datetime
-
     from .abc import Snowflake, SnowflakeTime
     from .app.state import ConnectionState
     from .channel import DMChannel
@@ -304,12 +303,12 @@ class BaseUser(_UserTag):
         return f"<@{self.id}>"
 
     @property
-    def created_at(self) -> datetime:
+    def created_at(self) -> DiscordTime:
         """Returns the user's creation time in UTC.
 
         This is when the user's Discord account was created.
         """
-        return snowflake_time(self.id)
+        return DiscordTime.from_snowflake(self.id)
 
     @property
     def display_name(self) -> str:

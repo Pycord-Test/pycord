@@ -40,12 +40,10 @@ from .public import (
     raw_mentions,
     raw_role_mentions,
     remove_markdown,
-    snowflake_time,
 )
 
 __all__ = (
     "oauth_url",
-    "snowflake_time",
     "find",
     "remove_markdown",
     "escape_markdown",

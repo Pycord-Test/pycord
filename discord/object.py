@@ -27,12 +27,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, SupportsInt, Union
 
-from . import utils
+from . import DiscordTime
 from .mixins import Hashable
 
 if TYPE_CHECKING:
-    import datetime
-
     SupportsIntCast = SupportsInt | str | bytes | bytearray
 
 __all__ = ("Object",)
@@ -84,9 +82,9 @@ class Object(Hashable):
         return f"<Object id={self.id!r}>"
 
     @property
-    def created_at(self) -> datetime.datetime:
+    def created_at(self) -> DiscordTime:
         """Returns the snowflake's creation time in UTC."""
-        return utils.snowflake_time(self.id)
+        return DiscordTime.from_snowflake(self.id)
 
     @property
     def worker_id(self) -> int:

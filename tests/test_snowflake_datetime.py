@@ -27,10 +27,7 @@ import datetime
 import pytest
 
 from discord import DiscordTime
-from discord.utils import (
-    DISCORD_EPOCH,
-    snowflake_time,
-)
+from discord.datetime import DISCORD_EPOCH
 
 UTC = datetime.timezone.utc
 
@@ -68,14 +65,14 @@ def test_generate_snowflake_boundary_high(dt: datetime.datetime, expected_ms: in
 def test_snowflake_time_roundtrip_boundary(dt: datetime.datetime, _expected_ms: int) -> None:
     sf_low = DiscordTime.from_datetime(dt).generate_snowflake(mode="boundary", high=False)
     sf_high = DiscordTime.from_datetime(dt).generate_snowflake(mode="boundary", high=True)
-    assert snowflake_time(sf_low) == dt
-    assert snowflake_time(sf_high) == dt
+    assert DiscordTime.from_snowflake(sf_low) == dt
+    assert DiscordTime.from_snowflake(sf_high) == dt
 
 
 @pytest.mark.parametrize(("dt", "_expected_ms"), DATETIME_CASES)
 def test_snowflake_time_roundtrip_realistic(dt: datetime.datetime, _expected_ms: int) -> None:
     sf = DiscordTime.from_datetime(dt).generate_snowflake(mode="realistic")
-    assert snowflake_time(sf) == dt
+    assert DiscordTime.from_snowflake(sf) == dt
 
 
 def test_generate_snowflake_invalid_mode() -> None:

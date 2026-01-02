@@ -27,7 +27,7 @@ from __future__ import annotations
 import datetime
 from typing import TYPE_CHECKING, Any
 
-from . import utils
+from . import utils, DiscordTime
 from .asset import Asset
 from .enums import (
     ScheduledEventLocationType,
@@ -233,9 +233,9 @@ class ScheduledEvent(Hashable):
         )
 
     @property
-    def created_at(self) -> datetime.datetime:
+    def created_at(self) -> DiscordTime:
         """Returns the scheduled event's creation time in UTC."""
-        return utils.snowflake_time(self.id)
+        return DiscordTime.from_snowflake(self.id)
 
     @property
     def interested(self) -> int | None:

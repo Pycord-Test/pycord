@@ -43,7 +43,6 @@ from .audit_logs import AuditLogEntry
 from .datetime import DiscordTime
 from .errors import NoMoreItems
 from .object import Object
-from .utils import snowflake_time
 from .utils.private import maybe_awaitable, warn_deprecated
 
 __all__ = (
@@ -795,7 +794,7 @@ class ArchivedThreadIterator(_AsyncIterator["Thread"]):
             if joined:
                 self.before = str(before.id)
             else:
-                self.before = snowflake_time(before.id).isoformat()
+                self.before = DiscordTime.from_snowflake(before.id).isoformat()
 
         self.update_before: Callable[[ThreadPayload], str] = self.get_archive_timestamp
 
@@ -1180,7 +1179,7 @@ class MessagePinIterator(_AsyncIterator["MessagePin"]):
         elif isinstance(before, datetime.datetime):
             self.before = before.isoformat()
         else:
-            self.before = snowflake_time(before.id).isoformat()
+            self.before = DiscordTime.from_snowflake(before.id).isoformat()
 
         self.update_before: Callable[[MessagePinPayload], str] = self.get_last_pinned
 

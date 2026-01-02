@@ -28,7 +28,7 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING, Any, TypedDict, TypeVar
 
-from . import utils
+from . import utils, DiscordTime
 from .asset import Asset, AssetMixin
 from .errors import InvalidArgument
 from .utils.private import get_as_snowflake
@@ -36,8 +36,6 @@ from .utils.private import get_as_snowflake
 __all__ = ("PartialEmoji",)
 
 if TYPE_CHECKING:
-    from datetime import datetime
-
     from .app.state import ConnectionState
     from .types.message import PartialEmoji as PartialEmojiPayload
 
@@ -221,7 +219,7 @@ class PartialEmoji(_EmojiTag, AssetMixin):
         return f"{self.name}:{self.id}"
 
     @property
-    def created_at(self) -> datetime | None:
+    def created_at(self) -> DiscordTime | None:
         """Returns the emoji's creation time in UTC, or None if Unicode emoji.
 
         .. versionadded:: 1.6
@@ -229,7 +227,7 @@ class PartialEmoji(_EmojiTag, AssetMixin):
         if self.id is None:
             return None
 
-        return utils.snowflake_time(self.id)
+        return DiscordTime.from_snowflake(self.id)
 
     @property
     def url(self) -> str:

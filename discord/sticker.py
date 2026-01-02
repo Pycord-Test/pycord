@@ -28,11 +28,12 @@ from __future__ import annotations
 import unicodedata
 from typing import TYPE_CHECKING, Literal
 
+from . import DiscordTime
 from .asset import Asset, AssetMixin
 from .enums import StickerFormatType, StickerType, try_enum
 from .errors import InvalidData
 from .mixins import Hashable
-from .utils import MISSING, Undefined, find, snowflake_time
+from .utils import MISSING, Undefined, find
 from .utils.private import cached_slot_property
 
 __all__ = (
@@ -44,8 +45,6 @@ __all__ = (
 )
 
 if TYPE_CHECKING:
-    import datetime
-
     from .app.state import ConnectionState
     from .guild import Guild
     from .types.sticker import EditGuildSticker
@@ -293,9 +292,9 @@ class Sticker(_StickerTag):
         return self.name
 
     @property
-    def created_at(self) -> datetime.datetime:
+    def created_at(self) -> DiscordTime:
         """Returns the sticker's creation time in UTC."""
-        return snowflake_time(self.id)
+        return DiscordTime.from_snowflake(self.id)
 
 
 class StandardSticker(Sticker):

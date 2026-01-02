@@ -31,7 +31,7 @@ from typing import TYPE_CHECKING, Any, Coroutine, Generic, Union
 
 from typing_extensions import Self, TypeVar, override, reveal_type
 
-from . import utils
+from . import utils, DiscordTime
 from .channel import ChannelType, PartialMessageable, _threaded_channel_factory
 from .enums import (
     InteractionContextType,
@@ -335,9 +335,9 @@ class Interaction(Generic[T]):
         return self._state and await self._state._get_guild(self.guild_id)
 
     @property
-    def created_at(self) -> datetime.datetime:
+    def created_at(self) -> DiscordTime:
         """Returns the interaction's creation time in UTC."""
-        return utils.snowflake_time(self.id)
+        return DiscordTime.from_snowflake(self.id)
 
     def is_command(self) -> bool:
         """Indicates whether the interaction is an application command."""

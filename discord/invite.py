@@ -27,12 +27,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, TypeVar, Union
 
+from . import DiscordTime
 from .appinfo import PartialAppInfo
 from .asset import Asset
 from .enums import ChannelType, InviteTarget, VerificationLevel, try_enum
 from .mixins import Hashable
 from .object import Object
-from .utils import snowflake_time
 from .utils.private import get_as_snowflake, parse_time
 
 __all__ = (
@@ -113,9 +113,9 @@ class PartialInviteChannel:
         return f"<#{self.id}>"
 
     @property
-    def created_at(self) -> datetime.datetime:
+    def created_at(self) -> DiscordTime:
         """Returns the channel's creation time in UTC."""
-        return snowflake_time(self.id)
+        return DiscordTime.from_snowflake(self.id)
 
 
 class PartialInviteGuild:
@@ -191,7 +191,7 @@ class PartialInviteGuild:
     @property
     def created_at(self) -> datetime.datetime:
         """Returns the guild's creation time in UTC."""
-        return snowflake_time(self.id)
+        return DiscordTime.from_snowflake(self.id)
 
     @property
     def icon(self) -> Asset | None:
