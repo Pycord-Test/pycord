@@ -52,7 +52,7 @@ class DiscordTime(datetime.datetime):
         :class:`discord.DiscordTime`
             The current aware datetime in UTC.
         """
-        return cls.now(datetime.UTC)
+        return cls.now(datetime.timezone.utc)
 
     def generate_snowflake(
         self,
