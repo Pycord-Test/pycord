@@ -11,6 +11,8 @@ from collections.abc import Awaitable, Callable, Iterable
 from enum import Enum, auto
 from typing import TYPE_CHECKING, Any, Literal, TypeVar, cast
 
+from discord.datetime import DiscordTime
+
 if TYPE_CHECKING:
     from ..abc import Snowflake
     from ..commands.context import AutocompleteContext
@@ -32,23 +34,6 @@ class Undefined(Enum):
 MISSING: Literal[Undefined.MISSING] = Undefined.MISSING
 
 DISCORD_EPOCH = 1420070400000
-
-
-def utcnow() -> datetime.datetime:
-    """A helper function to return an aware UTC datetime representing the current time.
-
-    This should be preferred to :meth:`datetime.datetime.utcnow` since it is an aware
-    datetime, compared to the naive datetime in the standard library.
-
-    .. versionadded:: 2.0
-
-    Returns
-    -------
-    :class:`datetime.datetime`
-        The current aware datetime in UTC.
-    """
-    return datetime.datetime.now(datetime.timezone.utc)
-
 
 V = Iterable["OptionChoice"] | Iterable[str] | Iterable[int] | Iterable[float]
 AV = Awaitable[V]
@@ -151,7 +136,7 @@ def basic_autocomplete(values: Values, *, filter: FilterFunc | None = None) -> A
 
 
 def generate_snowflake(
-    dt: datetime.datetime | None = None,
+    dt: DiscordTime | None = None,
     *,
     mode: Literal["boundary", "realistic"] = "boundary",
     high: bool = False,
@@ -193,7 +178,7 @@ def generate_snowflake(
     # Lower: generate_snowflake(dt, mode="boundary", high=False) - 1
     # Upper: generate_snowflake(dt, mode="boundary", high=True) + 1
     """
-    dt = dt or utcnow()
+    dt = dt or DiscordTime.utcnow()
     discord_millis = int(dt.timestamp() * 1000 - DISCORD_EPOCH)
 
     if mode == "realistic":
@@ -204,7 +189,7 @@ def generate_snowflake(
         raise ValueError(f"Invalid mode '{mode}'. Must be 'realistic' or 'boundary'")
 
 
-def snowflake_time(id: int) -> datetime.datetime:
+def snowflake_time(id: int) -> DiscordTime:
     """Converts a Discord snowflake ID to a UTC-aware datetime object.
 
     Parameters
@@ -218,7 +203,7 @@ def snowflake_time(id: int) -> datetime.datetime:
         An aware datetime in UTC representing the creation time of the snowflake.
     """
     timestamp = ((id >> 22) + DISCORD_EPOCH) / 1000
-    return datetime.datetime.fromtimestamp(timestamp, tz=datetime.timezone.utc)
+    return DiscordTime.fromtimestamp(timestamp, tz=datetime.timezone.utc)
 
 
 def oauth_url(

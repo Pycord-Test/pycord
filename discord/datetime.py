@@ -23,42 +23,30 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
 
-from __future__ import annotations
+import datetime
 
-from .public import (
-    DISCORD_EPOCH,
-    MISSING,
-    UNICODE_EMOJIS,
-    Undefined,
-    basic_autocomplete,
-    escape_markdown,
-    escape_mentions,
-    find,
-    format_dt,
-    generate_snowflake,
-    oauth_url,
-    raw_channel_mentions,
-    raw_mentions,
-    raw_role_mentions,
-    remove_markdown,
-    snowflake_time,
-)
+import typing_extensions
 
 __all__ = (
-    "oauth_url",
-    "snowflake_time",
-    "find",
-    "remove_markdown",
-    "escape_markdown",
-    "escape_mentions",
-    "raw_mentions",
-    "raw_channel_mentions",
-    "raw_role_mentions",
-    "format_dt",
-    "generate_snowflake",
-    "basic_autocomplete",
-    "Undefined",
-    "MISSING",
-    "DISCORD_EPOCH",
-    "UNICODE_EMOJIS",
+    "DiscordTime",
 )
+
+
+class DiscordTime(datetime.datetime):
+    """A subclass of `datetime.datetime` that offers additional utility methods
+    .. versionadded:: 3.0
+    """
+
+    @classmethod
+    def utcnow(cls) -> typing_extensions.Self:
+        """A helper function to return an aware UTC datetime representing the current time.
+
+        This should be preferred to :meth:`datetime.datetime.utcnow` since it is an aware
+        datetime, compared to the naive datetime in the standard library.
+
+        Returns
+        -------
+        :class:`discord.DiscordTime`
+            The current aware datetime in UTC.
+        """
+        return cls.now(datetime.timezone.utc)
