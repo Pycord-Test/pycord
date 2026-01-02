@@ -77,5 +77,4 @@ def test_snowflake_time_roundtrip_realistic(dt: datetime.datetime, _expected_ms:
 
 def test_generate_snowflake_invalid_mode() -> None:
     with pytest.raises(ValueError, match=r"Invalid mode 'nope'. Must be 'realistic' or 'boundary'"):
-        DiscordTime.from_datetime(datetime.datetime.now(tz=UTC)).generate_snowflake(
-            mode="nope")  # ty: ignore[invalid-argument-type]
+        DiscordTime.from_datetime(datetime.datetime.now(tz=UTC)).generate_snowflake(mode="nope")  # ty: ignore[invalid-argument-type]

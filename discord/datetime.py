@@ -102,10 +102,27 @@ class DiscordTime(datetime.datetime):
 
     @classmethod
     def from_datetime(cls, dt: datetime.datetime | datetime.time) -> Self:
+        """Converts a datetime or time object to a UTC-aware datetime object.
+
+        Parameters
+        ----------
+        dt: :class:`datetime.datetime` | :class:`datetime.time`
+            A datetime or time object to generate a DiscordTime from.
+
+        .. versionadded:: 3.0
+        """
         if isinstance(dt, datetime.time):
             dt = datetime.datetime.combine(cls.utcnow(), dt)
-        return cls(day=dt.day, month=dt.month, year=dt.year, hour=dt.hour, minute=dt.minute, second=dt.second,
-                   microsecond=dt.microsecond, tzinfo=dt.tzinfo)
+        return cls(
+            day=dt.day,
+            month=dt.month,
+            year=dt.year,
+            hour=dt.hour,
+            minute=dt.minute,
+            second=dt.second,
+            microsecond=dt.microsecond,
+            tzinfo=dt.tzinfo,
+        )
 
     @classmethod
     def from_snowflake(cls, id: int) -> Self:

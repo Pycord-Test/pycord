@@ -30,9 +30,9 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 from typing_extensions import Self
 
-from .datetime import DiscordTime
 from .asset import Asset
 from .colour import Colour
+from .datetime import DiscordTime
 from .errors import InvalidArgument
 from .flags import RoleFlags
 from .mixins import Hashable
