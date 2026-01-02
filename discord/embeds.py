@@ -323,7 +323,7 @@ class Embed:
     url: :class:`str`
         The URL of the embed.
         This can be set during initialisation.
-    timestamp: :class:`datetime.datetime`
+    timestamp: :class:`discord.DiscordTime`
         The timestamp of the embed content. This is an aware datetime.
         If a naive datetime is passed, it is converted to an aware
         datetime with the local timezone.
@@ -532,8 +532,10 @@ class Embed:
     color = colour
 
     @property
-    def timestamp(self) -> datetime.datetime | None:
-        return getattr(self, "_timestamp", None)
+    def timestamp(self) -> DiscordTime | None:
+        if not getattr(self, "_timestamp", None):
+            return None
+        return DiscordTime.from_datetime(self._timestamp)
 
     @timestamp.setter
     def timestamp(self, value: datetime.datetime | None):

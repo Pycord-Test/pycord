@@ -30,6 +30,7 @@ from typing import TYPE_CHECKING, Any, Union, overload
 
 from .asset import Asset
 from .colour import Colour
+from .datetime import DiscordTime
 from .enums import ActivityType, try_enum
 from .partial_emoji import PartialEmoji
 from .utils.private import get_as_snowflake
@@ -123,13 +124,14 @@ class BaseActivity:
         self._created_at: float | None = kwargs.pop("created_at", None)
 
     @property
-    def created_at(self) -> datetime.datetime | None:
+    def created_at(self) -> DiscordTime | None:
         """When the user started doing this activity in UTC.
 
         .. versionadded:: 1.3
         """
         if self._created_at is not None:
-            return datetime.datetime.fromtimestamp(self._created_at / 1000, tz=datetime.timezone.utc)
+            return DiscordTime.fromtimestamp(self._created_at / 1000, tz=datetime.timezone.utc)
+        return None
 
     def to_dict(self) -> ActivityPayload:
         raise NotImplementedError
@@ -273,24 +275,24 @@ class Activity(BaseActivity):
         return ret
 
     @property
-    def start(self) -> datetime.datetime | None:
+    def start(self) -> DiscordTime | None:
         """When the user started doing this activity in UTC, if applicable."""
         try:
             timestamp = self.timestamps["start"] / 1000
         except KeyError:
             return None
         else:
-            return datetime.datetime.fromtimestamp(timestamp, tz=datetime.timezone.utc)
+            return DiscordTime.fromtimestamp(timestamp, tz=datetime.timezone.utc)
 
     @property
-    def end(self) -> datetime.datetime | None:
+    def end(self) -> DiscordTime | None:
         """When the user will stop doing this activity in UTC, if applicable."""
         try:
             timestamp = self.timestamps["end"] / 1000
         except KeyError:
             return None
         else:
-            return datetime.datetime.fromtimestamp(timestamp, tz=datetime.timezone.utc)
+            return DiscordTime.fromtimestamp(timestamp, tz=datetime.timezone.utc)
 
     @property
     def large_image_url(self) -> str | None:
@@ -387,17 +389,17 @@ class Game(BaseActivity):
         return ActivityType.playing
 
     @property
-    def start(self) -> datetime.datetime | None:
+    def start(self) -> DiscordTime | None:
         """When the user started playing this game in UTC, if applicable."""
         if self._start:
-            return datetime.datetime.fromtimestamp(self._start / 1000, tz=datetime.timezone.utc)
+            return DiscordTime.fromtimestamp(self._start / 1000, tz=datetime.timezone.utc)
         return None
 
     @property
-    def end(self) -> datetime.datetime | None:
+    def end(self) -> DiscordTime | None:
         """When the user will stop playing this game in UTC, if applicable."""
         if self._end:
-            return datetime.datetime.fromtimestamp(self._end / 1000, tz=datetime.timezone.utc)
+            return DiscordTime.fromtimestamp(self._end / 1000, tz=datetime.timezone.utc)
         return None
 
     def __str__(self) -> str:
@@ -583,13 +585,14 @@ class Spotify:
         return ActivityType.listening
 
     @property
-    def created_at(self) -> datetime.datetime | None:
+    def created_at(self) -> DiscordTime | None:
         """When the user started listening in UTC.
 
         .. versionadded:: 1.3
         """
         if self._created_at is not None:
-            return datetime.datetime.fromtimestamp(self._created_at / 1000, tz=datetime.timezone.utc)
+            return DiscordTime.fromtimestamp(self._created_at / 1000, tz=datetime.timezone.utc)
+        return None
 
     @property
     def colour(self) -> Colour:
@@ -689,14 +692,14 @@ class Spotify:
         return f"https://open.spotify.com/track/{self.track_id}"
 
     @property
-    def start(self) -> datetime.datetime:
+    def start(self) -> DiscordTime:
         """When the user started playing this song in UTC."""
-        return datetime.datetime.fromtimestamp(self._timestamps["start"] / 1000, tz=datetime.timezone.utc)
+        return DiscordTime.fromtimestamp(self._timestamps["start"] / 1000, tz=datetime.timezone.utc)
 
     @property
-    def end(self) -> datetime.datetime:
+    def end(self) -> DiscordTime:
         """When the user will stop playing this song in UTC."""
-        return datetime.datetime.fromtimestamp(self._timestamps["end"] / 1000, tz=datetime.timezone.utc)
+        return DiscordTime.fromtimestamp(self._timestamps["end"] / 1000, tz=datetime.timezone.utc)
 
     @property
     def duration(self) -> datetime.timedelta:

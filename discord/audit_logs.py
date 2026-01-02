@@ -586,7 +586,7 @@ class AuditLogEntry(Hashable):
         return f"<AuditLogEntry id={self.id} action={self.action} user={self.user!r}>"
 
     @cached_property
-    def created_at(self) -> datetime.datetime:
+    def created_at(self) -> DiscordTime:
         """Returns the entry's creation time in UTC."""
         return DiscordTime.from_snowflake(self.id)
 

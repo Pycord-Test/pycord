@@ -25,7 +25,6 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-import datetime
 import io
 import re
 from inspect import isawaitable
@@ -266,18 +265,18 @@ class Attachment(Hashable):
                     setattr(self, attr, value)
 
     @property
-    def expires_at(self) -> datetime.datetime | None:
+    def expires_at(self) -> DiscordTime | None:
         """This attachment URL's expiry time in UTC."""
         if not self._ex:
             return None
-        return datetime.datetime.utcfromtimestamp(int(self._ex, 16))
+        return DiscordTime.utcfromtimestamp(int(self._ex, 16))
 
     @property
-    def issued_at(self) -> datetime.datetime | None:
+    def issued_at(self) -> DiscordTime | None:
         """The attachment URL's issue time in UTC."""
         if not self._is:
             return None
-        return datetime.datetime.utcfromtimestamp(int(self._is, 16))
+        return DiscordTime.utcfromtimestamp(int(self._is, 16))
 
     def is_spoiler(self) -> bool:
         """Whether this attachment contains a spoiler."""
@@ -828,7 +827,7 @@ class MessagePin:
         data: MessagePinPayload,
     ):
         self._state: ConnectionState = state
-        self._pinned_at: datetime.datetime = utils.parse_time(data["pinned_at"])
+        self._pinned_at: DiscordTime = DiscordTime.parse_time(data["pinned_at"])
         self._message: Message = state.create_message(channel=channel, data=data["message"])
 
     @property
@@ -837,7 +836,7 @@ class MessagePin:
         return self._message
 
     @property
-    def pinned_at(self) -> datetime.datetime:
+    def pinned_at(self) -> DiscordTime:
         """An aware timestamp of when the message was pinned."""
         return self._pinned_at
 

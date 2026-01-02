@@ -24,7 +24,6 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-import datetime
 from typing import TYPE_CHECKING
 
 from .datetime import DiscordTime
@@ -58,13 +57,13 @@ class IncidentsData:
     )
 
     def __init__(self, data: IncidentsDataPayload):
-        self.invites_disabled_until: datetime.datetime | None = DiscordTime.parse_time(data.get("invites_disabled_until"))
+        self.invites_disabled_until: DiscordTime | None = DiscordTime.parse_time(data.get("invites_disabled_until"))
 
-        self.dms_disabled_until: datetime.datetime | None = DiscordTime.parse_time(data.get("dms_disabled_until"))
+        self.dms_disabled_until: DiscordTime | None = DiscordTime.parse_time(data.get("dms_disabled_until"))
 
-        self.dm_spam_detected_at: datetime.datetime | None = DiscordTime.parse_time(data.get("dm_spam_detected_at"))
+        self.dm_spam_detected_at: DiscordTime | None = DiscordTime.parse_time(data.get("dm_spam_detected_at"))
 
-        self.raid_detected_at: datetime.datetime | None = DiscordTime.parse_time(data.get("raid_detected_at"))
+        self.raid_detected_at: DiscordTime | None = DiscordTime.parse_time(data.get("raid_detected_at"))
 
     def to_dict(self) -> IncidentsDataPayload:
         return {

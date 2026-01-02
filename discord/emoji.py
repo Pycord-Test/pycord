@@ -41,8 +41,6 @@ __all__ = (
 )
 
 if TYPE_CHECKING:
-    from datetime import datetime
-
     from .abc import Snowflake
     from .app.state import ConnectionState
     from .guild import Guild
@@ -101,7 +99,7 @@ class BaseEmoji(_EmojiTag, AssetMixin):
         return self.id >> 22
 
     @property
-    def created_at(self) -> datetime:
+    def created_at(self) -> DiscordTime:
         """Returns the emoji's creation time in UTC."""
         return DiscordTime.from_snowflake(self.id)
 

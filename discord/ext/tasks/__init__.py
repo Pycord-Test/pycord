@@ -41,6 +41,8 @@ from discord import utils
 from discord.backoff import ExponentialBackoff
 from discord.utils import MISSING
 
+from ...datetime import DiscordTime
+
 __all__ = ("loop",)
 
 T = TypeVar("T")
@@ -323,7 +325,7 @@ class Loop(Generic[LF]):
         return _current_loop_ctx.get() if _current_loop_ctx.get() is not None else self._current_loop
 
     @property
-    def next_iteration(self) -> datetime.datetime | None:
+    def next_iteration(self) -> DiscordTime | None:
         """When the next iteration of the loop will occur.
 
         .. versionadded:: 1.3

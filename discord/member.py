@@ -301,7 +301,7 @@ class Member(discord.abc.Messageable, _UserTag):
         discriminator: str
         bot: bool
         system: bool
-        created_at: datetime.datetime
+        created_at: DiscordTime
         default_avatar: Asset
         avatar: Asset | None
         dm_channel: DMChannel | None
@@ -311,7 +311,7 @@ class Member(discord.abc.Messageable, _UserTag):
         banner: Asset | None
         accent_color: Colour | None
         accent_colour: Colour | None
-        communication_disabled_until: datetime.datetime | None
+        communication_disabled_until: DiscordTime | None
         primary_guild: PrimaryGuild | None
 
     def __init__(self, *, data: MemberWithUserPayload, guild: Guild, state: ConnectionState):

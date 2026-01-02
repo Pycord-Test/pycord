@@ -23,7 +23,6 @@ DEALINGS IN THE SOFTWARE.
 """
 
 from copy import copy
-from datetime import datetime
 from functools import lru_cache
 from typing import Any, TypeVar, cast
 
@@ -259,13 +258,13 @@ class ChannelPinsUpdate(Event):
     ----------
     channel: :class:`abc.PrivateChannel` | :class:`TextChannel` | :class:`VoiceChannel` | :class:`StageChannel` | :class:`ForumChannel` | :class:`Thread`
         The channel that had its pins updated. Can be any messageable channel type.
-    last_pin: :class:`datetime.datetime` | None
+    last_pin: :class:`discord.DiscordTime` | None
         The latest message that was pinned as an aware datetime in UTC, or None if no pins exist.
     """
 
     __event_name__: str = "CHANNEL_PINS_UPDATE"
     channel: PrivateChannel | GuildChannel | Thread
-    last_pin: datetime | None
+    last_pin: DiscordTime | None
 
     @classmethod
     @override

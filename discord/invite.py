@@ -57,8 +57,6 @@ if TYPE_CHECKING:
     InviteGuildType = Guild | "PartialInviteGuild" | Object
     InviteChannelType = GuildChannel | "PartialInviteChannel" | Object
 
-    import datetime
-
 
 class PartialInviteChannel:
     """Represents a "partial" invite channel.
@@ -189,7 +187,7 @@ class PartialInviteGuild:
         )
 
     @property
-    def created_at(self) -> datetime.datetime:
+    def created_at(self) -> DiscordTime:
         """Returns the guild's creation time in UTC."""
         return DiscordTime.from_snowflake(self.id)
 

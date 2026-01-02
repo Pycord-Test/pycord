@@ -22,12 +22,11 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
 
-from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from typing_extensions import Self, override
 
-from discord import utils
+from discord import DiscordTime, utils
 from discord.app.event_emitter import Event
 from discord.app.state import ConnectionState
 from discord.channel import DMChannel, GroupChannel, TextChannel
@@ -59,7 +58,7 @@ class TypingStart(Event):
         The location where the typing originated from.
     user: :class:`User` | :class:`Member`
         The user that started typing.
-    when: :class:`datetime.datetime`
+    when: :class:`discord.DiscordTime`
         When the typing started as an aware datetime in UTC.
     """
 
@@ -68,7 +67,7 @@ class TypingStart(Event):
     raw: RawTypingEvent
     channel: "MessageableChannel"
     user: User | Member
-    when: datetime
+    when: DiscordTime
 
     @classmethod
     @override
