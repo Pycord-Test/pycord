@@ -46,10 +46,10 @@ from typing import (
 )
 
 from discord.interactions import AutocompleteInteraction, Interaction
-from discord.datetime import DiscordTime
 
 from ..channel import PartialMessageable, _threaded_guild_channel_factory
 from ..channel.thread import Thread
+from ..datetime import DiscordTime
 from ..enums import Enum as DiscordEnum
 from ..enums import (
     IntegrationType,
