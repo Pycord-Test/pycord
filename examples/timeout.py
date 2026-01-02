@@ -16,7 +16,7 @@ async def timeout(ctx: discord.ApplicationContext, member: discord.Member, minut
     """
     The method used above is a shortcut for:
 
-    until = discord.utils.utcnow() + datetime.timedelta(minutes=minutes)
+    until = discord.DiscordTime.utcnow() + datetime.timedelta(minutes=minutes)
     await member.timeout(until)
     """
 

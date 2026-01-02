@@ -27,12 +27,12 @@ from __future__ import annotations
 from functools import cached_property
 from typing import TYPE_CHECKING, Any
 
-from discord import utils
+from discord import utils, DiscordTime
 
 from . import utils
 from .enums import OnboardingMode, PromptType, try_enum
 from .partial_emoji import PartialEmoji
-from .utils import MISSING, find, generate_snowflake
+from .utils import MISSING, find
 
 if TYPE_CHECKING:
     from .abc import Snowflake
@@ -84,7 +84,7 @@ class PromptOption:
         id: int | None = None,
     ):
         # ID is required when making edits, but it can be any snowflake that isn't already used by another prompt during edits
-        self.id: int = int(id) if id else generate_snowflake(mode="realistic")
+        self.id: int = int(id) if id else DiscordTime.utcnow().generate_snowflake(mode="realistic")
         self.title: str = title
         self.channels: list[Snowflake] = channels or []
         self.roles: list[Snowflake] = roles or []
@@ -172,7 +172,7 @@ class OnboardingPrompt:
         id: int | None = None,  # Currently optional as users can manually create these
     ):
         # ID is required when making edits, but it can be any snowflake that isn't already used by another prompt during edits
-        self.id: int = int(id) if id else generate_snowflake(mode="realistic")
+        self.id: int = int(id) if id else DiscordTime.utcnow().generate_snowflake(mode="realistic")
 
         self.type: PromptType = type
         if isinstance(self.type, int):

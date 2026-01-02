@@ -412,7 +412,7 @@ class ApplicationCommand(_BaseCommand, Generic[CogT, P, T]):
         """
         if self._buckets.valid:
             bucket = self._buckets.get_bucket(ctx)  # type: ignore
-            current = utcnow().timestamp()
+            current = DiscordTime.utcnow().timestamp()
             return bucket.get_retry_after(current)
 
         return 0.0

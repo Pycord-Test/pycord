@@ -26,9 +26,9 @@ import datetime
 
 import pytest
 
+from discord import DiscordTime
 from discord.utils import (
     DISCORD_EPOCH,
-    generate_snowflake,
     snowflake_time,
 )
 
@@ -45,39 +45,40 @@ DATETIME_CASES = [
 
 @pytest.mark.parametrize(("dt", "expected_ms"), DATETIME_CASES)
 def test_generate_snowflake_realistic(dt: datetime.datetime, expected_ms: int) -> None:
-    sf = generate_snowflake(dt, mode="realistic")
+    sf = DiscordTime.from_datetime(dt).generate_snowflake(mode="realistic")
     assert (sf >> 22) == expected_ms
     assert (sf & ((1 << 22) - 1)) == 0x3FFFFF
 
 
 @pytest.mark.parametrize(("dt", "expected_ms"), DATETIME_CASES)
 def test_generate_snowflake_boundary_low(dt: datetime.datetime, expected_ms: int) -> None:
-    sf = generate_snowflake(dt, mode="boundary", high=False)
+    sf = DiscordTime.from_datetime(dt).generate_snowflake(mode="boundary", high=False)
     assert (sf >> 22) == expected_ms
     assert (sf & ((1 << 22) - 1)) == 0
 
 
 @pytest.mark.parametrize(("dt", "expected_ms"), DATETIME_CASES)
 def test_generate_snowflake_boundary_high(dt: datetime.datetime, expected_ms: int) -> None:
-    sf = generate_snowflake(dt, mode="boundary", high=True)
+    sf = DiscordTime.from_datetime(dt).generate_snowflake(mode="boundary", high=True)
     assert (sf >> 22) == expected_ms
     assert (sf & ((1 << 22) - 1)) == (2**22 - 1)
 
 
 @pytest.mark.parametrize(("dt", "_expected_ms"), DATETIME_CASES)
 def test_snowflake_time_roundtrip_boundary(dt: datetime.datetime, _expected_ms: int) -> None:
-    sf_low = generate_snowflake(dt, mode="boundary", high=False)
-    sf_high = generate_snowflake(dt, mode="boundary", high=True)
+    sf_low = DiscordTime.from_datetime(dt).generate_snowflake(mode="boundary", high=False)
+    sf_high = DiscordTime.from_datetime(dt).generate_snowflake(mode="boundary", high=True)
     assert snowflake_time(sf_low) == dt
     assert snowflake_time(sf_high) == dt
 
 
 @pytest.mark.parametrize(("dt", "_expected_ms"), DATETIME_CASES)
 def test_snowflake_time_roundtrip_realistic(dt: datetime.datetime, _expected_ms: int) -> None:
-    sf = generate_snowflake(dt, mode="realistic")
+    sf = DiscordTime.from_datetime(dt).generate_snowflake(mode="realistic")
     assert snowflake_time(sf) == dt
 
 
 def test_generate_snowflake_invalid_mode() -> None:
     with pytest.raises(ValueError, match=r"Invalid mode 'nope'. Must be 'realistic' or 'boundary'"):
-        generate_snowflake(datetime.datetime.now(tz=UTC), mode="nope")  # ty: ignore[invalid-argument-type]
+        DiscordTime.from_datetime(datetime.datetime.now(tz=UTC)).generate_snowflake(
+            mode="nope")  # ty: ignore[invalid-argument-type]

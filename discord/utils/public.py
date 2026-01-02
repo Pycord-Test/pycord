@@ -134,61 +134,6 @@ def basic_autocomplete(values: Values, *, filter: FilterFunc | None = None) -> A
 
     return autocomplete_callback
 
-
-def generate_snowflake(
-    dt: DiscordTime | None = None,
-    *,
-    mode: Literal["boundary", "realistic"] = "boundary",
-    high: bool = False,
-) -> int:
-    """Returns a numeric snowflake pretending to be created at the given date.
-
-    This function can generate both realistic snowflakes (for general use) and
-    boundary snowflakes (for range queries).
-
-    Parameters
-    ----------
-    dt: :class:`datetime.datetime`
-        A datetime object to convert to a snowflake.
-        If naive, the timezone is assumed to be local time.
-        If None, uses current UTC time.
-    mode: :class:`str`
-        The type of snowflake to generate:
-        - "realistic": Creates a snowflake with random-like lower bits
-        - "boundary": Creates a snowflake for range queries (default)
-    high: :class:`bool`
-        Only used when mode="boundary". Whether to set the lower 22 bits
-        to high (True) or low (False). Default is False.
-
-    Returns
-    -------
-    :class:`int`
-        The snowflake representing the time given.
-
-    Examples
-    --------
-    # Generate realistic snowflake
-    snowflake = generate_snowflake(dt)
-
-    # Generate boundary snowflakes
-    lower_bound = generate_snowflake(dt, mode="boundary", high=False)
-    upper_bound = generate_snowflake(dt, mode="boundary", high=True)
-
-    # For inclusive ranges:
-    # Lower: generate_snowflake(dt, mode="boundary", high=False) - 1
-    # Upper: generate_snowflake(dt, mode="boundary", high=True) + 1
-    """
-    dt = dt or DiscordTime.utcnow()
-    discord_millis = int(dt.timestamp() * 1000 - DISCORD_EPOCH)
-
-    if mode == "realistic":
-        return (discord_millis << 22) | 0x3FFFFF
-    elif mode == "boundary":
-        return (discord_millis << 22) + (2**22 - 1 if high else 0)
-    else:
-        raise ValueError(f"Invalid mode '{mode}'. Must be 'realistic' or 'boundary'")
-
-
 def snowflake_time(id: int) -> DiscordTime:
     """Converts a Discord snowflake ID to a UTC-aware datetime object.
 

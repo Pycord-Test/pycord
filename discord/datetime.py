@@ -24,6 +24,7 @@ DEALINGS IN THE SOFTWARE.
 """
 
 import datetime
+from typing import override, Literal
 
 import typing_extensions
 
@@ -31,12 +32,16 @@ __all__ = (
     "DiscordTime",
 )
 
+DISCORD_EPOCH = 1420070400000
+
 
 class DiscordTime(datetime.datetime):
     """A subclass of `datetime.datetime` that offers additional utility methods
+
     .. versionadded:: 3.0
     """
 
+    @override
     @classmethod
     def utcnow(cls) -> typing_extensions.Self:
         """A helper function to return an aware UTC datetime representing the current time.
@@ -49,4 +54,57 @@ class DiscordTime(datetime.datetime):
         :class:`discord.DiscordTime`
             The current aware datetime in UTC.
         """
-        return cls.now(datetime.timezone.utc)
+        return cls.now(datetime.UTC)
+
+    def generate_snowflake(
+            self,
+            *,
+            mode: Literal["boundary", "realistic"] = "boundary",
+            high: bool = False,
+    ) -> int:
+        """Returns a numeric snowflake pretending to be created at the given date.
+
+        This function can generate both realistic snowflakes (for general use) and
+        boundary snowflakes (for range queries).
+
+        Parameters
+        ----------
+        mode: :class:`str`
+            The type of snowflake to generate:
+            - "realistic": Creates a snowflake with random-like lower bits
+            - "boundary": Creates a snowflake for range queries (default)
+        high: :class:`bool`
+            Only used when mode="boundary". Whether to set the lower 22 bits
+            to high (True) or low (False). Default is False.
+
+        Returns
+        -------
+        :class:`int`
+            The snowflake representing the time given.
+
+        Examples
+        --------
+        # Generate realistic snowflake
+        snowflake = DateTime.utcnow().generate_snowflake()
+
+        # Generate boundary snowflakes
+        lower_bound = DateTime.utcnow().generate_snowflake(mode="boundary", high=False)
+        upper_bound = DateTime.utcnow().generate_snowflake(mode="boundary", high=True)
+
+        # For inclusive ranges:
+        # Lower: DateTime.utcnow().generate_snowflake(mode="boundary", high=False) - 1
+        # Upper: DateTime.utcnow().generate_snowflake(mode="boundary", high=True) + 1
+        """
+        discord_millis = int(self.timestamp() * 1000 - DISCORD_EPOCH)
+
+        if mode == "realistic":
+            return (discord_millis << 22) | 0x3FFFFF
+        elif mode == "boundary":
+            return (discord_millis << 22) + (2 ** 22 - 1 if high else 0)
+        else:
+            raise ValueError(f"Invalid mode '{mode}'. Must be 'realistic' or 'boundary'")
+
+    @classmethod
+    def from_datetime(cls, dt: datetime.datetime) -> typing_extensions.Self:
+        cls(day=dt.day, month=dt.month, year=dt.year, hour=dt.hour, minute=dt.minute, second=dt.second,
+            microsecond=dt.microsecond, tzinfo=dt.tzinfo)
