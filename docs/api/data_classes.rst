@@ -247,3 +247,20 @@ Application Role Connections
 
 .. autoclass:: ApplicationRoleConnectionMetadata
     :members:
+
+Datetime
+--------
+
+.. autoclass:: discord.DiscordTime
+
+.. autofunction:: discord.DiscordTime.format_datetime
+
+.. autofunction:: discord.DiscordTime.format_snowflake
+
+.. autofunction:: discord.DiscordTime.from_datetime
+
+.. autofunction:: discord.DiscordTime.from_snowflake
+
+.. autofunction:: discord.DiscordTime.generate_snowflake
+
+.. autofunction:: discord.DiscordTime.utcnow

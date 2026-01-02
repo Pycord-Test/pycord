@@ -32,7 +32,7 @@ TimestampStyle = Literal["f", "F", "d", "D", "t", "T", "R"]
 
 
 class DiscordTime(datetime.datetime):
-    """A subclass of `datetime.datetime` that offers additional utility methods
+    """A subclass of :class:`datetime.datetime` that offers additional utility methods
 
     .. versionadded:: 3.0
     """
@@ -135,7 +135,7 @@ class DiscordTime(datetime.datetime):
 
         Returns
         -------
-        :class:`discord.datetime.DiscordTime`
+        :class:`discord.DiscordTime`
             An aware datetime in UTC representing the creation time of the snowflake.
         """
         timestamp = ((id >> 22) + DISCORD_EPOCH) / 1000
@@ -172,9 +172,8 @@ class DiscordTime(datetime.datetime):
 
         Parameters
         ----------
-        style: :class:`str`R
+        style: :class:`str`
             The style to format the datetime with.
-
         Returns
         -------
         :class:`str`
