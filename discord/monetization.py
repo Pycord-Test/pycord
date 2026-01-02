@@ -232,7 +232,9 @@ class Entitlement(Hashable):
         self.type: EntitlementType = try_enum(EntitlementType, data["type"])
         self.deleted: bool = data["deleted"]
         self.starts_at: DiscordTime | MISSING = DiscordTime.parse_time(data.get("starts_at")) or MISSING
-        self.ends_at: DiscordTime | MISSING | None = DiscordTime.parse_time(ea) if (ea := data.get("ends_at")) is not None else MISSING
+        self.ends_at: DiscordTime | MISSING | None = (
+            DiscordTime.parse_time(ea) if (ea := data.get("ends_at")) is not None else MISSING
+        )
         self.guild_id: int | MISSING = get_as_snowflake(data, "guild_id") or MISSING
         self.consumed: bool = data.get("consumed", False)
 

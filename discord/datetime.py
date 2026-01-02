@@ -21,6 +21,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
+
 from __future__ import annotations
 
 import datetime
@@ -54,10 +55,10 @@ class DiscordTime(datetime.datetime):
         return cls.now(datetime.UTC)
 
     def generate_snowflake(
-            self,
-            *,
-            mode: Literal["boundary", "realistic"] = "boundary",
-            high: bool = False,
+        self,
+        *,
+        mode: Literal["boundary", "realistic"] = "boundary",
+        high: bool = False,
     ) -> int:
         """Returns a numeric snowflake pretending to be created at the given date.
 
@@ -102,7 +103,7 @@ class DiscordTime(datetime.datetime):
         if mode == "realistic":
             return (discord_millis << 22) | 0x3FFFFF
         elif mode == "boundary":
-            return (discord_millis << 22) + (2 ** 22 - 1 if high else 0)
+            return (discord_millis << 22) + (2**22 - 1 if high else 0)
         else:
             raise ValueError(f"Invalid mode '{mode}'. Must be 'realistic' or 'boundary'")
 
@@ -145,8 +146,7 @@ class DiscordTime(datetime.datetime):
         timestamp = ((id >> 22) + DISCORD_EPOCH) / 1000
         return DiscordTime.fromtimestamp(timestamp, tz=datetime.timezone.utc)
 
-    @classmethod
-    def format_datetime(cls, /, style: TimestampStyle | None = None) -> str:
+    def format_datetime(self, /, style: TimestampStyle | None = None) -> str:
         """A method to format this :class:`datetime.datetime` for presentation within Discord.
 
         This allows for a locale-independent way of presenting data using Discord specific Markdown.
@@ -184,22 +184,17 @@ class DiscordTime(datetime.datetime):
         :class:`str`
             The formatted string.
         """
-        dt = cls
-        if isinstance(dt, datetime.time):
-            dt = datetime.datetime.combine(datetime.datetime.now(), dt)
         if style is None:
-            return f"<t:{int(dt.timestamp())}>"
-        return f"<t:{int(dt.timestamp())}:{style}>"
+            return f"<t:{int(self.timestamp())}>"
+        return f"<t:{int(self.timestamp())}:{style}>"
 
     @overload
     @classmethod
-    def parse_time(cls, timestamp: None) -> None:
-        ...
+    def parse_time(cls, timestamp: None) -> None: ...
 
     @overload
     @classmethod
-    def parse_time(cls, timestamp: str) -> DiscordTime:
-        ...
+    def parse_time(cls, timestamp: str) -> DiscordTime: ...
 
     @classmethod
     def parse_time(cls, timestamp: str | None) -> DiscordTime | None:

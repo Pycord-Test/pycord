@@ -131,6 +131,7 @@ def basic_autocomplete(values: Values, *, filter: FilterFunc | None = None) -> A
 
     return autocomplete_callback
 
+
 def oauth_url(
     client_id: int | str,
     *,
