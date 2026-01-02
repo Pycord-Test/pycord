@@ -28,8 +28,9 @@ from __future__ import annotations
 import datetime
 from typing import TYPE_CHECKING, Any
 
-from discord import DiscordTime, utils
+from discord import utils
 
+from .datetime import DiscordTime
 from .enums import ExpireBehaviour, try_enum
 from .errors import InvalidArgument
 from .user import User

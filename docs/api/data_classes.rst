@@ -264,3 +264,5 @@ Datetime
 .. autofunction:: discord.DiscordTime.generate_snowflake
 
 .. autofunction:: discord.DiscordTime.utcnow
+
+.. autofunction:: discord.DiscordTime.parse_time

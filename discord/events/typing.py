@@ -26,7 +26,7 @@ from typing import TYPE_CHECKING, Any
 
 from typing_extensions import Self, override
 
-from discord import DiscordTime, utils
+from discord import utils
 from discord.app.event_emitter import Event
 from discord.app.state import ConnectionState
 from discord.channel import DMChannel, GroupChannel, TextChannel
@@ -34,6 +34,8 @@ from discord.channel.thread import Thread
 from discord.member import Member
 from discord.raw_models import RawTypingEvent
 from discord.user import User
+
+from ..datetime import DiscordTime
 
 if TYPE_CHECKING:
     from discord.message import MessageableChannel

@@ -29,7 +29,8 @@ from typing import TYPE_CHECKING, Callable, Iterable
 
 from typing_extensions import override
 
-from discord import DiscordTime, utils
+from discord import utils
+from ..datetime import DiscordTime
 
 from ..abc import Messageable, _purge_messages_helper
 from ..enums import (
