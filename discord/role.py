@@ -30,7 +30,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 from typing_extensions import Self
 
-from . import DiscordTime
+from .datetime import DiscordTime
 from .asset import Asset
 from .colour import Colour
 from .errors import InvalidArgument
@@ -43,8 +43,6 @@ from .utils.private import bytes_to_base64_data, deprecated, get_as_snowflake, w
 __all__ = ("RoleTags", "Role", "RoleColours")
 
 if TYPE_CHECKING:
-    import datetime
-
     from .app.state import ConnectionState
     from .guild import Guild
     from .member import Member

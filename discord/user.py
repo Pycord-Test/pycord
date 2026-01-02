@@ -29,11 +29,11 @@ import asyncio
 from typing import TYPE_CHECKING, Any, TypeVar
 
 import discord.abc
-from . import DiscordTime
 
 from .asset import Asset
 from .collectibles import Nameplate
 from .colour import Colour
+from .datetime import DiscordTime
 from .flags import PublicUserFlags
 from .iterators import EntitlementIterator
 from .monetization import Entitlement

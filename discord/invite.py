@@ -27,7 +27,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, TypeVar, Union
 
-from . import DiscordTime
+from .datetime import DiscordTime
 from .appinfo import PartialAppInfo
 from .asset import Asset
 from .enums import ChannelType, InviteTarget, VerificationLevel, try_enum

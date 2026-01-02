@@ -26,12 +26,12 @@ DEALINGS IN THE SOFTWARE.
 from __future__ import annotations
 
 import asyncio
-import datetime
 from typing import TYPE_CHECKING, Any, Coroutine, Generic, Union
 
 from typing_extensions import Self, TypeVar, override, reveal_type
 
-from . import utils, DiscordTime
+from . import utils
+from .datetime import DiscordTime
 from .channel import ChannelType, PartialMessageable, _threaded_channel_factory
 from .enums import (
     InteractionContextType,

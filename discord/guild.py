@@ -45,7 +45,8 @@ from typing import (
 
 from typing_extensions import Self, override
 
-from . import abc, utils, DiscordTime
+from . import abc, utils
+from .datetime import DiscordTime
 from .asset import Asset
 from .automod import AutoModAction, AutoModRule, AutoModTriggerMetadata
 from .channel import *

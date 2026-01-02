@@ -36,10 +36,11 @@ from urllib.parse import quote as urlquote
 
 import aiohttp
 
-from .. import utils, DiscordTime
+from .. import utils
 from ..asset import Asset
 from ..channel import ForumChannel, PartialMessageable
 from ..channel.thread import Thread
+from ..datetime import DiscordTime
 from ..enums import WebhookType, try_enum
 from ..errors import (
     DiscordServerError,

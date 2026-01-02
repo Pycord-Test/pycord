@@ -27,7 +27,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, SupportsInt, Union
 
-from . import DiscordTime
+from .datetime import DiscordTime
 from .mixins import Hashable
 
 if TYPE_CHECKING:

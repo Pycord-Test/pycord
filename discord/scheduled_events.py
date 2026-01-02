@@ -27,8 +27,9 @@ from __future__ import annotations
 import datetime
 from typing import TYPE_CHECKING, Any
 
-from . import utils, DiscordTime
+from . import utils
 from .asset import Asset
+from .datetime import DiscordTime
 from .enums import (
     ScheduledEventLocationType,
     ScheduledEventPrivacyLevel,

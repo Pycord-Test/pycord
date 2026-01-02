@@ -45,7 +45,8 @@ from urllib.parse import parse_qs, urlparse
 
 from typing_extensions import Self
 
-from . import utils, DiscordTime
+from . import utils
+from .datetime import DiscordTime
 from .channel import PartialMessageable
 from .channel.thread import Thread
 from .components import _component_factory

@@ -27,7 +27,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Iterator
 
-from . import DiscordTime
+from .datetime import DiscordTime
 from .asset import Asset, AssetMixin
 from .partial_emoji import PartialEmoji, _EmojiTag
 from .user import User

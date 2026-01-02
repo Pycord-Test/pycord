@@ -33,7 +33,7 @@ from typing import TYPE_CHECKING, Any, Callable, Generic, cast, overload
 
 from typing_extensions import Self, TypeVar, override
 
-from .. import DiscordTime
+from ..datetime import DiscordTime
 from ..abc import Messageable, Snowflake, SnowflakeTime, User, _Overwrites, _purge_messages_helper
 from ..emoji import GuildEmoji, PartialEmoji
 from ..enums import ChannelType, InviteTarget, SortOrder, try_enum

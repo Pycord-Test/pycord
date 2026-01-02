@@ -28,8 +28,8 @@ from __future__ import annotations
 import unicodedata
 from typing import TYPE_CHECKING, Literal
 
-from . import DiscordTime
 from .asset import Asset, AssetMixin
+from .datetime import DiscordTime
 from .enums import StickerFormatType, StickerType, try_enum
 from .errors import InvalidData
 from .mixins import Hashable

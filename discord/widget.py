@@ -27,8 +27,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from . import DiscordTime
 from .activity import BaseActivity, Spotify, create_activity
+from .datetime import DiscordTime
 from .enums import Status, try_enum
 from .invite import Invite
 from .user import BaseUser
