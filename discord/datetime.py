@@ -105,8 +105,8 @@ class DiscordTime(datetime.datetime):
 
     @classmethod
     def from_datetime(cls, dt: datetime.datetime) -> Self:
-        cls(day=dt.day, month=dt.month, year=dt.year, hour=dt.hour, minute=dt.minute, second=dt.second,
-            microsecond=dt.microsecond, tzinfo=dt.tzinfo)
+        return cls(day=dt.day, month=dt.month, year=dt.year, hour=dt.hour, minute=dt.minute, second=dt.second,
+                   microsecond=dt.microsecond, tzinfo=dt.tzinfo)
 
     @classmethod
     def from_snowflake(cls, id: int) -> Self:
