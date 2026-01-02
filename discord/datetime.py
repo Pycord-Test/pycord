@@ -1,7 +1,6 @@
 """
 The MIT License (MIT)
 
-Copyright (c) 2015-2021 Rapptz
 Copyright (c) 2021-present Pycord Development
 
 Permission is hereby granted, free of charge, to any person obtaining a
@@ -26,7 +25,7 @@ DEALINGS IN THE SOFTWARE.
 import datetime
 from typing import override, Literal
 
-import typing_extensions
+from typing_extensions import Self
 
 __all__ = (
     "DiscordTime",
@@ -43,7 +42,7 @@ class DiscordTime(datetime.datetime):
 
     @override
     @classmethod
-    def utcnow(cls) -> typing_extensions.Self:
+    def utcnow(cls) -> Self:
         """A helper function to return an aware UTC datetime representing the current time.
 
         This should be preferred to :meth:`datetime.datetime.utcnow` since it is an aware
@@ -105,6 +104,6 @@ class DiscordTime(datetime.datetime):
             raise ValueError(f"Invalid mode '{mode}'. Must be 'realistic' or 'boundary'")
 
     @classmethod
-    def from_datetime(cls, dt: datetime.datetime) -> typing_extensions.Self:
+    def from_datetime(cls, dt: datetime.datetime) -> Self:
         cls(day=dt.day, month=dt.month, year=dt.year, hour=dt.hour, minute=dt.minute, second=dt.second,
             microsecond=dt.microsecond, tzinfo=dt.tzinfo)
