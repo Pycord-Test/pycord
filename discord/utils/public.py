@@ -11,8 +11,6 @@ from collections.abc import Awaitable, Callable, Iterable
 from enum import Enum, auto
 from typing import TYPE_CHECKING, Any, Literal, TypeVar, cast
 
-from discord import DiscordTime
-
 if TYPE_CHECKING:
     from ..abc import Snowflake
     from ..commands.context import AutocompleteContext
