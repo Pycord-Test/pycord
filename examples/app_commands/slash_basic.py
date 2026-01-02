@@ -35,7 +35,7 @@ async def global_command(ctx: discord.ApplicationContext, num: int):  # Takes on
 async def joined(ctx: discord.ApplicationContext, member: discord.Member = None):
     # Setting a default value for the member parameter makes it optional ^
     user = member or ctx.author
-    await ctx.respond(f"{user.name} joined at {discord.DiscordTime.from_datetime(user.joined_at).format_datetime()}")
+    await ctx.respond(f"{user.name} joined at {user.joined_at.format()}")
 
 
 # To learn how to add descriptions and choices to options, check slash_options.py

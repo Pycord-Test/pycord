@@ -146,8 +146,8 @@ class DiscordTime(datetime.datetime):
         timestamp = ((id >> 22) + DISCORD_EPOCH) / 1000
         return DiscordTime.fromtimestamp(timestamp, tz=datetime.timezone.utc)
 
-    def format_datetime(self, /, style: TimestampStyle | None = None) -> str:
-        """A method to format this :class:`datetime.datetime` for presentation within Discord.
+    def format(self, /, style: TimestampStyle | None = None) -> str:
+        """A method to format this :class:`discord.DiscordTime` for presentation within Discord.
 
         This allows for a locale-independent way of presenting data using Discord specific Markdown.
 

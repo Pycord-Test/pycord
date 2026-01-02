@@ -71,7 +71,7 @@ def test_format_dt_formats_datetime(
         expected = f"<t:{expected_ts}>"
     else:
         expected = f"<t:{expected_ts}:{style}>"
-    result = DiscordTime.from_datetime(dt).format_datetime(style=style)
+    result = DiscordTime.from_datetime(dt).format(style=style)
     assert result == expected
 
 
@@ -81,7 +81,7 @@ def test_format_dt_formats_time_equivalence(
 ) -> None:
     tm = random_time()
     today = datetime.datetime.now().date()
-    result_time = DiscordTime.from_datetime(tm).format_datetime(style=style)
+    result_time = DiscordTime.from_datetime(tm).format(style=style)
     dt = datetime.datetime.combine(today, tm)
-    result_dt = DiscordTime.from_datetime(dt).format_datetime(style=style)
+    result_dt = DiscordTime.from_datetime(dt).format(style=style)
     assert result_time == result_dt

@@ -202,9 +202,7 @@ class ScheduledEvent(Hashable):
         self.description: str | None = data.get("description", None)
         self._image: str | None = data.get("image", None)
         self.start_time: DiscordTime = DiscordTime.fromisoformat(data.get("scheduled_start_time"))
-        if end_time := data.get("scheduled_end_time", None):
-            end_time = DiscordTime.fromisoformat(end_time)
-        self.end_time: DiscordTime | None = end_time
+        self.end_time: DiscordTime | None = DiscordTime.parse_time(data.get("scheduled_end_time"))
         self.status: ScheduledEventStatus = try_enum(ScheduledEventStatus, data.get("status"))
         self.subscriber_count: int | None = data.get("user_count", None)
         self.creator_id: int | None = get_as_snowflake(data, "creator_id")

@@ -283,5 +283,5 @@ class ChannelPinsUpdate(Event):
 
         self = cls()
         self.channel = channel
-        self.last_pin = DiscordTime.parse_time(data["last_pin_timestamp"]) if data["last_pin_timestamp"] else None
+        self.last_pin = DiscordTime.parse_time(data["last_pin_timestamp"])
         return self
