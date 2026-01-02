@@ -21,11 +21,12 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
+from __future__ import annotations
 
 import datetime
 from typing import Literal
 
-from typing_extensions import Self, override
+from typing_extensions import Self, overload, override
 
 DISCORD_EPOCH = 1420070400000
 TimestampStyle = Literal["f", "F", "d", "D", "t", "T", "R"]
@@ -186,3 +187,31 @@ class DiscordTime(datetime.datetime):
         if style is None:
             return f"<t:{int(dt.timestamp())}>"
         return f"<t:{int(dt.timestamp())}:{style}>"
+
+    @overload
+    @classmethod
+    def parse_time(cls, timestamp: None) -> None:
+        ...
+
+    @overload
+    @classmethod
+    def parse_time(cls, timestamp: str) -> DiscordTime:
+        ...
+
+    @classmethod
+    def parse_time(cls, timestamp: str | None) -> DiscordTime | None:
+        """A helper function to convert an ISO 8601 timestamp to a discord datetime object.
+
+        Parameters
+        ----------
+        timestamp: Optional[:class:`str`]
+            The timestamp to convert.
+
+        Returns
+        -------
+        Optional[:class:`discord.DiscordTime`]
+            The converted datetime object.
+        """
+        if timestamp:
+            return DiscordTime.fromisoformat(timestamp)
+        return None

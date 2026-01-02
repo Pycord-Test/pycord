@@ -71,7 +71,7 @@ from ..sticker import GuildSticker
 from ..ui.modal import Modal
 from ..ui.view import View
 from ..user import ClientUser, User
-from ..utils.private import get_as_snowflake, parse_time, sane_wait_for
+from ..utils.private import get_as_snowflake, sane_wait_for
 from .cache import Cache
 from .event_emitter import EventEmitter
 

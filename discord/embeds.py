@@ -28,9 +28,8 @@ from __future__ import annotations
 import datetime
 from typing import TYPE_CHECKING, Any, Mapping, TypeVar
 
-from . import utils
 from .colour import Colour
-from .utils.private import parse_time
+from .datetime import DiscordTime
 
 __all__ = (
     "Embed",
@@ -438,7 +437,7 @@ class Embed:
             pass
 
         try:
-            self._timestamp = parse_time(data["timestamp"])
+            self._timestamp = DiscordTime.parse_time(data["timestamp"])
         except KeyError:
             pass
 

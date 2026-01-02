@@ -33,7 +33,7 @@ from .datetime import DiscordTime
 from .enums import ChannelType, InviteTarget, VerificationLevel, try_enum
 from .mixins import Hashable
 from .object import Object
-from .utils.private import get_as_snowflake, parse_time
+from .utils.private import get_as_snowflake
 
 __all__ = (
     "PartialInviteChannel",
@@ -277,7 +277,7 @@ class Invite(Hashable):
         The guild the invite is for. Can be ``None`` if it's from a group direct message.
     revoked: :class:`bool`
         Indicates if the invite has been revoked.
-    created_at: :class:`datetime.datetime`
+    created_at: :class:`discord.DiscordTime`
         An aware UTC datetime object denoting the time the invite was created.
     temporary: :class:`bool`
         Indicates that the invite grants temporary membership.
@@ -294,7 +294,7 @@ class Invite(Hashable):
     approximate_presence_count: Optional[:class:`int`]
         The approximate number of members currently active in the guild.
         This includes idle, dnd, online, and invisible members. Offline members are excluded.
-    expires_at: Optional[:class:`datetime.datetime`]
+    expires_at: Optional[:class:`discord.DiscordTime`]
         The expiration date of the invite. If the value is ``None`` when received through
         `Client.fetch_invite` with `with_expiration` enabled, the invite will never expire.
 
@@ -356,7 +356,7 @@ class Invite(Hashable):
         self.code: str = data["code"]
         self.guild: InviteGuildType | None = self._resolve_guild(data.get("guild"), guild)
         self.revoked: bool | None = data.get("revoked")
-        self.created_at: datetime.datetime | None = parse_time(data.get("created_at"))
+        self.created_at: DiscordTime | None = DiscordTime.parse_time(data.get("created_at"))
         self.temporary: bool | None = data.get("temporary")
         self.uses: int | None = data.get("uses")
         self.max_uses: int | None = data.get("max_uses")
@@ -364,7 +364,7 @@ class Invite(Hashable):
         self.approximate_member_count: int | None = data.get("approximate_member_count")
 
         expires_at = data.get("expires_at", None)
-        self.expires_at: datetime.datetime | None = parse_time(expires_at) if expires_at else None
+        self.expires_at: DiscordTime | None = DiscordTime.parse_time(expires_at) if expires_at else None
 
         inviter_data = data.get("inviter")
         self.inviter: User | None = None if inviter_data is None else self._state.create_user(inviter_data)

@@ -29,15 +29,14 @@ from typing import TYPE_CHECKING, Any
 
 from typing_extensions import Self
 
+from .datetime import DiscordTime
 from .guild import Guild
 from .utils import MISSING, Undefined
-from .utils.private import bytes_to_base64_data, parse_time
+from .utils.private import bytes_to_base64_data
 
 __all__ = ("Template",)
 
 if TYPE_CHECKING:
-    import datetime
-
     from .app.state import ConnectionState
     from .types.template import Template as TemplatePayload
     from .user import User
@@ -107,9 +106,9 @@ class Template:
         The description of the template.
     creator: :class:`User`
         The creator of the template.
-    created_at: :class:`datetime.datetime`
+    created_at: :class:`discord.DiscordTime`
         An aware datetime in UTC representing when the template was created.
-    updated_at: :class:`datetime.datetime`
+    updated_at: :class:`discord.DiscordTime`
         An aware datetime in UTC representing when the template was last updated.
         This is referred to as "last synced" in the official Discord client.
     source_guild: :class:`Guild`
@@ -145,8 +144,8 @@ class Template:
         creator_data = data.get("creator")
         self.creator: User | None = None if creator_data is None else self._state.create_user(creator_data)
 
-        self.created_at: datetime.datetime | None = parse_time(data.get("created_at"))
-        self.updated_at: datetime.datetime | None = parse_time(data.get("updated_at"))
+        self.created_at: DiscordTime | None = DiscordTime.parse_time(data.get("created_at"))
+        self.updated_at: DiscordTime | None = DiscordTime.parse_time(data.get("updated_at"))
 
         guild_id = int(data["source_guild_id"])
         guild: Guild | None = await self._state._get_guild(guild_id)

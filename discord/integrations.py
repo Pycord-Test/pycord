@@ -28,13 +28,13 @@ from __future__ import annotations
 import datetime
 from typing import TYPE_CHECKING, Any
 
-from discord import utils
+from discord import DiscordTime, utils
 
 from .enums import ExpireBehaviour, try_enum
 from .errors import InvalidArgument
 from .user import User
 from .utils import MISSING
-from .utils.private import get_as_snowflake, parse_time
+from .utils.private import get_as_snowflake
 
 __all__ = (
     "IntegrationAccount",
@@ -188,7 +188,7 @@ class StreamIntegration(Integration):
         The user for the integration.
     account: :class:`IntegrationAccount`
         The integration account information.
-    synced_at: :class:`datetime.datetime`
+    synced_at: :class:`discord.DiscordTime`
         An aware UTC datetime representing when the integration was last synced.
     """
 
@@ -208,7 +208,7 @@ class StreamIntegration(Integration):
         self.revoked: bool = data["revoked"]
         self.expire_behaviour: ExpireBehaviour = try_enum(ExpireBehaviour, data["expire_behavior"])
         self.expire_grace_period: int = data["expire_grace_period"]
-        self.synced_at: datetime.datetime = parse_time(data["synced_at"])
+        self.synced_at: DiscordTime = DiscordTime.parse_time(data["synced_at"])
         self._role_id: int | None = get_as_snowflake(data, "role_id")
         self.syncing: bool = data["syncing"]
         self.enable_emoticons: bool = data["enable_emoticons"]
@@ -289,7 +289,7 @@ class StreamIntegration(Integration):
             Syncing the integration failed.
         """
         await self._state.http.sync_integration(self.guild.id, self.id)
-        self.synced_at = datetime.datetime.now(datetime.timezone.utc)
+        self.synced_at = DiscordTime.now(datetime.timezone.utc)
 
 
 class IntegrationApplication:

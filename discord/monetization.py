@@ -27,12 +27,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from .datetime import DiscordTime
 from .enums import EntitlementType, SKUType, SubscriptionStatus, try_enum
 from .flags import SKUFlags
 from .iterators import SubscriptionIterator
 from .mixins import Hashable
 from .utils import MISSING
-from .utils.private import get_as_snowflake, parse_time
+from .utils.private import get_as_snowflake
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -196,9 +197,9 @@ class Entitlement(Hashable):
         The type of entitlement.
     deleted: :class:`bool`
         Whether the entitlement has been deleted.
-    starts_at: Union[:class:`datetime.datetime`, :class:`MISSING`]
+    starts_at: Union[:class:`discord.DiscordTime`, :class:`MISSING`]
         When the entitlement starts.
-    ends_at: Union[:class:`datetime.datetime`, :class:`MISSING`]
+    ends_at: Union[:class:`discord.DiscordTime`, :class:`MISSING`]
         When the entitlement expires.
     guild_id: Union[:class:`int`, :class:`MISSING`]
         The ID of the guild that owns this entitlement.
@@ -230,8 +231,8 @@ class Entitlement(Hashable):
         self.user_id: int | MISSING = get_as_snowflake(data, "user_id") or MISSING
         self.type: EntitlementType = try_enum(EntitlementType, data["type"])
         self.deleted: bool = data["deleted"]
-        self.starts_at: datetime | MISSING = parse_time(data.get("starts_at")) or MISSING
-        self.ends_at: datetime | MISSING | None = parse_time(ea) if (ea := data.get("ends_at")) is not None else MISSING
+        self.starts_at: DiscordTime | MISSING = DiscordTime.parse_time(data.get("starts_at")) or MISSING
+        self.ends_at: DiscordTime | MISSING | None = DiscordTime.parse_time(ea) if (ea := data.get("ends_at")) is not None else MISSING
         self.guild_id: int | MISSING = get_as_snowflake(data, "guild_id") or MISSING
         self.consumed: bool = data.get("consumed", False)
 
@@ -325,10 +326,10 @@ class Subscription(Hashable):
         self.sku_ids: list[int] = list(map(int, data["sku_ids"]))
         self.entitlement_ids: list[int] = list(map(int, data["entitlement_ids"]))
         self.renewal_sku_ids: list[int] = list(map(int, data["renewal_sku_ids"] or []))
-        self.current_period_start: datetime = parse_time(data["current_period_start"])
-        self.current_period_end: datetime = parse_time(data["current_period_end"])
+        self.current_period_start: DiscordTime = DiscordTime.parse_time(data["current_period_start"])
+        self.current_period_end: DiscordTime = DiscordTime.parse_time(data["current_period_end"])
         self.status: SubscriptionStatus = try_enum(SubscriptionStatus, data["status"])
-        self.canceled_at: datetime | None = parse_time(data.get("canceled_at"))
+        self.canceled_at: DiscordTime | None = DiscordTime.parse_time(data.get("canceled_at"))
         self.country: str | None = data.get("country")  # Not documented, it is only available with oauth2, not bots
 
     def __repr__(self) -> str:

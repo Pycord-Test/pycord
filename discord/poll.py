@@ -29,10 +29,10 @@ from functools import cached_property
 from typing import TYPE_CHECKING, Any
 
 from . import utils
+from .datetime import DiscordTime
 from .enums import PollLayoutType, try_enum
 from .iterators import VoteIterator
 from .partial_emoji import PartialEmoji
-from .utils.private import parse_time
 
 __all__ = (
     "PollMedia",
@@ -344,9 +344,9 @@ class Poll:
         self._message = None
 
     @cached_property
-    def expiry(self) -> datetime.datetime | None:
+    def expiry(self) -> DiscordTime | None:
         """An aware datetime object that specifies the date and time in UTC when the poll will end."""
-        return parse_time(self._expiry)
+        return DiscordTime.parse_time(self._expiry)
 
     def to_dict(self) -> PollPayload:
         dict_ = {

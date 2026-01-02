@@ -160,32 +160,6 @@ __all__ = (
 )
 
 
-@overload
-def parse_time(timestamp: None) -> None: ...
-
-
-@overload
-def parse_time(timestamp: str) -> datetime.datetime: ...
-
-
-def parse_time(timestamp: str | None) -> datetime.datetime | None:
-    """A helper function to convert an ISO 8601 timestamp to a datetime object.
-
-    Parameters
-    ----------
-    timestamp: Optional[:class:`str`]
-        The timestamp to convert.
-
-    Returns
-    -------
-    Optional[:class:`datetime.datetime`]
-        The converted datetime object.
-    """
-    if timestamp:
-        return datetime.datetime.fromisoformat(timestamp)
-    return None
-
-
 def warn_deprecated(
     name: str,
     instead: str | None = None,

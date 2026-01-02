@@ -5,7 +5,7 @@ release.
 
 ### Added
 
-- `discord.datetime.DiscordTime`, a `datetime.datetime` subclass that offers additional 
+- `discord.DiscordTime`, a `datetime.datetime` subclass that offers additional 
   functionality for snowflakes and util methods.
 
 ### Fixed

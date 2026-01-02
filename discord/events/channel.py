@@ -35,7 +35,9 @@ from discord.app.state import ConnectionState
 from discord.channel import GroupChannel, GuildChannel, _channel_factory
 from discord.channel.thread import Thread
 from discord.enums import ChannelType, try_enum
-from discord.utils.private import get_as_snowflake, parse_time
+from discord.utils.private import get_as_snowflake
+
+from ..datetime import DiscordTime
 
 T = TypeVar("T")
 
@@ -282,5 +284,5 @@ class ChannelPinsUpdate(Event):
 
         self = cls()
         self.channel = channel
-        self.last_pin = parse_time(data["last_pin_timestamp"]) if data["last_pin_timestamp"] else None
+        self.last_pin = DiscordTime.parse_time(data["last_pin_timestamp"]) if data["last_pin_timestamp"] else None
         return self

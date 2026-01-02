@@ -65,7 +65,7 @@ from .poll import Poll
 from .reaction import Reaction
 from .sticker import StickerItem
 from .utils import MISSING, escape_mentions
-from .utils.private import cached_slot_property, delay_task, get_as_snowflake, parse_time, warn_deprecated
+from .utils.private import cached_slot_property, delay_task, get_as_snowflake, warn_deprecated
 
 if TYPE_CHECKING:
     from .abc import (
@@ -695,7 +695,7 @@ class MessageCall:
     def __init__(self, state: ConnectionState, data: MessageCallPayload):
         self._state: ConnectionState = state
         self._participants: SnowflakeList = data.get("participants", [])
-        self._ended_timestamp: datetime.datetime | None = parse_time(data["ended_timestamp"])
+        self._ended_timestamp: DiscordTime | None = DiscordTime.parse_time(data["ended_timestamp"])
 
     async def get_participants(self) -> list[User | Object]:
         """A list of :class:`User` that participated in this call.
@@ -706,7 +706,7 @@ class MessageCall:
         return [await self._state.get_user(int(i)) or Object(i) for i in self._participants]
 
     @property
-    def ended_at(self) -> datetime.datetime | None:
+    def ended_at(self) -> DiscordTime | None:
         """An aware timestamp of when the call ended."""
         return self._ended_timestamp
 
@@ -770,7 +770,7 @@ class ForwardedMessage:
         self.flags: MessageFlags = MessageFlags._from_value(data.get("flags", 0))
         self.stickers: list[StickerItem] = [StickerItem(data=d, state=state) for d in data.get("sticker_items", [])]
         self.components: list[Component] = [_component_factory(d) for d in data.get("components", [])]
-        self._edited_timestamp: DiscordTime | None = parse_time(data["edited_timestamp"])
+        self._edited_timestamp: DiscordTime | None = DiscordTime.parse_time(data["edited_timestamp"])
 
     @property
     def created_at(self) -> DiscordTime:
@@ -1055,7 +1055,7 @@ class Message(Hashable):
         self.application = data.get("application")
         self.activity = data.get("activity")
         self.channel = channel
-        self._edited_timestamp = parse_time(data["edited_timestamp"])
+        self._edited_timestamp = DiscordTime.parse_time(data["edited_timestamp"])
         self.type = try_enum(MessageType, data["type"])
         self.pinned = data["pinned"]
         self.flags = MessageFlags._from_value(data.get("flags", 0))
