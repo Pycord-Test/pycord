@@ -535,14 +535,14 @@ class Embed:
     def timestamp(self) -> DiscordTime | None:
         if not getattr(self, "_timestamp", None):
             return None
-        return DiscordTime.from_datetime(self._timestamp)
+        return self._timestamp
 
     @timestamp.setter
     def timestamp(self, value: datetime.datetime | None):
         if isinstance(value, datetime.datetime):
             if value.tzinfo is None:
                 value = value.astimezone()
-            self._timestamp = value
+            self._timestamp = DiscordTime.from_datetime(value)
         elif value is None:
             self._timestamp = value
         else:
