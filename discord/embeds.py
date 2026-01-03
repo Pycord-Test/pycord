@@ -533,9 +533,7 @@ class Embed:
 
     @property
     def timestamp(self) -> DiscordTime | None:
-        if not getattr(self, "_timestamp", None):
-            return None
-        return self._timestamp
+        return getattr(self, "_timestamp", None)
 
     @timestamp.setter
     def timestamp(self, value: datetime.datetime | None):
