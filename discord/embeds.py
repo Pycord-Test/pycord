@@ -436,10 +436,10 @@ class Embed:
         except KeyError:
             pass
 
-        try:
-            self._timestamp = DiscordTime.parse_time(data["timestamp"])
-        except KeyError:
-            pass
+        if timestamp := data.get("timestamp"):
+            self._timestamp: DiscordTime | None = DiscordTime.parse_time(timestamp)
+        else:
+            self._timestamp = None
 
         for attr in (
             "thumbnail",
