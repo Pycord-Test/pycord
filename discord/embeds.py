@@ -379,8 +379,7 @@ class Embed:
         if self.url:
             self.url = str(self.url)
 
-        if timestamp:
-            self.timestamp = timestamp
+        self.timestamp: DiscordTime | None = DiscordTime.from_datetime(timestamp) if timestamp else None
 
         self._fields: list[EmbedField] = fields if fields is not None else []
 
@@ -533,7 +532,7 @@ class Embed:
 
     @property
     def timestamp(self) -> DiscordTime | None:
-        return getattr(self, "_timestamp", None)
+        return self._timestamp
 
     @timestamp.setter
     def timestamp(self, value: datetime.datetime | None):
