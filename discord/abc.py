@@ -293,7 +293,6 @@ class Messageable:
     - :class:`~discord.GroupChannel`
     - :class:`~discord.User`
     - :class:`~discord.Member`
-    - :class:`~discord.ext.commands.Context`
     - :class:`~discord.Thread`
     - :class:`~discord.ApplicationContext`
     """

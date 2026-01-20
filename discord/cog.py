@@ -53,9 +53,6 @@ from .commands import (
     _BaseCommand,
 )
 
-if TYPE_CHECKING:
-    from .ext.bridge import BridgeCommand
-
 
 __all__ = (
     "CogMeta",
@@ -73,12 +70,8 @@ def _is_submodule(parent: str, child: str) -> bool:
     return parent == child or child.startswith(f"{parent}.")
 
 
-def _is_bridge_command(command: Any) -> TypeGuard[BridgeCommand]:
-    return getattr(command, "__bridge__", False)
-
-
 def _name_filter(c: Any) -> str:
-    return "app" if isinstance(c, ApplicationCommand) else ("bridge" if not _is_bridge_command(c) else "ext")
+    return "app" if isinstance(c, ApplicationCommand) else "ext"
 
 
 def _validate_name_prefix(base_class: type, name: str) -> None:
@@ -89,7 +82,7 @@ def _validate_name_prefix(base_class: type, name: str) -> None:
 def _process_attributes(
     base: type,
 ) -> tuple[dict[str, Any], dict[str, Any]]:  # pyright: ignore[reportExplicitAny]
-    commands: dict[str, _BaseCommand | BridgeCommand] = {}
+    commands: dict[str, _BaseCommand] = {}
     listeners: dict[str, Callable[..., Any]] = {}
 
     for attr_name, attr_value in base.__dict__.items():
@@ -112,7 +105,7 @@ def _process_attributes(
             listeners[attr_name] = attr_value
             continue
 
-        if isinstance(attr_value, _BaseCommand) or _is_bridge_command(attr_value):
+        if isinstance(attr_value, _BaseCommand):
             if is_static_method:
                 raise TypeError(f"Command in method {base}.{attr_name!r} must not be staticmethod.")
             _validate_name_prefix(base, attr_name)
@@ -120,46 +113,32 @@ def _process_attributes(
         if isinstance(attr_value, _BaseCommand):
             commands[attr_name] = attr_value
 
-        if _is_bridge_command(attr_value) and not attr_value.parent:
-            commands[f"ext_{attr_name}"] = attr_value.ext_variant
-            commands[f"app_{attr_name}"] = attr_value.slash_variant
-            commands[attr_name] = attr_value
-            for cmd in getattr(attr_value, "subcommands", []):
-                commands[f"ext_{cmd.ext_variant.qualified_name}"] = cmd.ext_variant
-
     return commands, listeners
 
 
 def _update_command(
-    command: _BaseCommand | BridgeCommand,
+    command: _BaseCommand,
     guild_ids: list[int],
-    lookup_table: dict[str, _BaseCommand | BridgeCommand],
+    lookup_table: dict[str, _BaseCommand],
     new_cls: type[Cog],
 ) -> None:
     if isinstance(command, ApplicationCommand) and not command.guild_ids and guild_ids:
         command.guild_ids = guild_ids
 
-    if not isinstance(command, SlashCommandGroup) and not _is_bridge_command(command):
-        # ignore bridge commands
-        cmd: BridgeCommand | _BaseCommand | None = getattr(
+    if not isinstance(command, SlashCommandGroup):
+        cmd: _BaseCommand | None = getattr(
             new_cls,
             command.callback.__name__,
             None,  # pyright: ignore[reportUnknownMemberType,reportUnknownArgumentType,reportAttributeAccessIssue]
         )
-        if _is_bridge_command(cmd):
-            setattr(
-                cmd,
-                f"{_name_filter(command).replace('app', 'slash')}_variant",
-                command,
-            )
-        else:
-            setattr(
-                new_cls,
-                command.callback.__name__,
-                command,  # pyright: ignore [reportAttributeAccessIssue, reportUnknownArgumentType, reportUnknownMemberType]
-            )
 
-        parent: BridgeCommand | _BaseCommand | None = (  # pyright: ignore [reportUnknownMemberType, reportUnknownVariableType]
+        setattr(
+            new_cls,
+            command.callback.__name__,
+            command,  # pyright: ignore [reportAttributeAccessIssue, reportUnknownArgumentType, reportUnknownMemberType]
+        )
+
+        parent: _BaseCommand | None = (  # pyright: ignore [reportUnknownMemberType, reportUnknownVariableType]
             command.parent  # pyright: ignore [reportAttributeAccessIssue]
         )
         if parent is not None:
@@ -242,7 +221,7 @@ class CogMeta(type):
 
     __cog_name__: str
     __cog_settings__: dict[str, Any]
-    __cog_commands__: list[_BaseCommand | BridgeCommand]
+    __cog_commands__: list[_BaseCommand]
     __cog_listeners__: list[tuple[str, str]]
     __cog_guild_ids__: list[int]
 
@@ -257,7 +236,7 @@ class CogMeta(type):
             description = inspect.cleandoc(attrs.get("__doc__", ""))
         attrs["__cog_description__"] = description
 
-        commands: dict[str, _BaseCommand | BridgeCommand] = {}
+        commands: dict[str, _BaseCommand] = {}
         listeners: dict[str, Callable[..., Any]] = {}
 
         new_cls = super().__new__(cls, name, bases, attrs, **kwargs)
@@ -280,7 +259,7 @@ class CogMeta(type):
         # Either update the command with the cog provided defaults or copy it.
         # r.e type ignore, type-checker complains about overriding a ClassVar
         new_cls.__cog_commands__ = [
-            c._update_copy(cmd_attrs) if not _is_bridge_command(c) else c for c in new_cls.__cog_commands__
+            c._update_copy(cmd_attrs)
         ]  # type: ignore
 
         lookup = {f"{_name_filter(cmd)}_{cmd.qualified_name}": cmd for cmd in new_cls.__cog_commands__}
@@ -545,10 +524,6 @@ class Cog(metaclass=CogMeta):
         # we've added so far for some form of atomic loading.
 
         for index, command in enumerate(self.__cog_commands__):
-            if _is_bridge_command(command):
-                bot.bridge_commands.append(command)
-                continue
-
             command._set_cog(self)
 
             if isinstance(command, ApplicationCommand):
@@ -590,10 +565,7 @@ class Cog(metaclass=CogMeta):
 
         try:
             for command in self.__cog_commands__:
-                if _is_bridge_command(command):
-                    bot.bridge_commands.remove(command)
-                    continue
-                elif isinstance(command, ApplicationCommand):
+                if isinstance(command, ApplicationCommand):
                     bot.remove_application_command(command)
                 elif command.parent is None:
                     bot.remove_command(command.name)

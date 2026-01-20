@@ -176,9 +176,6 @@ class ApplicationCommandMixin(ABC):
     def get_command(self):
         """Shortcut for :meth:`.get_application_command`.
 
-        .. note::
-            Overridden in :class:`ext.commands.Bot`.
-
         .. versionadded:: 2.0
         """
         # TODO: Do something like we did in self.commands for this
@@ -909,10 +906,6 @@ class ApplicationCommandMixin(ABC):
 
     def command(self, **kwargs):
         """An alias for :meth:`application_command`.
-
-        .. note::
-
-            This decorator is overridden by :class:`discord.ext.commands.Bot`.
 
         .. versionadded:: 2.0
 

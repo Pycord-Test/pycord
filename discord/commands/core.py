@@ -100,7 +100,6 @@ if TYPE_CHECKING:
 
     from .. import Permissions
     from ..cog import Cog
-    from ..ext.commands.cooldowns import CooldownMapping, MaxConcurrency
 
 T = TypeVar("T")
 CogT = TypeVar("CogT", bound="Cog")
