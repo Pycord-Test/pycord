@@ -118,6 +118,8 @@ class Ready(Event):
 
         await state.emitter.emit("CACHE_APP_EMOJIS", None)
 
+        state.ready.set()
+
         return self
 
 
