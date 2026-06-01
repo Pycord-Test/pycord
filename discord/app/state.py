@@ -32,17 +32,8 @@ import itertools
 import logging
 import os
 from collections import OrderedDict, deque
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Coroutine,
-    Deque,
-    Sequence,
-    TypeVar,
-    Union,
-    cast,
-)
+from typing import (TYPE_CHECKING, Any, Callable, Coroutine, Deque, Sequence,
+                    TypeVar, Union, cast)
 
 from discord.soundboard import SoundboardSound
 
@@ -167,7 +158,6 @@ class ConnectionState:
         self,
         *,
         cache: Cache,
-        handlers: dict[str, Callable],
         hooks: dict[str, Callable],
         http: HTTPClient,
         loop: asyncio.AbstractEventLoop,
@@ -179,7 +169,6 @@ class ConnectionState:
         if self.max_messages is not None and self.max_messages <= 0:
             self.max_messages = 1000
 
-        self.handlers: dict[str, Callable] = handlers
         self.hooks: dict[str, Callable] = hooks
         self.shard_count: int | None = None
         self._ready_task: asyncio.Task | None = None
@@ -249,6 +238,8 @@ class ConnectionState:
         self.cache: Cache = cache
         self.cache._state = self
 
+        self.ready = asyncio.Event()
+
     async def clear(self, *, views: bool = True) -> None:
         self.user: ClientUser | None = None
         await self.cache.clear()
@@ -267,14 +258,6 @@ class ConnectionState:
 
         for key in removed:
             del self._chunk_requests[key]
-
-    def call_handlers(self, key: str, *args: Any, **kwargs: Any) -> None:
-        try:
-            func = self.handlers[key]
-        except KeyError:
-            pass
-        else:
-            func(*args, **kwargs)
 
     async def call_hooks(self, key: str, *args: Any, **kwargs: Any) -> None:
         try:
@@ -723,7 +706,6 @@ class AutoShardedConnectionState(ConnectionState):
         self._ready_task = None
 
         # dispatch the event
-        self.call_handlers("ready")
         self.dispatch("ready")
 
     def parse_ready(self, data) -> None:

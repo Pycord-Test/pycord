@@ -262,8 +262,6 @@ class Client:
             loop=self.loop,
         )
 
-        self._handlers: dict[str, Callable] = {"ready": self._handle_ready}
-
         self._hooks: dict[str, Callable] = {"before_identify": self._call_before_identify_hook}
 
         self._enable_debug_events: bool = options.pop("enable_debug_events", False)
@@ -277,7 +275,7 @@ class Client:
         )
         self._connection.shard_count = self.shard_count
         self._closed: bool = False
-        self._ready: asyncio.Event = asyncio.Event()
+        self._ready: asyncio.Event = self._connection.ready
         self._connection._get_websocket = self._get_websocket
         self._connection._get_client = lambda: self
         self._event_handlers: dict[str, list[Coro]] = {}
@@ -355,9 +353,6 @@ class Client:
 
     def _get_websocket(self, guild_id: int | None = None, *, shard_id: int | None = None) -> DiscordWebSocket:
         return self.ws
-
-    def _handle_ready(self) -> None:
-        self._ready.set()
 
     @property
     def latency(self) -> float:
@@ -775,7 +770,7 @@ class Client:
 
     def run(self, *args: Any, **kwargs: Any) -> None:
         """A blocking call that abstracts away the event loop
-        initialisation from you.
+        initialization from you.
 
         If you want more control over the event loop then this
         function should not be used. Use :meth:`start` coroutine
