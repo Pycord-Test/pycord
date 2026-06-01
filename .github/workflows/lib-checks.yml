@@ -2,14 +2,6 @@ name: "Library Checks"
 
 on:
   push:
-    paths:
-      - "discord/**"
-      - "examples/**"
-      - "scripts/**"
-      - "tests/**"
-      - "*.toml"
-      - "*.py"
-      - ".*"
     branches: [master]
   pull_request:
   workflow_dispatch:
