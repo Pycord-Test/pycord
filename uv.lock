@@ -1427,7 +1427,7 @@ docs = [
     { name = "sphinx-autodoc-typehints", marker = "python_full_version >= '3.11' and python_full_version < '3.14'", specifier = "==2.5.0" },
     { name = "sphinx-copybutton", marker = "python_full_version >= '3.11' and python_full_version < '3.14'", specifier = "==0.5.2" },
     { name = "sphinx-intl", marker = "python_full_version >= '3.11' and python_full_version < '3.14'", specifier = "==2.3.2" },
-    { name = "sphinxcontrib-trio", marker = "python_full_version >= '3.11' and python_full_version < '3.14'", specifier = "==1.1.2" },
+    { name = "sphinxcontrib-trio", marker = "python_full_version >= '3.11' and python_full_version < '3.14'", specifier = "==1.2.0" },
     { name = "sphinxcontrib-websupport", marker = "python_full_version >= '3.11' and python_full_version < '3.14'", specifier = "==2.0.0" },
     { name = "sphinxext-opengraph", marker = "python_full_version >= '3.11' and python_full_version < '3.14'", specifier = "==0.13.0" },
     { name = "typing-extensions", marker = "python_full_version >= '3.11' and python_full_version < '3.14'", specifier = "==4.15.0" },
@@ -1949,14 +1949,14 @@ wheels = [
 
 [[package]]
 name = "sphinxcontrib-trio"
-version = "1.1.2"
+version = "1.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "sphinx" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ca/33/ee48d86e30bb3c5d72a47f49b1ebf5c23dd253b04d8d5fc3e6c68407a03e/sphinxcontrib-trio-1.1.2.tar.gz", hash = "sha256:9f1ba9c1d5965b534e85258d8b677dd94e9b1a9a2e918b85ccd42590596b47c0", size = 24131, upload-time = "2020-05-04T16:44:36.514Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c5/bf/1755b0e16c08d58a9224306f847ae1ba6ddd53d6b0628200f35d3ed21a4b/sphinxcontrib_trio-1.2.0.tar.gz", hash = "sha256:c3b2866bbf10993d10168eaaf54329ce8828b71263ebb06d2f1f02bae67c0bcd", size = 25473, upload-time = "2026-01-29T07:35:28.161Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a7/4d/6e1598531046c272730501337d5303ce3958387a4fde1da8875580f5c41b/sphinxcontrib_trio-1.1.2-py3-none-any.whl", hash = "sha256:1b849be08a147ef4113e35c191a51c5792613a9a54697b497cd91656d906a232", size = 12185, upload-time = "2020-05-04T16:44:35.184Z" },
+    { url = "https://files.pythonhosted.org/packages/9a/c7/2c36a1e4e41fe2359097486e7bbb3d96ac72873955777c9ba29bb26f96a1/sphinxcontrib_trio-1.2.0-py3-none-any.whl", hash = "sha256:46d69e06c5145f814ce43a8946212547bf6ba8605319dd422c393d63f6ad39f7", size = 12116, upload-time = "2026-01-29T07:35:27.281Z" },
 ]
 
 [[package]]
