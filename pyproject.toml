@@ -67,7 +67,7 @@ docs = [
     "typing-extensions==4.15.0",
 ]
 dev = [
-    "codespell==2.4.1",
+    "codespell==2.4.3",
     "coverage~=7.8",
     "python-dotenv>=1.1.1",
     "ruff>=0.12.12",
