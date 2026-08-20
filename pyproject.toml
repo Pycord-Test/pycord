@@ -55,7 +55,7 @@ speed = [
 [dependency-groups]
 docs = [
     "furo==2025.12.19",
-    "levenshtein==0.27.3",
+    "levenshtein==0.27.4",
     "myst-parser[linkify]==5.1.0",
     "sphinx==8.2.3",
     "sphinx-autodoc-typehints==2.5.0",
