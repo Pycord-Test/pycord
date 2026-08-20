@@ -49,7 +49,7 @@ voice = [
 ]
 speed = [
     "aiohttp[speedups]>=3.11.18",
-    "msgspec~=0.20.0",
+    "msgspec~=0.21.1",
 ]
 
 [dependency-groups]
